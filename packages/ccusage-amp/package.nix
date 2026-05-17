@@ -9,11 +9,11 @@
 
 stdenv.mkDerivation rec {
   pname = "ccusage-amp";
-  version = "18.0.11";
+  version = "19.0.0";
 
   src = fetchzip {
     url = "https://registry.npmjs.org/@ccusage/amp/-/amp-${version}.tgz";
-    hash = "sha256-r4IdTOcq4eIRZpXT1VZ54lNAct6j8P9PC8hdiCkg21E=";
+    hash = "sha256-iji8JpIADwtxx/zi+jKmtchPl/OJKMnEUFeTdVp7HL4=";
   };
 
   installPhase = ''
