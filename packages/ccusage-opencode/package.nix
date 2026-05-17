@@ -9,11 +9,11 @@
 
 stdenv.mkDerivation rec {
   pname = "ccusage-opencode";
-  version = "18.0.11";
+  version = "19.0.0";
 
   src = fetchzip {
     url = "https://registry.npmjs.org/@ccusage/opencode/-/opencode-${version}.tgz";
-    hash = "sha256-SdiaZiz24oKzuIRQi0RNFouubX/Fag1VTlSWyypzoFU=";
+    hash = "sha256-cWjt7SHXbmnoXEHq+jZL+gLhhuZjcADMDuNYPwmd64w=";
   };
 
   installPhase = ''
