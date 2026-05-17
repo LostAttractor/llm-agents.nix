@@ -21,10 +21,7 @@ stdenv.mkDerivation rec {
 
     mkdir -p $out/bin
 
-    cp -r dist/* $out/bin/
-
-    chmod +x $out/bin/index.js
-    mv $out/bin/index.js $out/bin/ccusage-opencode
+    install -Dm755 index.js $out/bin/ccusage-opencode
 
     substituteInPlace $out/bin/ccusage-opencode \
       --replace-fail "#!/usr/bin/env node" "#!${nodejs}/bin/node"
