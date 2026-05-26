@@ -14,7 +14,7 @@ let
   platform = stdenv.hostPlatform.system;
 in
 stdenv.mkDerivation {
-  pname = "antigravity";
+  pname = "antigravity-cli";
   inherit version;
 
   src = fetchurl {
