@@ -444,6 +444,16 @@ Nix packages for AI coding agents and development tools. Automatically updated d
 
 </details>
 <details>
+<summary><strong>vessel-browser</strong> - Agent-oriented browser with durable state and MCP control</summary>
+
+- **Source**: binary
+- **License**: MIT
+- **Homepage**: https://github.com/unmodeled-tyler/vessel-browser
+- **Usage**: `nix run github:numtide/llm-agents.nix#vessel-browser -- --help`
+- **Nix**: [packages/vessel-browser/package.nix](packages/vessel-browser/package.nix)
+
+</details>
+<details>
 <summary><strong>zeroclaw</strong> - Fast, small, and fully autonomous AI assistant infrastructure</summary>
 
 - **Source**: source
