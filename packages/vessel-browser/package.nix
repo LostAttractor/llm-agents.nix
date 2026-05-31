@@ -1,146 +1,113 @@
 {
   lib,
   flake,
-  stdenv,
-  fetchurl,
-  appimageTools,
-  autoPatchelfHook,
+  buildNpmPackage,
+  fetchFromGitHub,
+  electron_42,
+  copyDesktopItems,
+  makeDesktopItem,
   makeWrapper,
-  alsa-lib,
-  at-spi2-atk,
-  at-spi2-core,
-  atk,
-  cairo,
-  cups,
-  dbus,
-  dbus-glib,
-  expat,
-  glib,
-  gsettings-desktop-schemas,
-  hicolor-icon-theme,
-  gtk2,
-  gtk3,
-  libgbm,
-  libglvnd,
-  libdbusmenu,
-  libdbusmenu-gtk2,
-  libX11,
-  libxcb,
-  libXcomposite,
-  libXdamage,
-  libXext,
-  libXfixes,
-  libxkbcommon,
-  libXrandr,
-  nspr,
-  nss,
-  pango,
-  udev,
 }:
 
-let
+buildNpmPackage rec {
+  npmDepsFetcherVersion = 2;
   pname = "vessel-browser";
   version = "0.1.115";
 
-  src = fetchurl {
-    url = "https://github.com/unmodeled-tyler/vessel-browser/releases/download/v${version}/Vessel-${version}-x86_64.AppImage";
-    hash = "sha256-PYeWiQeBuVHCw068+zIuVqRVczkARCP3stSRf6I3ePA=";
+  src = fetchFromGitHub {
+    owner = "unmodeled-tyler";
+    repo = "vessel-browser";
+    tag = "v${version}";
+    hash = "sha256-HeWwilN54GxMzO8wPoSfeFK59DU254obFgMkqGfT14I=";
   };
 
-  appimageContents = appimageTools.extractType2 {
-    inherit pname version src;
-  };
-in
-stdenv.mkDerivation {
-  inherit pname version src;
+  npmDepsHash = "sha256-A6TDtxW8rlqcE4QoOQ9S7pcl6eBfw/7KL5lfGBhDtiE=";
 
   nativeBuildInputs = [
-    autoPatchelfHook
+    copyDesktopItems
     makeWrapper
   ];
 
-  buildInputs = [
-    alsa-lib
-    at-spi2-atk
-    at-spi2-core
-    atk
-    cairo
-    cups
-    dbus
-    dbus-glib
-    expat
-    glib
-    gsettings-desktop-schemas
-    hicolor-icon-theme
-    gtk2
-    gtk3
-    libgbm
-    libglvnd
-    libdbusmenu
-    libdbusmenu-gtk2
-    libX11
-    libxcb
-    libXcomposite
-    libXdamage
-    libXext
-    libXfixes
-    libxkbcommon
-    libXrandr
-    nspr
-    nss
-    pango
-    stdenv.cc.cc.lib
-    udev
-  ];
+  env.ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
 
-  runtimeDependencies = [
-    libgbm
-    libglvnd
-  ];
+  npmFlags = [ "--ignore-scripts" ];
 
-  dontUnpack = true;
+  preBuild = ''
+    # Ensure our electron major version matches what upstream expects.
+    # This will fail loudly on version bumps instead of silently diverging.
+    upstream_electron=$(node -p "require('./package.json').devDependencies.electron")
+    upstream_major=''${upstream_electron#^}
+    upstream_major=''${upstream_major%%.*}
+    nix_major=${lib.versions.major electron_42.version}
+    if [[ "$upstream_major" != "$nix_major" ]]; then
+      echo "error: upstream expects electron $upstream_electron (major $upstream_major), but we provide electron ${electron_42.version} (major $nix_major)"
+      echo "Update the electron_42 input in package.nix to match."
+      exit 1
+    fi
+
+    # Upstream's release CI stamps the tag version into package.json
+    # (the repo keeps a 0.1.0 placeholder), so app.getVersion() and the
+    # in-app update check report the real version.
+    npm pkg set version="${version}"
+  '';
 
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/lib/vessel-browser $out/bin $out/share/applications $out/share/icons/hicolor/512x512/apps
-    cp -R ${appimageContents}/. $out/lib/vessel-browser/
-    chmod -R u+w $out/lib/vessel-browser
+    mkdir -p $out/share/vessel-browser
+    cp -r out package.json $out/share/vessel-browser/
 
-    makeWrapper $out/lib/vessel-browser/vessel $out/bin/vessel-browser \
-      --chdir $out/lib/vessel-browser \
-      --prefix LD_LIBRARY_PATH : ${
-        lib.makeLibraryPath [
-          libgbm
-          libglvnd
-        ]
-      } \
-      --set GSETTINGS_SCHEMA_DIR ${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}/glib-2.0/schemas \
-      --prefix XDG_DATA_DIRS : ${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}:${gtk3}/share/gsettings-schemas/${gtk3.name}:${hicolor-icon-theme}/share:$out/share \
-      --add-flags --no-sandbox \
-      --add-flags --disable-gpu-sandbox
+    # The main process resolves the window icon relative to app.getAppPath().
+    install -Dm644 resources/vessel-icon.png $out/share/vessel-browser/resources/vessel-icon.png
+    install -Dm644 resources/vessel-icon.png $out/share/pixmaps/vessel-browser.png
 
-    install -Dm644 $out/lib/vessel-browser/vessel.png \
-      $out/share/icons/hicolor/512x512/apps/vessel-browser.png
-    install -Dm644 $out/lib/vessel-browser/vessel.desktop \
-      $out/share/applications/vessel-browser.desktop
-    substituteInPlace $out/share/applications/vessel-browser.desktop \
-      --replace-fail 'Exec=AppRun' 'Exec=vessel-browser' \
-      --replace-fail 'Icon=vessel' 'Icon=vessel-browser'
+    # electron-vite externalizes production dependencies (MCP SDK, AI SDKs,
+    # ...), so they must be shipped in node_modules next to the bundle.
+    npm prune --omit=dev
+    # npm prune leaves behind empty scope directories of removed dev deps
+    find node_modules -type d -empty -delete
+    cp -r node_modules $out/share/vessel-browser/
+
+    makeWrapper ${lib.getExe electron_42} $out/bin/vessel-browser \
+      --add-flags $out/share/vessel-browser \
+      --set-default ELECTRON_FORCE_IS_PACKAGED 1
 
     runHook postInstall
   '';
 
+  desktopItems = [
+    (makeDesktopItem {
+      name = "vessel-browser";
+      desktopName = "Vessel Browser";
+      comment = "AI-native web browser for autonomous agents with human supervision";
+      exec = "vessel-browser %U";
+      icon = "vessel-browser";
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
+      mimeTypes = [
+        "text/html"
+        "x-scheme-handler/http"
+        "x-scheme-handler/https"
+      ];
+      startupWMClass = "Vessel";
+    })
+  ];
+
   passthru.category = "AI Assistants";
 
-  meta = with lib; {
+  meta = {
     description = "Agent-oriented browser with durable state and MCP control";
     homepage = "https://github.com/unmodeled-tyler/vessel-browser";
     changelog = "https://github.com/unmodeled-tyler/vessel-browser/releases/tag/v${version}";
-    license = licenses.mit;
-    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
+    license = lib.licenses.mit;
+    sourceProvenance = with lib.sourceTypes; [ fromSource ];
     maintainers = with flake.lib.maintainers; [ smdex ];
-    platforms = [ "x86_64-linux" ];
     mainProgram = "vessel-browser";
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
   };
 }

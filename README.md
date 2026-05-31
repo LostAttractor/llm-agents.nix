@@ -446,7 +446,7 @@ Nix packages for AI coding agents and development tools. Automatically updated d
 <details>
 <summary><strong>vessel-browser</strong> - Agent-oriented browser with durable state and MCP control</summary>
 
-- **Source**: binary
+- **Source**: source
 - **License**: MIT
 - **Homepage**: https://github.com/unmodeled-tyler/vessel-browser
 - **Usage**: `nix run github:numtide/llm-agents.nix#vessel-browser -- --help`
