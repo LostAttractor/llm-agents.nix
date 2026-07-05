@@ -1,16 +1,10 @@
 name: Lint package definitions
 on:
   pull_request:
-    paths:
-      - 'packages/**'
-      - 'rules/**'
-      - 'sgconfig.yml'
-      - 'checks/ast-grep.nix'
-      - '.github/workflows/lint.yml'
 permissions:
   contents: read
 jobs:
-  ast-grep:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
