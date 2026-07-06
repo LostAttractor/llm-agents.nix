@@ -11,20 +11,20 @@
 }:
 
 let
-  version = "0.6.138";
+  version = "0.6.140";
 
   src = fetchFromGitHub {
     owner = "just-every";
     repo = "code";
     tag = "v${version}";
-    hash = "sha256-p+rJDitGuxuubyoZ4dmZMHjb+Bd4Y+NgShdYlH5GZK8=";
+    hash = "sha256-M4W554rT7krW4Gj5UGFuDBtFpuNeOFiPzCfWt8F+ZIE=";
   };
 in
 rustPlatform.buildRustPackage {
   pname = "code";
   inherit version src;
 
-  cargoHash = "sha256-bgvPKxDD0V+pIbMstjoDd04OFDuiL6SXlzrsZFtqZuI=";
+  cargoHash = "sha256-13c3cGUsSNWN1uEzx/0ZO1Y1Ow0riA4efcWO+n3ZZao=";
 
   sourceRoot = "source/code-rs";
 
