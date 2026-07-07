@@ -1,0 +1,2 @@
+--version-regex
+^chrome-devtools-mcp-v([0-9.]+)$

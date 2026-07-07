@@ -1146,6 +1146,17 @@ Nix packages for AI coding agents and development tools. Automatically updated d
 
 </details>
 <details>
+<summary><strong>chrome-devtools-mcp</strong> - MCP server that lets coding agents debug web pages in a live Chrome browser via Chrome DevTools</summary>
+
+- **Source**: source
+- **License**: Apache-2.0
+- **Homepage**: https://github.com/ChromeDevTools/chrome-devtools-mcp
+- **Usage**: `nix run github:numtide/llm-agents.nix#chrome-devtools-mcp -- --help`
+- **Nix**: [packages/chrome-devtools-mcp/package.nix](packages/chrome-devtools-mcp/package.nix)
+- **Documentation**: See [packages/chrome-devtools-mcp/README.md](packages/chrome-devtools-mcp/README.md) for detailed usage
+
+</details>
+<details>
 <summary><strong>cli-proxy-api</strong> - Unified proxy providing OpenAI/Gemini/Claude/Codex compatible APIs for AI coding CLI tools</summary>
 
 - **Source**: source

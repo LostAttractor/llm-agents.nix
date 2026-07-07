@@ -152,6 +152,11 @@ inputs.nixpkgs.lib.extend (
         githubId = 13460388;
         name = "Hobr";
       };
+      aldoborrero = {
+        github = "aldoborrero";
+        githubId = 82811;
+        name = "Aldo Borrero";
+      };
     };
   }
 )
