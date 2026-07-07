@@ -3,6 +3,7 @@
   flake,
   buildNpmPackage,
   fetchFromGitHub,
+  makeWrapper,
   nodejs,
   versionCheckHook,
   versionCheckHomeHook,
@@ -40,6 +41,18 @@ buildNpmPackage rec {
   # `bundle` runs tsc + rollup to produce the self-contained build/ output
   # with all runtime dependencies vendored into build/src/third_party.
   npmBuildScript = "bundle";
+
+  nativeBuildInputs = [ makeWrapper ];
+
+  # Opt out of upstream's telemetry by default: usage statistics sent to
+  # Google and performance-trace URLs sent to the CrUX API. Both flags stay
+  # overridable (yargs is last-wins), e.g. `--usage-statistics` re-enables it.
+  # Only the chrome-devtools-mcp server accepts these; the chrome-devtools
+  # CLI does not, so it is left unwrapped.
+  postInstall = ''
+    wrapProgram $out/bin/chrome-devtools-mcp \
+      --add-flags "--no-usage-statistics --no-performance-crux"
+  '';
 
   doInstallCheck = true;
   nativeInstallCheckInputs = [

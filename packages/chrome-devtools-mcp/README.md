@@ -37,6 +37,14 @@ Point it at a Nix-provided browser instead. Any of these work:
 Add `chromium` (or `google-chrome`) to your own configuration so the binary is
 available; this package intentionally leaves that choice to you.
 
+## Telemetry
+
+This package disables upstream's telemetry by default — it wraps the server
+with `--no-usage-statistics` (usage data sent to Google) and
+`--no-performance-crux` (performance-trace URLs sent to the CrUX API). Both
+stay overridable: pass `--usage-statistics` or `--performance-crux` to
+re-enable them.
+
 ## MCP client configuration
 
 Configure your agent to launch the server over stdio, supplying the browser
