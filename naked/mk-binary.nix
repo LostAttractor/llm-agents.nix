@@ -41,7 +41,7 @@ let
     inherit src;
     busybox = seed.busybox;
     glibc = pinned.glibc;
-    patchelf = pinned.patchelf;
+    formatelf = pinned.formatelf;
     inherit libpath;
     loader = "${pinned.glibc}/lib/ld-linux-x86-64.so.2";
     unpackKind = unpack;
@@ -62,8 +62,8 @@ let
 
     # helper: patchelf a binary iff it is dynamic (has an interpreter)
     fixelf() {
-      if "$patchelf/bin/patchelf" --print-interpreter "$1" >/dev/null 2>&1; then
-        "$patchelf/bin/patchelf" --set-interpreter "$loader" --set-rpath "$libpath" "$1"
+      if "$formatelf/bin/formatelf" --print-interpreter "$1" >/dev/null 2>&1; then
+        "$formatelf/bin/formatelf" --set-interpreter "$loader" --set-rpath "$libpath" "$1"
       fi
     }
 

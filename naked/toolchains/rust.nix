@@ -30,7 +30,7 @@ mkNaked {
     ruststd = comp "rust-std" "sha256-XMozMPcT+nJ521OEiQwmZTXQeahc39GlLmnFXykducQ=";
     inherit muslStd;
     glibc = pinned.glibc;
-    patchelf = pinned.patchelf;
+    formatelf = pinned.formatelf;
     gccLib = pinned.gccLib;
     zlib = pinned.zlib;
     zstd = pinned.zstd;
@@ -49,11 +49,17 @@ mkNaked {
     chmod -R u+w "$out"
 
     RPATH="$out/lib:$glibc/lib:$gccLib/lib:$zlib/lib:$zstd/lib"
+    # --force-rpath writes DT_RPATH (not DT_RUNPATH), which the loader searches
+    # *transitively* for the whole process. So rustc's rpath also resolves the
+    # deps of librustc_driver/libLLVM/libstd, and we only need to strip the
+    # stale DT_RUNPATH from those .so's (a shrink - avoids formatelf's inability
+    # to grow a section on libLLVM).
     for exe in "$out/bin/rustc" "$out/bin/cargo"; do
-      "$patchelf/bin/patchelf" --set-interpreter "$glibc/lib/ld-linux-x86-64.so.2" --set-rpath "$RPATH" "$exe"
+      "$formatelf/bin/formatelf" --set-interpreter "$glibc/lib/ld-linux-x86-64.so.2" --force-rpath --set-rpath "$RPATH" "$exe"
     done
     for so in $(find "$out/lib" -name '*.so*' -type f); do
-      "$patchelf/bin/patchelf" --set-rpath "$RPATH" "$so" || true
+      [ "$(head -c4 "$so" | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
+      "$formatelf/bin/formatelf" --remove-rpath "$so" || true
     done
 
     "$out/bin/rustc" --version > "$out/rustc-version.txt"

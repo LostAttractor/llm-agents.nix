@@ -45,7 +45,7 @@ nixpkgs.
 `autoPatchelfHook` + `makeWrapper`: fetch a prebuilt release artifact, unpack
 (none/zip/tar), make it runnable, wrap it. Two kinds:
 
-- **patchelf** — a normal dynamic ELF: rewrite interpreter/rpath to the pinned
+- **patchelf** — a normal dynamic ELF: rewrite interpreter/rpath (via formatelf) to the pinned
   glibc (+ extra libs).
 - **loader** — a `bun --compile` binary: patchelf would shift its appended
   runtime payload and segfault it, so leave it byte-intact and invoke the
@@ -110,7 +110,7 @@ toolchain builds or rebuilding glibc (= stdenv).
   bun-package / `buildRustPackage` equivalents). This proves the *base*; the
   packages still need porting onto it to actually shed `mkDerivation`.
 - **Darwin unaddressed.**
-- **glibc/patchelf still pinned** to run the glibc-dynamic upstream toolchains.
+- **glibc + formatelf still pinned** to run the glibc-dynamic upstream toolchains.
 
 ## Takeaway
 

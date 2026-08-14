@@ -21,7 +21,7 @@ mkNaked {
   name = "${name}-fhs-check";
   env = {
     inherit package;
-    patchelf = "${pinned.patchelf}/bin/patchelf";
+    formatelf = "${pinned.formatelf}/bin/formatelf";
     kind = package.fhs.kind or "patchelf";
     libpath = package.fhs.libpath or "";
   };
@@ -30,11 +30,11 @@ mkNaked {
     for f in $(find -L "$package" -type f 2>/dev/null); do
       [ "$(head -c4 "$f" 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
 
-      rpath=$("$patchelf" --print-rpath "$f" 2>/dev/null || true)
+      rpath=$("$formatelf" --print-rpath "$f" 2>/dev/null || true)
       # effective search path = this ELF's rpath + the package's runtime library-path
       search="$rpath''${libpath:+:$libpath}"
 
-      interp=$("$patchelf" --print-interpreter "$f" 2>/dev/null || true)
+      interp=$("$formatelf" --print-interpreter "$f" 2>/dev/null || true)
       if [ -n "$interp" ]; then
         case "$interp" in
           /nix/store/*) ;;
@@ -52,7 +52,7 @@ mkNaked {
       done
       IFS="$old_ifs"
 
-      for lib in $("$patchelf" --print-needed "$f" 2>/dev/null); do
+      for lib in $("$formatelf" --print-needed "$f" 2>/dev/null); do
         case "$lib" in ld-linux*) continue ;; esac
         found=0; old_ifs="$IFS"; IFS=':'
         for d in $search; do [ -e "$d/$lib" ] && found=1; done

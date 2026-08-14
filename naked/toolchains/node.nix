@@ -17,7 +17,7 @@ mkNaked {
   env = {
     inherit tarball;
     glibc = pinned.glibc;
-    patchelf = pinned.patchelf;
+    formatelf = pinned.formatelf;
     gccLib = pinned.gccLib;
   };
   script = ''
@@ -25,7 +25,7 @@ mkNaked {
     cp -r "node-v${version}-linux-x64" "$out"
     chmod -R u+w "$out"
 
-    "$patchelf/bin/patchelf" \
+    "$formatelf/bin/formatelf" \
       --set-interpreter "$glibc/lib/ld-linux-x86-64.so.2" \
       --set-rpath "$glibc/lib:$gccLib/lib" \
       "$out/bin/node"
