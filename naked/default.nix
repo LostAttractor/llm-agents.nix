@@ -12,6 +12,10 @@ in
   rust = import ./toolchains/rust.nix;
   zig = import ./toolchains/zig.nix;
 
+  # binary-wrapper packages ported onto the naked base
+  eca = import ./packages/eca.nix;
+  droid = import ./packages/droid.nix;
+
   # Smoke test: prove the seed userland (busybox coreutils under bash) works.
   hello = mkNaked {
     name = "naked-hello";
