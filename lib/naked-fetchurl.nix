@@ -2,23 +2,25 @@
 # fetchurl wrapper or stdenv thunk graph. Same output path as pkgs.fetchurl
 # for a given url + hash.
 #
-# Args are closed on purpose. bun2nix passes only { url, hash }, and the
-# builtin serves nothing else (no unpack, auth, or curl opts), so anything
-# extra fails loudly instead of being silently dropped.
+# Args are closed on purpose (url, hash, executable) - the builtin serves
+# nothing else (no unpack, auth, or curl opts), so anything extra fails loudly
+# instead of being silently dropped. bun2nix passes only { url, hash } (the
+# executable default is a no-op there); the naked build layer also fetches
+# runnable binaries with `executable = true` (recursive/NAR hash + the +x bit).
 {
   url,
   hash,
+  executable ? false,
 }:
 derivation {
-  inherit url;
+  inherit url executable;
   name = baseNameOf url;
   builder = "builtin:fetchurl";
   system = "builtin";
   urls = [ url ];
   outputHash = hash;
-  outputHashMode = "flat";
+  outputHashMode = if executable then "recursive" else "flat";
   outputHashAlgo = null;
   preferLocalBuild = true;
   unpack = false;
-  executable = false;
 }
