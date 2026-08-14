@@ -58,7 +58,7 @@ let
       zip)  unzip -q "$src"; cp "$binaryPath" "$out/libexec/$mainProgram" ;;
       tar)  tar -xf "$src";  cp "$binaryPath" "$out/libexec/$mainProgram" ;;
     esac
-    chmod +x "$out/libexec/$mainProgram"
+    chmod 0755 "$out/libexec/$mainProgram"  # writable so patchelf can rewrite it
 
     # helper: patchelf a binary iff it is dynamic (has an interpreter)
     fixelf() {
@@ -71,7 +71,7 @@ let
     printf '%s\n' "$runtimeBins" | while IFS='=' read -r rname rpath; do
       [ -n "$rname" ] || continue
       cp "$rpath" "$out/libexec/$rname"
-      chmod +x "$out/libexec/$rname"
+      chmod 0755 "$out/libexec/$rname"
       fixelf "$out/libexec/$rname"
     done
 

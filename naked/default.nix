@@ -7,9 +7,14 @@ let
 
   eca = import ./packages/eca.nix;
   droid = import ./packages/droid.nix;
+  grok = import ./packages/grok.nix;
+  coderabbit_cli = import ./packages/coderabbit-cli.nix;
+  cubic = import ./packages/cubic.nix;
+  forgecode = import ./packages/forgecode.nix;
 in
 {
-  inherit seed eca droid;
+  inherit seed eca droid grok cubic forgecode;
+  coderabbit-cli = coderabbit_cli;
 
   bun = import ./toolchains/bun.nix;
   node = import ./toolchains/node.nix;
@@ -27,6 +32,10 @@ in
       package = droid;
       name = "droid";
     };
+    grok = checkFhs { package = grok; name = "grok"; };
+    coderabbit-cli = checkFhs { package = coderabbit_cli; name = "coderabbit-cli"; };
+    cubic = checkFhs { package = cubic; name = "cubic"; };
+    forgecode = checkFhs { package = forgecode; name = "forgecode"; };
   };
 
   # Smoke test: prove the seed userland (busybox coreutils under bash) works.
