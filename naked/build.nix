@@ -28,27 +28,31 @@ in
       };
     };
 
-  # binary-wrapper packages (x86_64-linux only: each needs per-arch release
-  # hashes to go multi-arch).
+  # python toolchain (x86_64-linux only: its manylinux lib pins are x86_64)
+  python =
+    pins:
+    import ./toolchains/python.nix {
+      system = "x86_64-linux";
+      inherit pins;
+    };
+
+  # binary-wrapper packages (x86_64-linux only). Auto-discovered from
+  # ./packages/*.nix so porting a package = dropping a file, no wiring.
   packages =
     pins:
     let
       system = "x86_64-linux";
-      mk = name: import (./packages + "/${name}.nix") { inherit system pins; };
+      names = builtins.filter (n: builtins.match "(.*)\\.nix" n != null) (
+        builtins.attrNames (builtins.readDir ./packages)
+      );
+      base = n: builtins.head (builtins.match "(.*)\\.nix" n);
     in
-    {
-      amp = mk "amp";
-      cursor-agent = mk "cursor-agent";
-      eca = mk "eca";
-      droid = mk "droid";
-      grok = mk "grok";
-      coderabbit-cli = mk "coderabbit-cli";
-      cubic = mk "cubic";
-      forgecode = mk "forgecode";
-      open-code-review = mk "open-code-review";
-      jules = mk "jules";
-      kilocode-cli = mk "kilocode-cli";
-    };
+    builtins.listToAttrs (
+      map (n: {
+        name = base n;
+        value = import (./packages + "/${n}") { inherit system pins; };
+      }) names
+    );
 
   checks =
     pins: pkgSet:

@@ -11,10 +11,10 @@
   url,
   hash,
   executable ? false,
+  name ? baseNameOf url, # override when the URL basename isn't a legal store name
 }:
 derivation {
-  inherit url executable;
-  name = baseNameOf url;
+  inherit url executable name;
   builder = "builtin:fetchurl";
   system = "builtin";
   urls = [ url ];

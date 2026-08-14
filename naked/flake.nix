@@ -10,9 +10,11 @@ let
   system = pkgs.stdenv.hostPlatform.system;
 
   toolchains = build.toolchains { inherit system pins; };
+  # python is x86_64-only (manylinux lib pins are x86_64)
+  extra = if system == "x86_64-linux" then { python = build.python pins; } else { };
   pkgSet = if system == "x86_64-linux" then build.packages pins else { };
   checks = if system == "x86_64-linux" then build.checks pins pkgSet else { };
 in
 lib.filterAttrs (_: lib.isDerivation) (
-  toolchains // pkgSet // lib.mapAttrs' (n: v: lib.nameValuePair "check-${n}" v) checks
+  toolchains // extra // pkgSet // lib.mapAttrs' (n: v: lib.nameValuePair "check-${n}" v) checks
 )

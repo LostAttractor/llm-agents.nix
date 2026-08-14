@@ -15,6 +15,13 @@ system:
     # runtime deps for the ported packages (x86_64-only, so aarch64 omits them)
     ripgrep = builtins.storePath /nix/store/axp6zlky4x2v3jwcbq24a2cz25hzlw9b-ripgrep-15.2.0;
     coreutils = builtins.storePath /nix/store/97d5ygrvqj55f4nx1x34wfdcc7qn11c0-coreutils-9.11;
+    # manylinux external libs for python wheels (glibc/gccLib/zlib already above)
+    libffi = builtins.storePath /nix/store/wflv43s0i42ysmjvw1hiw4vdiidfzwnn-libffi-3.7.1;
+    expat = builtins.storePath /nix/store/x7hyp2ndwysydy2q1djdvjzlqzvqhg8x-expat-2.8.2;
+    ncurses = builtins.storePath /nix/store/zlvs6miv8wfki399pmxri7x0sjd3429c-ncurses-6.6;
+    openssl = builtins.storePath /nix/store/1mf3lj0mldr8732yvzjc12fig2407b3d-openssl-3.6.3;
+    bzip2 = builtins.storePath /nix/store/0hckf4kx70qifvrsbh64hc2s5xfyrf97-bzip2-1.0.8;
+    xz = builtins.storePath /nix/store/96hgnqnikm0k4pag8x35hb6s46nag1l3-xz-5.8.3;
   };
   aarch64-linux = {
     glibc = builtins.storePath /nix/store/f8q4w2hbjvwy7qqwpnvbf5f4qwyww6cp-glibc-2.42-67;

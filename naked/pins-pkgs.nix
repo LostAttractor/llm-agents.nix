@@ -28,4 +28,11 @@ in
   zstd = pkgs.zstd;
   ripgrep = pkgs.ripgrep;
   coreutils = pkgs.coreutils;
+  # manylinux external libs for python wheels
+  libffi = pkgs.libffi;
+  expat = pkgs.expat;
+  ncurses = pkgs.ncurses;
+  openssl = pkgs.openssl.out;
+  bzip2 = pkgs.bzip2.out;
+  xz = pkgs.xz.out;
 }

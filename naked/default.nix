@@ -16,6 +16,7 @@ in
 })
 // (build.packages x)
 // {
+  python = build.python x;
   checks = build.checks x (build.packages x);
 
   # per-system toolchain sets
