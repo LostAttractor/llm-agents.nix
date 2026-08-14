@@ -22,6 +22,8 @@ system:
     openssl = builtins.storePath /nix/store/1mf3lj0mldr8732yvzjc12fig2407b3d-openssl-3.6.3;
     bzip2 = builtins.storePath /nix/store/0hckf4kx70qifvrsbh64hc2s5xfyrf97-bzip2-1.0.8;
     xz = builtins.storePath /nix/store/96hgnqnikm0k4pag8x35hb6s46nag1l3-xz-5.8.3;
+    bubblewrap = builtins.storePath /nix/store/lqndphylsxqwbwm804n473pb4sqb98sh-bubblewrap-0.11.2;
+    socat = builtins.storePath /nix/store/b6jsx5bi7n3hhfmdlhczl60ssvyphj3g-socat-1.8.1.3;
   };
   aarch64-linux = {
     glibc = builtins.storePath /nix/store/f8q4w2hbjvwy7qqwpnvbf5f4qwyww6cp-glibc-2.42-67;

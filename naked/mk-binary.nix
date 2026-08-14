@@ -19,12 +19,15 @@
   src,
   unpack ? "none", # "none" | "zip" | "tar"
   binary ? pname, # path to the main binary after unpack (single-file mode)
-  installDir ? null, # dir to copy wholesale (dir-install mode); entrypoint is mainProgram inside it
-  mainProgram ? pname,
+  installDir ? null, # dir to copy wholesale (dir-install mode)
+  mainProgram ? pname, # name of the wrapper in $out/bin
+  entrypoint ? null, # path to the real binary inside the tree (dir-install with a nested launcher, e.g. "bin/junie"); defaults to mainProgram
   kind ? "patchelf", # "patchelf" | "loader"
   libs ? [ ], # extra store paths whose /lib joins the rpath/library-path
   runtimeBins ? [ ], # [{ name; src; }] prebuilt binaries bundled onto PATH
   runtimePkgs ? [ ], # pinned store paths whose /bin joins PATH
+  ignoreMissing ? [ ], # SONAMEs allowed to stay unresolved (optional deps of a bundled JRE etc.)
+  setEnv ? { }, # { VAR = "val"; } exported in the wrapper before exec
   system,
   pins,
 }:
@@ -52,6 +55,7 @@ let
         mainProgram
         kind
         ;
+      entry = if entrypoint == null then mainProgram else entrypoint;
       busybox = seed.busybox;
       glibc = pins.glibc;
       formatelf = pins.formatelf;
@@ -62,6 +66,9 @@ let
       installDir = if installDir == null then "" else installDir;
       runtimeBins = builtins.concatStringsSep "\n" (map (b: "${b.name}=${b.src}") runtimeBins);
       runtimePath = builtins.concatStringsSep ":" (map (p: "${p}/bin") runtimePkgs);
+      setEnvLines = builtins.concatStringsSep "\n" (
+        map (k: "${k}=${builtins.getAttr k setEnv}") (builtins.attrNames setEnv)
+      );
     };
     script = ''
       mkdir -p "$out/bin" "$out/libexec"
@@ -79,10 +86,10 @@ let
         cp -r "$installDir/." "$bindir/"
       else
         bindir="$out/libexec"
-        if [ "$unpackKind" = none ]; then cp "$src" "$bindir/$mainProgram"; else cp "$binaryPath" "$bindir/$mainProgram"; fi
+        if [ "$unpackKind" = none ]; then cp "$src" "$bindir/$entry"; else cp "$binaryPath" "$bindir/$entry"; fi
       fi
       chmod -R u+w "$bindir"
-      chmod 0755 "$bindir/$mainProgram"
+      chmod 0755 "$bindir/$entry"
 
       # patch a binary iff it is dynamic (has an interpreter)
       fixelf() {
@@ -100,14 +107,22 @@ let
 
       if [ "$kind" = patchelf ]; then
         if [ -n "$installDir" ]; then
-          # dir-install: the entrypoint may be a script wrapping bundled ELFs
-          # (e.g. a vendored node), so patch every ELF in the tree.
+          # dir-install: patch every ELF in the tree - executables get the loader
+          # + rpath, shared libs just get rpath. The rpath includes every dir in
+          # the tree that holds a .so (so intra-tree deps like a JRE's libjli.so
+          # resolve) followed by the pinned libs.
+          treelibs=$(find "$bindir" -name '*.so*' -type f 2>/dev/null | while read -r so; do dirname "$so"; done | sort -u | tr '\n' ':')
+          rp="$treelibs$libpath"
           for f in $(find "$bindir" -type f); do
             [ "$(head -c4 "$f" 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
-            fixelf "$f"
+            if "$formatelf/bin/formatelf" --print-interpreter "$f" >/dev/null 2>&1; then
+              "$formatelf/bin/formatelf" --set-interpreter "$loader" --set-rpath "$rp" "$f" 2>/dev/null || true
+            else
+              "$formatelf/bin/formatelf" --set-rpath "$rp" "$f" 2>/dev/null || true
+            fi
           done
         else
-          fixelf "$bindir/$mainProgram"
+          fixelf "$bindir/$entry"
         fi
       fi
 
@@ -119,10 +134,13 @@ let
       {
         echo "#!$out/libexec/sh"
         echo "export PATH=\"$wrapperpath\''${PATH:+:\$PATH}\""
+        printf '%s\n' "$setEnvLines" | while IFS= read -r kv; do
+          [ -n "$kv" ] && echo "export $kv"
+        done
         if [ "$kind" = loader ]; then
-          echo "exec \"$loader\" --library-path \"$libpath\" \"$bindir/$mainProgram\" \"\$@\""
+          echo "exec \"$loader\" --library-path \"$libpath\" \"$bindir/$entry\" \"\$@\""
         else
-          echo "exec \"$bindir/$mainProgram\" \"\$@\""
+          echo "exec \"$bindir/$entry\" \"\$@\""
         fi
       } > "$out/bin/$mainProgram"
       chmod +x "$out/bin/$mainProgram"
@@ -133,5 +151,6 @@ drv
 // {
   fhs = {
     inherit kind libpath mainProgram;
+    ignoreMissing = builtins.concatStringsSep " " ignoreMissing;
   };
 }

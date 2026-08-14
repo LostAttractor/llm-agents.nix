@@ -35,4 +35,6 @@ in
   openssl = pkgs.openssl.out;
   bzip2 = pkgs.bzip2.out;
   xz = pkgs.xz.out;
+  bubblewrap = pkgs.bubblewrap;
+  socat = pkgs.socat;
 }

@@ -26,6 +26,7 @@ mkNaked {
     formatelf = "${pins.formatelf}/bin/formatelf";
     kind = package.fhs.kind or "patchelf";
     libpath = package.fhs.libpath or "";
+    ignoreMissing = package.fhs.ignoreMissing or "";
   };
   script = ''
     fail=0
@@ -56,6 +57,7 @@ mkNaked {
 
       for lib in $("$formatelf" --print-needed "$f" 2>/dev/null); do
         case "$lib" in ld-linux*) continue ;; esac
+        case " $ignoreMissing " in *" $lib "*) continue ;; esac
         found=0; old_ifs="$IFS"; IFS=':'
         for d in $search; do [ -e "$d/$lib" ] && found=1; done
         IFS="$old_ifs"
