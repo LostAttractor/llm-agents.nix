@@ -42,40 +42,43 @@ nixpkgs.
 ## Ported binary-wrapper packages
 
 `mk-binary.nix` is the nixpkgs-free equivalent of `platformSource` +
-`autoPatchelfHook` + `makeWrapper`: fetch a prebuilt release artifact, unpack
-(none/zip/tar), make it runnable, wrap it. Two kinds:
+`autoPatchelfHook` + `makeWrapper`. Its knobs, grown to cover every shape the
+repo's prebuilt-binary packages take:
 
-- **patchelf** — a normal dynamic ELF: rewrite interpreter/rpath (via formatelf) to the pinned
-  glibc (+ extra libs).
-- **loader** — a `bun --compile` binary: patchelf would shift its appended
-  runtime payload and segfault it, so leave it byte-intact and invoke the
-  pinned loader through a wrapper.
+- `unpack` none/zip/tar, `binary` (nested path), `installDir` (copy a whole
+  tree), `entrypoint` (nested launcher distinct from the wrapper name).
+- `kind` = `patchelf` (rewrite ELF interpreter/rpath) or `loader` (leave a
+  bun-compiled / Node-SEA binary byte-intact and wrap it - patchelf segfaults
+  their appended payload).
+- `libs` (extra lib pins), `runtimeBins` (bundled binaries on PATH),
+  `runtimePkgs` (pinned tools on PATH), `setEnv` (wrapper env exports),
+  `ignoreMissing` (SONAME allowlist for a bundled JRE's optional AWT/X11 libs).
+- dir-install indexes the tree's own lib dirs so intra-tree deps (a JRE's
+  `libjli.so`) resolve.
 
-9 packages ported so far, all building + running + passing the FHS check
-(`nix build -f naked <pkg>` / `checks.<pkg>`):
+**23 packages ported**, all building + running + passing the FHS check
+(`nix build -f naked <pkg>` / `checks.<pkg>`, and the pure flake path):
+amp, antigravity-cli, claude-code, cline, coderabbit-cli, copilot-cli, cubic,
+cursor-agent, droid, eca, forgecode, freebuff, grok, jules, junie, kilocode-cli,
+memvid-cli, mimo-code, open-code-review, opencode, opencode2, qoder-cli, swamp.
 
-| package | kind | shape |
-|---|---|---|
-| eca | patchelf | zip (+ zlib) |
-| droid | loader | single-file (bundles static `rg`) |
-| grok | loader | single-file |
-| coderabbit-cli | loader | zip |
-| cubic | loader | zip |
-| forgecode | patchelf | single-file |
-| open-code-review | patchelf | single-file |
-| jules | patchelf | tar |
-| kilocode-cli | loader | npm tgz |
+**`check-fhs.nix`** guards each: every ELF in the output must resolve within
+`/nix/store` (mechanism-aware: patchelf via rpath, loader via the wrapper
+library-path, `ignoreMissing` SONAMEs skipped). It repeatedly caught real
+runtime breakage (a cursor-agent native module needing `libz`, a JRE's
+`libjli.so`) that `--version` never exercised.
 
-**`check-fhs.nix`** guards each: it asserts every ELF in the output resolves
-within `/nix/store` (no leftover `/lib64` or `/usr` refs, all `NEEDED` libs
-found) — the naked equivalent of what `autoPatchelfHook` enforces. It is
-mechanism-aware (reads `package.fhs`): patchelf packages resolve via the ELF
-rpath, loader packages via the wrapper's `--library-path`.
+**python toolchain** (`nix build -f naked python`): relocatable prebuilt CPython
+(astral python-build-standalone), patchelf'd to the pinned glibc; the wrapper
+sets `LD_LIBRARY_PATH` to the pinned **manylinux** external libs
+(libffi/expat/ncurses/openssl/bzip2/xz + glibc/gccLib/zlib) so wheels' compiled
+extensions resolve. Runs 3.12.14 with stdlib C-extensions.
 
-Remaining binary packages need a bit more: **runtime deps from nixpkgs** (amp/
-opencode2 → ripgrep, claude-code → bubblewrap/socat, claude-desktop →
-xdg-utils) must be pinned or naked-built, and **dir-install** shapes
-(cursor-agent, copilot-cli) need a whole-directory install mode.
+Two prebuilt packages are NOT portable: **claude-desktop** and **handy** -
+Electron/Tauri GUI apps that link GTK/webkit/vulkan/alsa (not in the pin set)
+and ship as `.deb` (which `unpack` doesn't handle). Every other prebuilt-binary
+package in the repo is ported; the rest are source-built (npm/rust/go/bun),
+which the naked *toolchains* could compile but which this spike doesn't port.
 
 ## The honest boundary: `pinned.nix`
 
