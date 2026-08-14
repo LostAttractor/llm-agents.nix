@@ -1,14 +1,13 @@
 # checkFhs: assert a package output does NOT depend on the FHS - every library
-# an ELF needs must resolve inside /nix/store, and no ELF is left pointing at a
-# host loader we don't control. Catches a prebuilt binary we forgot to patch
-# (still on /lib64/ld-linux or a missing lib), which would break on NixOS.
+# an ELF needs must resolve inside /nix/store, and no ELF is left on a host
+# loader we don't control. The naked equivalent of autoPatchelfHook's guard.
 #
-# Mechanism-aware, reading `package.fhs` from mkBinary:
-#   - patchelf kind: the binary's interpreter must be a store loader and every
-#     NEEDED lib must resolve via its own rpath.
-#   - loader kind: the wrapper invokes a pinned store loader with an explicit
-#     --library-path, so the wrapped binary's own (FHS) interpreter is bypassed
-#     - we allow it, and resolve NEEDED against that library-path instead.
+# Mechanism-aware (reads package.fhs from mkBinary): patchelf packages resolve
+# NEEDED via the ELF rpath; loader packages via the wrapper's --library-path
+# (their own FHS interpreter is bypassed by the pinned loader); ignoreMissing
+# SONAMEs (a bundled JRE's optional AWT/X11 libs) are allowed to stay unresolved.
+#
+# Build script is nushell (the mk-naked builder), reading __structuredAttrs.
 let
   mkNaked = import ./mk-naked.nix;
 in
@@ -29,46 +28,50 @@ mkNaked {
     ignoreMissing = package.fhs.ignoreMissing or "";
   };
   script = ''
-    fail=0
-    for f in $(find -L "$package" -type f 2>/dev/null); do
-      [ "$(head -c4 "$f" 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
+    let pkg = $attrs.package
+    let fe = $attrs.formatelf
+    let kind = $attrs.kind
+    let libpath = $attrs.libpath
+    let ignore = ($attrs.ignoreMissing | split row " " | where {|x| $x != "" })
 
-      rpath=$("$formatelf" --print-rpath "$f" 2>/dev/null || true)
-      # effective search path = this ELF's rpath + the package's runtime library-path
-      search="$rpath''${libpath:+:$libpath}"
+    mut fail = false
+    for f in (^find -L $pkg -type f | lines) {
+      let magic = ((^head -c4 $f | ^od -An -tx1) | str replace --all --regex '[^0-9a-f]' "")
+      if $magic != "7f454c46" { continue }
 
-      interp=$("$formatelf" --print-interpreter "$f" 2>/dev/null || true)
-      if [ -n "$interp" ]; then
-        case "$interp" in
-          /nix/store/*) ;;
-          *) # a non-store interpreter is only OK if a loader-kind wrapper overrides it
-            if [ "$kind" != loader ]; then
-              echo "FHS interpreter: $f -> $interp"; fail=1
-            fi ;;
-        esac
-      fi
+      let rpath = (do { ^$fe --print-rpath $f } | complete | get stdout | str trim)
+      let search = ((if ($libpath | is-empty) { $rpath } else { $"($rpath):($libpath)" }) | split row ":" | where {|x| $x != "" })
 
-      old_ifs="$IFS"; IFS=':'
-      for d in $search; do
-        [ -n "$d" ] || continue
-        case "$d" in /nix/store/*) ;; *) echo "FHS lib dir: $f -> $d"; fail=1 ;; esac
-      done
-      IFS="$old_ifs"
+      let interp = (do { ^$fe --print-interpreter $f } | complete | get stdout | str trim)
+      if ($interp != "") and (not ($interp | str starts-with "/nix/store/")) {
+        if $kind != "loader" {
+          print $"FHS interpreter: ($f) -> ($interp)"
+          $fail = true
+        }
+      }
 
-      for lib in $("$formatelf" --print-needed "$f" 2>/dev/null); do
-        case "$lib" in ld-linux*) continue ;; esac
-        case " $ignoreMissing " in *" $lib "*) continue ;; esac
-        found=0; old_ifs="$IFS"; IFS=':'
-        for d in $search; do [ -e "$d/$lib" ] && found=1; done
-        IFS="$old_ifs"
-        [ "$found" = 1 ] || { echo "unresolved NEEDED: $f needs $lib"; fail=1; }
-      done
-    done
+      for d in $search {
+        if not ($d | str starts-with "/nix/store/") {
+          print $"FHS lib dir: ($f) -> ($d)"
+          $fail = true
+        }
+      }
 
-    if [ "$fail" != 0 ]; then
-      echo "FHS check FAILED: $package still depends on the FHS"
+      for lib in (do { ^$fe --print-needed $f } | complete | get stdout | lines) {
+        if ($lib | str starts-with "ld-linux") { continue }
+        if ($lib in $ignore) { continue }
+        let found = ($search | any {|d| ($"($d)/($lib)" | path exists) })
+        if not $found {
+          print $"unresolved NEEDED: ($f) needs ($lib)"
+          $fail = true
+        }
+      }
+    }
+
+    if $fail {
+      print $"FHS check FAILED: ($pkg) still depends on the FHS"
       exit 1
-    fi
-    echo "OK: $package is store-only; every ELF resolves within /nix/store" > "$out"
+    }
+    $"OK: ($pkg) is store-only; every ELF resolves within /nix/store" | save --raw $out
   '';
 }

@@ -64,86 +64,106 @@ let
       unpackKind = unpack;
       binaryPath = binary;
       installDir = if installDir == null then "" else installDir;
-      runtimeBins = builtins.concatStringsSep "\n" (map (b: "${b.name}=${b.src}") runtimeBins);
+      # __structuredAttrs: pass real structured data, not string-munged env vars.
+      inherit runtimeBins; # [ { name; src; } ]
+      inherit setEnv; # { VAR = "val"; }
       runtimePath = builtins.concatStringsSep ":" (map (p: "${p}/bin") runtimePkgs);
-      setEnvLines = builtins.concatStringsSep "\n" (
-        map (k: "${k}=${builtins.getAttr k setEnv}") (builtins.attrNames setEnv)
-      );
     };
+    # Nushell builder (see mk-naked.nix): `$attrs` is the JSON attrs record,
+    # `$out` the output path, busybox applets are external `^cmd`s on PATH.
     script = ''
-      mkdir -p "$out/bin" "$out/libexec"
+      mkdir $"($out)/bin" $"($out)/libexec"
 
-      case "$unpackKind" in
-        none) ;;
-        zip)  unzip -q "$src" ;;
-        tar)  tar -xf "$src" ;;
-      esac
-
-      if [ -n "$installDir" ]; then
-        # dir-install: copy the whole tree; entrypoint is one file inside it
-        bindir="$out/libexec/$pname"
-        mkdir -p "$bindir"
-        cp -r "$installDir/." "$bindir/"
-      else
-        bindir="$out/libexec"
-        if [ "$unpackKind" = none ]; then cp "$src" "$bindir/$entry"; else cp "$binaryPath" "$bindir/$entry"; fi
-      fi
-      chmod -R u+w "$bindir"
-      chmod 0755 "$bindir/$entry"
+      let formatelf = $"($attrs.formatelf)/bin/formatelf"
 
       # patch a binary iff it is dynamic (has an interpreter)
-      fixelf() {
-        if "$formatelf/bin/formatelf" --print-interpreter "$1" >/dev/null 2>&1; then
-          "$formatelf/bin/formatelf" --set-interpreter "$loader" --set-rpath "$libpath" "$1"
-        fi
+      let fixelf = {|f|
+        if ((^$formatelf --print-interpreter $f | complete).exit_code == 0) {
+          ^$formatelf --set-interpreter $attrs.loader --set-rpath $attrs.libpath $f
+        }
       }
 
-      printf '%s\n' "$runtimeBins" | while IFS='=' read -r rname rpath; do
-        [ -n "$rname" ] || continue
-        cp "$rpath" "$out/libexec/$rname"
-        chmod 0755 "$out/libexec/$rname"
-        fixelf "$out/libexec/$rname"
-      done
+      if $attrs.unpackKind == "zip" {
+        ^unzip -q $attrs.src
+      } else if $attrs.unpackKind == "tar" {
+        ^tar -xf $attrs.src
+      }
 
-      if [ "$kind" = patchelf ]; then
-        if [ -n "$installDir" ]; then
+      mut bindir = $"($out)/libexec"
+      if ($attrs.installDir | is-not-empty) {
+        # dir-install: copy the whole tree; entrypoint is one file inside it
+        $bindir = $"($out)/libexec/($attrs.pname)"
+        mkdir $bindir
+        ^cp -r $"($attrs.installDir)/." $bindir
+      } else {
+        if $attrs.unpackKind == "none" {
+          ^cp $attrs.src $"($bindir)/($attrs.entry)"
+        } else {
+          ^cp $attrs.binaryPath $"($bindir)/($attrs.entry)"
+        }
+      }
+      ^chmod -R u+w $bindir
+      ^chmod 0755 $"($bindir)/($attrs.entry)"
+
+      # bundle prebuilt binaries onto PATH (e.g. a vendored ripgrep)
+      for b in $attrs.runtimeBins {
+        ^cp $b.src $"($out)/libexec/($b.name)"
+        ^chmod 0755 $"($out)/libexec/($b.name)"
+        do $fixelf $"($out)/libexec/($b.name)"
+      }
+
+      if $attrs.kind == "patchelf" {
+        if ($attrs.installDir | is-not-empty) {
           # dir-install: patch every ELF in the tree - executables get the loader
           # + rpath, shared libs just get rpath. The rpath includes every dir in
           # the tree that holds a .so (so intra-tree deps like a JRE's libjli.so
           # resolve) followed by the pinned libs.
-          treelibs=$(find "$bindir" -name '*.so*' -type f 2>/dev/null | while read -r so; do dirname "$so"; done | sort -u | tr '\n' ':')
-          rp="$treelibs$libpath"
-          for f in $(find "$bindir" -type f); do
-            [ "$(head -c4 "$f" 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
-            if "$formatelf/bin/formatelf" --print-interpreter "$f" >/dev/null 2>&1; then
-              "$formatelf/bin/formatelf" --set-interpreter "$loader" --set-rpath "$rp" "$f" 2>/dev/null || true
-            else
-              "$formatelf/bin/formatelf" --set-rpath "$rp" "$f" 2>/dev/null || true
-            fi
-          done
-        else
-          fixelf "$bindir/$entry"
-        fi
-      fi
+          let treelibs = (
+            ^find $bindir -name '*.so*' -type f
+            | lines
+            | each {|so| $"($so | path dirname):" }
+            | uniq
+            | str join ""
+          )
+          let rp = $treelibs + $attrs.libpath
+          for f in (^find $bindir -type f | lines) {
+            let magic = (^head -c4 $f | ^od -An -tx1 | str replace --all --regex '\s' "")
+            if $magic == "7f454c46" {
+              if ((^$formatelf --print-interpreter $f | complete).exit_code == 0) {
+                ^$formatelf --set-interpreter $attrs.loader --set-rpath $rp $f | complete | ignore
+              } else {
+                ^$formatelf --set-rpath $rp $f | complete | ignore
+              }
+            }
+          }
+        } else {
+          do $fixelf $"($bindir)/($attrs.entry)"
+        }
+      }
 
       # wrapper PATH: bundled bins ($out/libexec + bindir) then pinned tools
-      wrapperpath="$out/libexec:$bindir"
-      [ -n "$runtimePath" ] && wrapperpath="$wrapperpath:$runtimePath"
+      mut wrapperpath = $"($out)/libexec:($bindir)"
+      if ($attrs.runtimePath | is-not-empty) {
+        $wrapperpath = $"($wrapperpath):($attrs.runtimePath)"
+      }
 
-      ln -s "$busybox" "$out/libexec/sh"
-      {
-        echo "#!$out/libexec/sh"
-        echo "export PATH=\"$wrapperpath\''${PATH:+:\$PATH}\""
-        printf '%s\n' "$setEnvLines" | while IFS= read -r kv; do
-          if [ -n "$kv" ]; then echo "export $kv"; fi
-        done
-        if [ "$kind" = loader ]; then
-          echo "exec \"$loader\" --library-path \"$libpath\" \"$bindir/$entry\" \"\$@\""
-        else
-          echo "exec \"$bindir/$entry\" \"\$@\""
-        fi
-      } > "$out/bin/$mainProgram"
-      chmod +x "$out/bin/$mainProgram"
+      ^ln -s $attrs.busybox $"($out)/libexec/sh"
+
+      # the wrapper is itself a /bin/sh script (shebang -> the busybox sh symlink)
+      mut lines = [ $"#!($out)/libexec/sh" ]
+      $lines = ($lines | append $'export PATH="($wrapperpath)''${PATH:+:$PATH}"')
+      if ($attrs.setEnv | is-not-empty) {
+        for e in ($attrs.setEnv | transpose key value) {
+          $lines = ($lines | append $'export ($e.key)=($e.value)')
+        }
+      }
+      if $attrs.kind == "loader" {
+        $lines = ($lines | append $'exec "($attrs.loader)" --library-path "($attrs.libpath)" "($bindir)/($attrs.entry)" "$@"')
+      } else {
+        $lines = ($lines | append $'exec "($bindir)/($attrs.entry)" "$@"')
+      }
+      (($lines | str join "\n") + "\n") | save --raw --force $"($out)/bin/($attrs.mainProgram)"
+      ^chmod +x $"($out)/bin/($attrs.mainProgram)"
     '';
   };
 in

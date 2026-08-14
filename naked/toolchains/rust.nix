@@ -9,7 +9,7 @@
 }:
 let
   fetchurl = import ../fetchurl.nix;
-  mkNaked = import ../mk-naked.nix;
+  mkNaked = import ../mk-naked-sh.nix;
   sys = (import ../systems.nix).${system};
 
   version = "1.90.0";

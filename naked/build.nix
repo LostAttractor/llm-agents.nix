@@ -20,10 +20,9 @@ in
         inherit system;
         name = "naked-hello";
         script = ''
-          mkdir -p "$out/bin"
-          echo '#!/bin/sh' > "$out/bin/hello"
-          echo 'echo hello from a nixpkgs-free derivation' >> "$out/bin/hello"
-          chmod +x "$out/bin/hello"
+          mkdir $"($out)/bin"
+          "#!/bin/sh\necho hello from a nixpkgs-free derivation\n" | save --raw $"($out)/bin/hello"
+          ^chmod +x $"($out)/bin/hello"
         '';
       };
     };

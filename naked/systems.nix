@@ -12,6 +12,11 @@
       url = "https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox";
       hash = "sha256-mVOoYPn3r9NYiZjQf5AF2p7hXy1Q4kN5RSscc/PGpiY=";
     };
+    nu = {
+      url = "https://github.com/nushell/nushell/releases/download/0.114.1/nu-0.114.1-x86_64-unknown-linux-musl.tar.gz";
+      hash = "sha256-zjocWgfHhAmLVnUiShZec6RfD3IKg5J5HXw6W0cgJV4=";
+      dir = "nu-0.114.1-x86_64-unknown-linux-musl";
+    };
     bun.platform = "linux-x64";
     bun.hash = "sha256-lR7iruhV8IWVruxiJSJqKY0/6oOj3NZGXAnLzN9+hI8=";
     node.platform = "linux-x64";
