@@ -39,6 +39,44 @@ toolchains/   bun, node, rust, zig from upstream prebuilt binaries
 **1.0s** for the nixpkgs equivalents — ~20×, and the naked layer imports *zero*
 nixpkgs.
 
+## Ported binary-wrapper packages
+
+`mk-binary.nix` is the nixpkgs-free equivalent of `platformSource` +
+`autoPatchelfHook` + `makeWrapper`: fetch a prebuilt release artifact, unpack
+(none/zip/tar), make it runnable, wrap it. Two kinds:
+
+- **patchelf** — a normal dynamic ELF: rewrite interpreter/rpath to the pinned
+  glibc (+ extra libs).
+- **loader** — a `bun --compile` binary: patchelf would shift its appended
+  runtime payload and segfault it, so leave it byte-intact and invoke the
+  pinned loader through a wrapper.
+
+9 packages ported so far, all building + running + passing the FHS check
+(`nix build -f naked <pkg>` / `checks.<pkg>`):
+
+| package | kind | shape |
+|---|---|---|
+| eca | patchelf | zip (+ zlib) |
+| droid | loader | single-file (bundles static `rg`) |
+| grok | loader | single-file |
+| coderabbit-cli | loader | zip |
+| cubic | loader | zip |
+| forgecode | patchelf | single-file |
+| open-code-review | patchelf | single-file |
+| jules | patchelf | tar |
+| kilocode-cli | loader | npm tgz |
+
+**`check-fhs.nix`** guards each: it asserts every ELF in the output resolves
+within `/nix/store` (no leftover `/lib64` or `/usr` refs, all `NEEDED` libs
+found) — the naked equivalent of what `autoPatchelfHook` enforces. It is
+mechanism-aware (reads `package.fhs`): patchelf packages resolve via the ELF
+rpath, loader packages via the wrapper's `--library-path`.
+
+Remaining binary packages need a bit more: **runtime deps from nixpkgs** (amp/
+opencode2 → ripgrep, claude-code → bubblewrap/socat, claude-desktop →
+xdg-utils) must be pinned or naked-built, and **dir-install** shapes
+(cursor-agent, copilot-cli) need a whole-directory install mode.
+
 ## The honest boundary: `pinned.nix`
 
 The seed userland is 100% nixpkgs-free. But prebuilt bun/node/rust are
