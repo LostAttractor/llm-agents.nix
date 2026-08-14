@@ -32,7 +32,9 @@ in
   runtimeBins ? [ ], # [{ name; src; }] prebuilt binaries bundled onto PATH
   system ? "x86_64-linux",
 }:
-mkNaked {
+let
+  libpath = libDirs libs;
+  drv = mkNaked {
   name = "${pname}-${version}";
   inherit system;
   env = {
@@ -40,7 +42,7 @@ mkNaked {
     busybox = seed.busybox;
     glibc = pinned.glibc;
     patchelf = pinned.patchelf;
-    libpath = libDirs libs;
+    inherit libpath;
     loader = "${pinned.glibc}/lib/ld-linux-x86-64.so.2";
     unpackKind = unpack;
     binaryPath = binary;
@@ -90,4 +92,14 @@ mkNaked {
     } > "$out/bin/$mainProgram"
     chmod +x "$out/bin/$mainProgram"
   '';
+  };
+in
+# Expose how the package resolves libraries so checkFhs can be mechanism-aware:
+# patchelf-kind resolves via the binary's own rpath, loader-kind via the
+# wrapper's --library-path. Both use `libpath`.
+drv
+// {
+  fhs = {
+    inherit kind libpath mainProgram;
+  };
 }
