@@ -9,7 +9,7 @@ let
   mkNaked = import ../mk-naked.nix;
   pinned = import ../pinned.nix;
 
-  version = "1.83.0";
+  version = "1.90.0";
   triple = "x86_64-unknown-linux-gnu";
   comp = name: hash: fetchurl {
     url = "https://static.rust-lang.org/dist/${name}-${version}-${triple}.tar.gz";
@@ -19,15 +19,15 @@ let
   # binaries (linked by zig cc), which need no glibc at all.
   muslStd = fetchurl {
     url = "https://static.rust-lang.org/dist/rust-std-${version}-x86_64-unknown-linux-musl.tar.gz";
-    hash = "sha256-HAQ23gjeZBnSn6935cmDH2Tpw2mJJ2nfqkx+1BHFjRo=";
+    hash = "sha256-nov5lIKMxF6qItlOxnTzuscQ73dxumdCvzeucGocr3U=";
   };
 in
 mkNaked {
   name = "rust-${version}";
   env = {
-    rustc = comp "rustc" "sha256-V06zNWd7/6iOWyNROcd4TPEjRki7z4sPk8cSQBOGiRE=";
-    cargo = comp "cargo" "sha256-WGvVjnaBsJ/9yVGRuqlds/fADXOfnLFaYMQP2t4k/d8=";
-    ruststd = comp "rust-std" "sha256-XMozMPcT+nJ521OEiQwmZTXQeahc39GlLmnFXykducQ=";
+    rustc = comp "rustc" "sha256-si1l/XX1DMA2wMtRRQBiglOqqBW/LhjsZWIKy4oa0kQ=";
+    cargo = comp "cargo" "sha256-3A9wxuaBd20MXgGVO1BIjosvly7tWuzm0JTkl+pICrA=";
+    ruststd = comp "rust-std" "sha256-gdfa1Yra+KmQR3HRqh6n6NxzIjb+ChsUigaM61At5/s=";
     inherit muslStd;
     glibc = pinned.glibc;
     formatelf = pinned.formatelf;

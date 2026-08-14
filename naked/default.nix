@@ -10,13 +10,14 @@ let
   grok = import ./packages/grok.nix;
   coderabbit_cli = import ./packages/coderabbit-cli.nix;
   cubic = import ./packages/cubic.nix;
+  formatelf = import ./formatelf.nix;
   forgecode = import ./packages/forgecode.nix;
   kilocode_cli = import ./packages/kilocode-cli.nix;
   jules = import ./packages/jules.nix;
   open_code_review = import ./packages/open-code-review.nix;
 in
 {
-  inherit seed eca droid grok cubic forgecode jules;
+  inherit seed eca droid grok cubic forgecode jules formatelf;
   coderabbit-cli = coderabbit_cli;
   open-code-review = open_code_review;
   kilocode-cli = kilocode_cli;
