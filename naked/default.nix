@@ -7,6 +7,8 @@ in
 {
   inherit seed;
 
+  bun = import ./toolchains/bun.nix;
+
   # Smoke test: prove the seed userland (busybox coreutils under bash) works.
   hello = mkNaked {
     name = "naked-hello";
