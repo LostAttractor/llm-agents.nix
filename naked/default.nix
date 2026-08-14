@@ -10,6 +10,7 @@ in
   bun = import ./toolchains/bun.nix;
   node = import ./toolchains/node.nix;
   rust = import ./toolchains/rust.nix;
+  zig = import ./toolchains/zig.nix;
 
   # Smoke test: prove the seed userland (busybox coreutils under bash) works.
   hello = mkNaked {
