@@ -8,6 +8,7 @@ in
   inherit seed;
 
   bun = import ./toolchains/bun.nix;
+  node = import ./toolchains/node.nix;
 
   # Smoke test: prove the seed userland (busybox coreutils under bash) works.
   hello = mkNaked {
