@@ -135,7 +135,7 @@ let
         echo "#!$out/libexec/sh"
         echo "export PATH=\"$wrapperpath\''${PATH:+:\$PATH}\""
         printf '%s\n' "$setEnvLines" | while IFS= read -r kv; do
-          [ -n "$kv" ] && echo "export $kv"
+          if [ -n "$kv" ]; then echo "export $kv"; fi
         done
         if [ "$kind" = loader ]; then
           echo "exec \"$loader\" --library-path \"$libpath\" \"$bindir/$entry\" \"\$@\""
