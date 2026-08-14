@@ -10,6 +10,9 @@ let
   mkNaked = import ../mk-naked.nix;
   seed = import ../seed.nix;
   pinned = import ../pinned.nix;
+  # A runtime shell for the wrapper: busybox reached through a symlink named
+  # "sh" (busybox dispatches on argv[0], and the shebang passes the symlink
+  # path, so basename "sh" runs the sh applet). Avoids fetching a second shell.
 
   version = "1.3.14";
   zip = fetchurl {
@@ -21,7 +24,7 @@ mkNaked {
   name = "bun-${version}";
   env = {
     inherit zip;
-    seedBash = seed.bash;
+    busybox = seed.busybox;
     glibc = pinned.glibc;
     gccLib = pinned.gccLib;
   };
@@ -31,8 +34,10 @@ mkNaked {
     cp bun-linux-x64/bun "$out/libexec/bun"
     chmod +x "$out/libexec/bun"
 
+    # runtime shell: busybox via a symlink named "sh"
+    ln -s "$busybox" "$out/libexec/sh"
     {
-      echo "#!$seedBash"
+      echo "#!$out/libexec/sh"
       echo "exec \"$glibc/lib/ld-linux-x86-64.so.2\" --library-path \"$glibc/lib:$gccLib/lib\" \"$out/libexec/bun\" \"\$@\""
     } > "$out/bin/bun"
     chmod +x "$out/bin/bun"
