@@ -11,10 +11,15 @@ let
   coderabbit_cli = import ./packages/coderabbit-cli.nix;
   cubic = import ./packages/cubic.nix;
   forgecode = import ./packages/forgecode.nix;
+  kilocode_cli = import ./packages/kilocode-cli.nix;
+  jules = import ./packages/jules.nix;
+  open_code_review = import ./packages/open-code-review.nix;
 in
 {
-  inherit seed eca droid grok cubic forgecode;
+  inherit seed eca droid grok cubic forgecode jules;
   coderabbit-cli = coderabbit_cli;
+  open-code-review = open_code_review;
+  kilocode-cli = kilocode_cli;
 
   bun = import ./toolchains/bun.nix;
   node = import ./toolchains/node.nix;
@@ -36,6 +41,9 @@ in
     coderabbit-cli = checkFhs { package = coderabbit_cli; name = "coderabbit-cli"; };
     cubic = checkFhs { package = cubic; name = "cubic"; };
     forgecode = checkFhs { package = forgecode; name = "forgecode"; };
+    open-code-review = checkFhs { package = open_code_review; name = "open-code-review"; };
+    jules = checkFhs { package = jules; name = "jules"; };
+    kilocode-cli = checkFhs { package = kilocode_cli; name = "kilocode-cli"; };
   };
 
   # Smoke test: prove the seed userland (busybox coreutils under bash) works.
