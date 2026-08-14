@@ -1,32 +1,39 @@
 # nodejs toolchain from the upstream prebuilt tarball, no nixpkgs, no stdenv.
-# node is a plain dynamic executable (no appended payload), so patchelf is safe
-# here - set the pinned glibc interpreter + rpath (glibc + libstdc++).
+# node is a plain dynamic executable (no appended payload), so patchelf (via
+# formatelf) is safe: set the pinned glibc interpreter + rpath.
+{
+  system,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkNaked = import ../mk-naked.nix;
-  pinned = import ../pinned.nix;
+  sys = (import ../systems.nix).${system};
+  pins = sys.pins;
 
   version = "22.14.0";
+  plat = sys.node.platform;
+  dir = "node-v${version}-${plat}";
   tarball = fetchurl {
-    url = "https://nodejs.org/dist/v${version}/node-v${version}-linux-x64.tar.gz";
-    hash = "sha256-nZQpMlNZiAkQNNyUzF9CttyHhNY2bfOjbEycyzmW8MI=";
+    url = "https://nodejs.org/dist/v${version}/${dir}.tar.gz";
+    hash = sys.node.hash;
   };
 in
 mkNaked {
+  inherit system;
   name = "nodejs-${version}";
   env = {
     inherit tarball;
-    glibc = pinned.glibc;
-    formatelf = pinned.formatelf;
-    gccLib = pinned.gccLib;
+    glibc = pins.glibc;
+    formatelf = pins.formatelf;
+    gccLib = pins.gccLib;
   };
   script = ''
     tar -xzf "$tarball"
-    cp -r "node-v${version}-linux-x64" "$out"
+    cp -r "${dir}" "$out"
     chmod -R u+w "$out"
 
     "$formatelf/bin/formatelf" \
-      --set-interpreter "$glibc/lib/ld-linux-x86-64.so.2" \
+      --set-interpreter "$glibc/lib/${sys.loader}" \
       --set-rpath "$glibc/lib:$gccLib/lib" \
       "$out/bin/node"
 

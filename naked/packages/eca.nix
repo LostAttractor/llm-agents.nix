@@ -4,9 +4,11 @@
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
-  pinned = import ../pinned.nix;
+  # eca is currently x86_64-only; take its extra lib (zlib) from that row
+  pins = (import ../systems.nix).x86_64-linux.pins;
 in
 mkBinary {
+  system = "x86_64-linux";
   pname = "eca";
   version = "0.153.1";
   src = fetchurl {
@@ -16,5 +18,5 @@ mkBinary {
   unpack = "zip";
   binary = "eca";
   kind = "patchelf";
-  libs = [ pinned.zlib ];
+  libs = [ pins.zlib ];
 }

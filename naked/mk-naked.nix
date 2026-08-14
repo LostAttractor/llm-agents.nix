@@ -1,16 +1,15 @@
-# mkNaked: build a derivation with no nixpkgs and no stdenv. The builder is the
-# sandbox's /bin/sh (Nix guarantees it); the first thing it does is install
-# busybox's applets into PATH so the build script has sh-level coreutils.
-#
-# This is the whole "mkDerivation replacement" - a few lines instead of the
-# ~2000-line nixpkgs generic builder, because we only support what our packages
-# actually do: fetch, unpack, patch, install.
+# mkNaked: build a derivation with no nixpkgs and no stdenv, for a given system.
+# The builder is the sandbox's /bin/sh (Nix guarantees it); it boots busybox's
+# applets into PATH via `exec -a busybox` (busybox dispatches on argv[0], which
+# Nix hash-prefixes) then runs the build script. ~10 lines vs stdenv's ~2000.
+{
+  name,
+  script,
+  env ? { },
+  system,
+}:
 let
-  seed = import ./seed.nix;
-
-  # Boot busybox applets, then run the user script. busybox dispatches on
-  # argv[0]; we force argv[0]="busybox" via `exec -a` in a subshell to
-  # `--install` every applet into a bin dir, then put it on PATH.
+  seed = import ./seed.nix { inherit system; };
   prelude = ''
     set -eu
     __bb() { ( exec -a busybox "@busybox@" "$@" ); }
@@ -20,12 +19,6 @@ let
     export PATH="$__seedbin''${PATH:+:$PATH}"
   '';
 in
-{
-  name,
-  script,
-  env ? { },
-  system ? "x86_64-linux",
-}:
 derivation (
   env
   // {
@@ -33,8 +26,6 @@ derivation (
     builder = "/bin/sh";
     args = [
       "-c"
-      # substitute @busybox@ with the seed path (a store-path reference, so Nix
-      # tracks busybox as an input and mounts it in the sandbox)
       (builtins.replaceStrings [ "@busybox@" ] [ "${seed.busybox}" ] (prelude + "\n" + script))
     ];
   }

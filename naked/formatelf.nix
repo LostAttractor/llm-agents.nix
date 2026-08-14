@@ -1,23 +1,34 @@
 # Dogfood: build formatelf (the ELF patcher we otherwise pin) FROM SOURCE with
-# the naked rust toolchain and zig cc, using naked-vendored crates. The final
-# proof of self-hosting - the freshly built formatelf patches its own ELF so it
-# runs self-contained.
+# the naked rust toolchain and zig cc, using naked-vendored crates. The pinned
+# formatelf post-link-patches the build's executables so they run in the
+# sandbox - a one-time bootstrap seed for the naked-built one.
+{
+  system,
+}:
 let
   fetchurl = import ./fetchurl.nix;
   mkNaked = import ./mk-naked.nix;
-  pinned = import ./pinned.nix;
-  rust = import ./toolchains/rust.nix;
-  zig = import ./toolchains/zig.nix;
   cargoVendor = import ./cargo-vendor.nix;
+  sys = (import ./systems.nix).${system};
+  pins = sys.pins;
+  rust = import ./toolchains/rust.nix { inherit system; };
+  zig = import ./toolchains/zig.nix { inherit system; };
+
+  gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target: x86_64-linux-gnu / aarch64-linux-gnu
+  rustGnu = sys.rust.gnu; # cargo [target.<triple>]
 
   rev = "2b36d819b48c0bfd4a084e6f0ce430633d8ee5f4";
   src = fetchurl {
     url = "https://github.com/Mic92/formatelf/archive/${rev}.tar.gz";
     hash = "sha256-2hleJRn6xsSeE8ZMotXR29z1jOY1TLf9cOOp2YDZltY=";
   };
-  vendor = cargoVendor ./packages/formatelf.Cargo.lock;
+  vendor = cargoVendor {
+    cargoLock = ./packages/formatelf.Cargo.lock;
+    inherit system;
+  };
 in
 mkNaked {
+  inherit system;
   name = "formatelf-naked";
   env = {
     inherit
@@ -26,30 +37,29 @@ mkNaked {
       rust
       zig
       ;
-    glibc = pinned.glibc;
-    gccLib = pinned.gccLib;
-    formatelf = pinned.formatelf;
+    glibc = pins.glibc;
+    gccLib = pins.gccLib;
+    formatelf = pins.formatelf;
   };
   script = ''
     export HOME="$NIX_BUILD_TOP"
     export CARGO_HOME="$NIX_BUILD_TOP/.cargo"
     export ZIG_GLOBAL_CACHE_DIR="$NIX_BUILD_TOP/zig-cache"
     export PATH="$rust/bin:$zig/bin:$PATH"
-    export CC="$zig/bin/cc"
 
-    ld="$glibc/lib/ld-linux-x86-64.so.2"
+    ld="$glibc/lib/${sys.loader}"
     libp="$glibc/lib:$gccLib/lib"
 
     # zig cc wrapper: force the glibc target (else zig falls back to musl and
-    # rust's gnu std can't resolve gnu_get_libc_version/mmap64). Passing
-    # --dynamic-linker THROUGH zig cc is impossible (zig re-sub-compiles glibc/
-    # compiler_rt inheriting the flag, which they reject). So link normally,
-    # then POST-LINK patch each resulting executable with the pinned formatelf -
-    # setting the store loader + rpath so build scripts run in the sandbox with
-    # no /lib64. Skip -shared links (proc-macro dylibs have no interpreter).
+    # rust's gnu std can't resolve gnu_get_libc_version/mmap64). --dynamic-linker
+    # can't pass THROUGH zig (it re-sub-compiles glibc/compiler_rt inheriting the
+    # flag, which they reject), so link normally then POST-LINK patch each
+    # executable with the pinned formatelf - store loader + rpath so build
+    # scripts run in the sandbox with no /lib64. Skip -shared (dylibs have no
+    # interpreter).
     cat > "$NIX_BUILD_TOP/zcc" <<EOF
     #!/bin/sh
-    "$zig/bin/zig" cc -target x86_64-linux-gnu "\$@" || exit \$?
+    "$zig/bin/zig" cc -target ${gnuTarget} "\$@" || exit \$?
     shared=0; out=""; prev=""
     for a in "\$@"; do
       [ "\$a" = "-shared" ] && shared=1
@@ -72,7 +82,7 @@ mkNaked {
     replace-with = "vendored"
     [source.vendored]
     directory = "$vendor"
-    [target.x86_64-unknown-linux-gnu]
+    [target.${rustGnu}]
     linker = "$NIX_BUILD_TOP/zcc"
     EOF
 
@@ -81,8 +91,7 @@ mkNaked {
     mkdir -p "$out/bin"
     cp target/release/formatelf "$out/bin/formatelf"
 
-    # static -> runs directly, self-contained; prove it introspects its own ELF
     "$out/bin/formatelf" --version > "$out/selfhost.txt" 2>&1 || true
-    echo "own interpreter: [$("$out/bin/formatelf" --print-interpreter "$out/bin/formatelf")] (empty = static)" >> "$out/selfhost.txt"
+    echo "own interpreter: [$("$out/bin/formatelf" --print-interpreter "$out/bin/formatelf")]" >> "$out/selfhost.txt"
   '';
 }

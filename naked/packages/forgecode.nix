@@ -5,6 +5,7 @@ let
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
+  system = "x86_64-linux";
   pname = "forgecode";
   version = "2.13.21";
   mainProgram = "forge";

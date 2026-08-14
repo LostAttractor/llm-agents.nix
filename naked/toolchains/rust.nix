@@ -1,39 +1,44 @@
 # rust toolchain from upstream prebuilt components, no nixpkgs, no stdenv.
-# Merge rustc + cargo + rust-std into one prefix, then patchelf every ELF:
-# executables get the glibc interpreter, and every binary/.so gets an rpath
-# covering our own lib (librustc_driver, libLLVM, libstd find each other) plus
-# the pinned glibc/libstdc++. rustc uses DT_RUNPATH (non-transitive), so the
-# libraries must be patched too, not just the executables.
+# Merge rustc + cargo + rust-std (gnu + musl) into one prefix, then formatelf
+# every ELF: exes get the pinned glibc interpreter + a DT_RPATH (via
+# --force-rpath, searched transitively so it also resolves librustc_driver/
+# libLLVM/libstd deps), and the .so's just get their stale DT_RUNPATH stripped.
+{
+  system,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkNaked = import ../mk-naked.nix;
-  pinned = import ../pinned.nix;
+  sys = (import ../systems.nix).${system};
+  pins = sys.pins;
 
   version = "1.90.0";
-  triple = "x86_64-unknown-linux-gnu";
-  comp = name: hash: fetchurl {
-    url = "https://static.rust-lang.org/dist/${name}-${version}-${triple}.tar.gz";
-    inherit hash;
-  };
-  # musl std, so rustc --target x86_64-unknown-linux-musl can emit fully static
-  # binaries (linked by zig cc), which need no glibc at all.
+  gnu = sys.rust.gnu;
+  musl = sys.rust.musl;
+  comp =
+    name: hash:
+    fetchurl {
+      url = "https://static.rust-lang.org/dist/${name}-${version}-${gnu}.tar.gz";
+      inherit hash;
+    };
   muslStd = fetchurl {
-    url = "https://static.rust-lang.org/dist/rust-std-${version}-x86_64-unknown-linux-musl.tar.gz";
-    hash = "sha256-nov5lIKMxF6qItlOxnTzuscQ73dxumdCvzeucGocr3U=";
+    url = "https://static.rust-lang.org/dist/rust-std-${version}-${musl}.tar.gz";
+    hash = sys.rust.muslStd;
   };
 in
 mkNaked {
+  inherit system;
   name = "rust-${version}";
   env = {
-    rustc = comp "rustc" "sha256-si1l/XX1DMA2wMtRRQBiglOqqBW/LhjsZWIKy4oa0kQ=";
-    cargo = comp "cargo" "sha256-3A9wxuaBd20MXgGVO1BIjosvly7tWuzm0JTkl+pICrA=";
-    ruststd = comp "rust-std" "sha256-gdfa1Yra+KmQR3HRqh6n6NxzIjb+ChsUigaM61At5/s=";
+    rustc = comp "rustc" sys.rust.rustc;
+    cargo = comp "cargo" sys.rust.cargo;
+    ruststd = comp "rust-std" sys.rust.std;
     inherit muslStd;
-    glibc = pinned.glibc;
-    formatelf = pinned.formatelf;
-    gccLib = pinned.gccLib;
-    zlib = pinned.zlib;
-    zstd = pinned.zstd;
+    glibc = pins.glibc;
+    formatelf = pins.formatelf;
+    gccLib = pins.gccLib;
+    zlib = pins.zlib;
+    zstd = pins.zstd;
   };
   script = ''
     tar -xzf "$rustc"
@@ -41,22 +46,19 @@ mkNaked {
     tar -xzf "$ruststd"
 
     mkdir -p "$out"
-    cp -r "rustc-${version}-${triple}/rustc/." "$out/"
-    cp -r "cargo-${version}-${triple}/cargo/." "$out/"
-    cp -r "rust-std-${version}-${triple}/rust-std-${triple}/." "$out/"
+    cp -r "rustc-${version}-${gnu}/rustc/." "$out/"
+    cp -r "cargo-${version}-${gnu}/cargo/." "$out/"
+    cp -r "rust-std-${version}-${gnu}/rust-std-${gnu}/." "$out/"
     tar -xzf "$muslStd"
-    cp -r "rust-std-${version}-x86_64-unknown-linux-musl/rust-std-x86_64-unknown-linux-musl/." "$out/"
+    cp -r "rust-std-${version}-${musl}/rust-std-${musl}/." "$out/"
     chmod -R u+w "$out"
 
     RPATH="$out/lib:$glibc/lib:$gccLib/lib:$zlib/lib:$zstd/lib"
-    # --force-rpath writes DT_RPATH (not DT_RUNPATH), which the loader searches
-    # *transitively* for the whole process. So rustc's rpath also resolves the
-    # deps of librustc_driver/libLLVM/libstd, and we only need to strip the
-    # stale DT_RUNPATH from those .so's (a shrink - avoids formatelf's inability
-    # to grow a section on libLLVM).
     for exe in "$out/bin/rustc" "$out/bin/cargo"; do
-      "$formatelf/bin/formatelf" --set-interpreter "$glibc/lib/ld-linux-x86-64.so.2" --force-rpath --set-rpath "$RPATH" "$exe"
+      "$formatelf/bin/formatelf" --set-interpreter "$glibc/lib/${sys.loader}" --force-rpath --set-rpath "$RPATH" "$exe"
     done
+    # only real ELF objects: some *.so* files (musl self-contained stubs) are
+    # linker scripts, which formatelf rejects rather than ignoring.
     for so in $(find "$out/lib" -name '*.so*' -type f); do
       [ "$(head -c4 "$so" | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
       "$formatelf/bin/formatelf" --remove-rpath "$so" || true

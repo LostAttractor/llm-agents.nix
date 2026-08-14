@@ -6,7 +6,11 @@ let
   mkNaked = import ./mk-naked.nix;
 
   fetchCrate =
-    { name, version, sha256 }:
+    {
+      name,
+      version,
+      sha256hex,
+    }:
     let
       url = "https://static.crates.io/crates/${name}/${name}-${version}.crate";
     in
@@ -18,25 +22,31 @@ let
       urls = [ url ];
       outputHashAlgo = "sha256";
       outputHashMode = "flat";
-      outputHash = sha256; # hex, straight from Cargo.lock
+      outputHash = sha256hex; # hex, straight from Cargo.lock
       unpack = false;
       executable = false;
       preferLocalBuild = true;
     };
 in
-cargoLock:
+{
+  cargoLock,
+  system,
+}:
 let
   lock = builtins.fromTOML (builtins.readFile cargoLock);
   crates = builtins.filter (p: p ? checksum) lock.package;
   line =
     p:
-    "${p.name} ${p.version} ${p.checksum} ${fetchCrate {
-      inherit (p) name version;
-      sha256 = p.checksum;
-    }}";
+    "${p.name} ${p.version} ${p.checksum} ${
+      fetchCrate {
+        inherit (p) name version;
+        sha256hex = p.checksum;
+      }
+    }";
   manifest = builtins.concatStringsSep "\n" (map line crates);
 in
 mkNaked {
+  inherit system;
   name = "cargo-vendor";
   env = { inherit manifest; };
   script = ''

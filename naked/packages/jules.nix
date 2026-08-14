@@ -4,6 +4,7 @@ let
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
+  system = "x86_64-linux";
   pname = "jules";
   version = "0.1.42";
   src = fetchurl {

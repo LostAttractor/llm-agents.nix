@@ -4,6 +4,7 @@ let
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
+  system = "x86_64-linux";
   pname = "kilocode-cli";
   version = "7.4.21";
   mainProgram = "kilocode";

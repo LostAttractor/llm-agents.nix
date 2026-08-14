@@ -4,6 +4,7 @@ let
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
+  system = "x86_64-linux";
   pname = "open-code-review";
   version = "1.9.2";
   mainProgram = "ocr";

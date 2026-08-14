@@ -4,6 +4,7 @@ let
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
+  system = "x86_64-linux";
   pname = "grok";
   version = "1.0.3";
   src = fetchurl {
