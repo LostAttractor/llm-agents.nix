@@ -1,10 +1,14 @@
 # open-code-review (`ocr`, Alibaba) — dynamic Go single-file binary.
+{
+  system,
+  pins,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
-  system = "x86_64-linux";
+  inherit system pins;
   pname = "open-code-review";
   version = "1.9.2";
   mainProgram = "ocr";

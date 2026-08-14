@@ -1,10 +1,14 @@
 # coderabbit-cli — bun-compiled binary in a zip. Ported onto the naked base.
+{
+  system,
+  pins,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
-  system = "x86_64-linux";
+  inherit system pins;
   pname = "coderabbit-cli";
   version = "0.7.2";
   mainProgram = "coderabbit";

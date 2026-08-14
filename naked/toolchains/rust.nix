@@ -5,12 +5,12 @@
 # libLLVM/libstd deps), and the .so's just get their stale DT_RUNPATH stripped.
 {
   system,
+  pins,
 }:
 let
   fetchurl = import ../fetchurl.nix;
   mkNaked = import ../mk-naked.nix;
   sys = (import ../systems.nix).${system};
-  pins = sys.pins;
 
   version = "1.90.0";
   gnu = sys.rust.gnu;

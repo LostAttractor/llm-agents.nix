@@ -5,13 +5,13 @@
 # Instead leave it byte-intact and invoke the pinned glibc loader via a wrapper.
 {
   system,
+  pins,
 }:
 let
   fetchurl = import ../fetchurl.nix;
   mkNaked = import ../mk-naked.nix;
   seed = import ../seed.nix { inherit system; };
   sys = (import ../systems.nix).${system};
-  pins = sys.pins;
 
   version = "1.3.14";
   plat = sys.bun.platform;

@@ -1,14 +1,16 @@
 # eca (Editor Code Assistant) - dynamic GraalVM native binary. Ported from
 # packages/eca onto the naked base: fetch the release zip, unzip, patchelf to
 # the pinned glibc + zlib. No nixpkgs.
+{
+  system,
+  pins,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
-  # eca is currently x86_64-only; take its extra lib (zlib) from that row
-  pins = (import ../systems.nix).x86_64-linux.pins;
 in
 mkBinary {
-  system = "x86_64-linux";
+  inherit system pins;
   pname = "eca";
   version = "0.153.1";
   src = fetchurl {

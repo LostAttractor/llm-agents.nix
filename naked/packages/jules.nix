@@ -1,10 +1,14 @@
 # jules (Google CLI) — Go binary in a tarball.
+{
+  system,
+  pins,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
-  system = "x86_64-linux";
+  inherit system pins;
   pname = "jules";
   version = "0.1.42";
   src = fetchurl {

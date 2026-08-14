@@ -1,10 +1,14 @@
 # kilocode-cli (`kilocode`) — bun-compiled binary in an npm tarball (package/).
+{
+  system,
+  pins,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
-  system = "x86_64-linux";
+  inherit system pins;
   pname = "kilocode-cli";
   version = "7.4.21";
   mainProgram = "kilocode";

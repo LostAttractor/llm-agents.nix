@@ -22,12 +22,12 @@
   libs ? [ ], # extra store paths whose /lib joins the rpath/library-path
   runtimeBins ? [ ], # [{ name; src; }] prebuilt binaries bundled onto PATH
   system,
+  pins,
 }:
 let
   seed = import ./seed.nix { inherit system; };
   mkNaked = import ./mk-naked.nix;
   sys = (import ./systems.nix).${system};
-  pins = sys.pins;
 
   libpath = builtins.concatStringsSep ":" (
     map (p: "${p}/lib") (

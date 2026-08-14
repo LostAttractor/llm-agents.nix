@@ -1,11 +1,15 @@
 # forgecode (`forge`) — dynamic single-file binary. Ported onto the naked base
 # (patchelf if dynamic; left intact if the release is static).
+{
+  system,
+  pins,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
-  system = "x86_64-linux";
+  inherit system pins;
   pname = "forgecode";
   version = "2.13.21";
   mainProgram = "forge";

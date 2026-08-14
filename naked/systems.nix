@@ -1,25 +1,16 @@
-# Per-system table for the naked layer. Adding a system = adding a row; every
-# arch-specific constant (seed binary, ELF loader, pinned tools, toolchain
-# artifact hashes, rust target triples) lives here and nothing else hardcodes an
-# architecture. Toolchain *versions* stay in the toolchain files (shared across
-# arches); only the per-arch platform token + hash live here.
+# Per-system table for the naked layer (PURE - no storePath, so it is usable
+# from a flake). Adding a system = adding a row. Arch-specific *pins* (glibc,
+# formatelf, ...) are NOT here; they come from a pins provider threaded in
+# (pins-store.nix for fast standalone eval, pins-pkgs.nix for the flake).
 #
-# pins are store paths (builtins.storePath). x86_64-linux's are always present
-# (we build with them); aarch64-linux's resolve once substituted from the
-# binary caches (they cannot be built on an x86_64 machine, only substituted).
+# Toolchain *versions* stay in the toolchain files (shared across arches); only
+# the per-arch platform token + hash live here.
 {
   x86_64-linux = {
     loader = "ld-linux-x86-64.so.2";
     busybox = {
       url = "https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox";
       hash = "sha256-mVOoYPn3r9NYiZjQf5AF2p7hXy1Q4kN5RSscc/PGpiY=";
-    };
-    pins = {
-      glibc = builtins.storePath /nix/store/0d8g8n0a11v6f5m2h416ajyxmnkwc3md-glibc-2.42-67;
-      gccLib = builtins.storePath /nix/store/r48746qznwqxxl9qzd8f08ny8mg1dg2y-gcc-15.3.0-lib;
-      zlib = builtins.storePath /nix/store/zks9mfsn4rqr6z9g6pcj2xqzcsplj0nb-zlib-1.3.2;
-      zstd = builtins.storePath /nix/store/pxahscw9vl9vac1nbjpy6bhz3vbk3cpl-zstd-1.5.7;
-      formatelf = builtins.storePath /nix/store/r6a970q9v1bzdfrd8dcqjmnfs94lh45g-formatelf-0-unstable-2026-08-11;
     };
     bun.platform = "linux-x64";
     bun.hash = "sha256-lR7iruhV8IWVruxiJSJqKY0/6oOj3NZGXAnLzN9+hI8=";
@@ -43,13 +34,6 @@
       # busybox.net ships no 64-bit aarch64 static build; use a pinned static one.
       url = "https://raw.githubusercontent.com/shutingrz/busybox-static-binaries-fat/1c31914c2398b04764b0e532299f8c842b4c6890/busybox-aarch64-linux-gnu";
       hash = "sha256-0lKJdLzmzYExtBDfj6o8vIMnqUsCgw/BbDxoZEJPlXQ=";
-    };
-    pins = {
-      glibc = builtins.storePath /nix/store/f8q4w2hbjvwy7qqwpnvbf5f4qwyww6cp-glibc-2.42-67;
-      gccLib = builtins.storePath /nix/store/ylzalvsf8nxhidm1p72k6ckxckpj1wd3-gcc-15.3.0-lib;
-      zlib = builtins.storePath /nix/store/3v2w5hdrpzwx3w8svda35lyrq9jwqbc8-zlib-1.3.2;
-      zstd = builtins.storePath /nix/store/k2fr8pihnym47m71fij3ns184vbx4v79-zstd-1.5.7;
-      formatelf = builtins.storePath /nix/store/hk6nkaqbxlyymm91gw9v3rr5b88z0mqy-formatelf-0-unstable-2026-08-11;
     };
     bun.platform = "linux-aarch64";
     bun.hash = "sha256-on/7Y6gxA3WDbg1vZorhf6jY0YuIw3yCHGUzGXOhmjs=";

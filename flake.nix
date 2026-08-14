@@ -205,6 +205,13 @@
         // {
           devshell-default = devShells.${system}.default;
         }
+        # naked: nixpkgs-free build layer (naked/), exposed as checks.<system>.naked-*
+        # so nixbot builds it. Linux only; x86_64 also gets the ported packages.
+        // lib.optionalAttrs (lib.hasSuffix "-linux" system) (
+          lib.mapAttrs' (name: v: lib.nameValuePair "naked-${name}" v) (
+            import ./naked/flake.nix pkgsFor.${system}
+          )
+        )
       );
     };
 }

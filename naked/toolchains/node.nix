@@ -3,12 +3,12 @@
 # formatelf) is safe: set the pinned glibc interpreter + rpath.
 {
   system,
+  pins,
 }:
 let
   fetchurl = import ../fetchurl.nix;
   mkNaked = import ../mk-naked.nix;
   sys = (import ../systems.nix).${system};
-  pins = sys.pins;
 
   version = "22.14.0";
   plat = sys.node.platform;

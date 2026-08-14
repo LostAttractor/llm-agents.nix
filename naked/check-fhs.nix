@@ -16,13 +16,14 @@ in
   package,
   name,
   system,
+  pins,
 }:
 mkNaked {
   inherit system;
   name = "${name}-fhs-check";
   env = {
     inherit package;
-    formatelf = "${(import ./systems.nix).${system}.pins.formatelf}/bin/formatelf";
+    formatelf = "${pins.formatelf}/bin/formatelf";
     kind = package.fhs.kind or "patchelf";
     libpath = package.fhs.libpath or "";
   };

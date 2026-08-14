@@ -2,12 +2,16 @@
 # own ripgrep. Ported from packages/droid onto the naked base: fetch droid + rg,
 # loader-wrap droid (patchelf would segfault a bun-compiled binary), bundle rg
 # onto PATH. No nixpkgs.
+{
+  system,
+  pins,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
-  system = "x86_64-linux";
+  inherit system pins;
   pname = "droid";
   version = "0.194.1";
   src = fetchurl {

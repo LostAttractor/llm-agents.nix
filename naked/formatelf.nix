@@ -4,14 +4,14 @@
 # sandbox - a one-time bootstrap seed for the naked-built one.
 {
   system,
+  pins,
 }:
 let
   fetchurl = import ./fetchurl.nix;
   mkNaked = import ./mk-naked.nix;
   cargoVendor = import ./cargo-vendor.nix;
   sys = (import ./systems.nix).${system};
-  pins = sys.pins;
-  rust = import ./toolchains/rust.nix { inherit system; };
+  rust = import ./toolchains/rust.nix { inherit system pins; };
   zig = import ./toolchains/zig.nix { inherit system; };
 
   gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target: x86_64-linux-gnu / aarch64-linux-gnu

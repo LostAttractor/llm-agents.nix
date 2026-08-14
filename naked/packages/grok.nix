@@ -1,10 +1,14 @@
 # grok (xAI CLI) — bun-compiled single-file binary. Ported onto the naked base.
+{
+  system,
+  pins,
+}:
 let
   fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
-  system = "x86_64-linux";
+  inherit system pins;
   pname = "grok";
   version = "1.0.3";
   src = fetchurl {
