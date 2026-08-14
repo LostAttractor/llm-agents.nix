@@ -15,8 +15,14 @@
 # runtimePkgs: pinned nixpkgs tools whose /bin joins PATH (e.g. pins.ripgrep).
 {
   pname,
-  version,
-  src,
+  # Source: either a literal src+version, OR reuse the repo's shared source of
+  # truth - hashesFile (packages/<name>/hashes.json: {version, hashes.<system>})
+  # + urlTemplate (interpolated with {version}). The latter means no duplicated
+  # hash/version that drifts when nix-update bumps the real package.
+  version ? null,
+  src ? null,
+  hashesFile ? null,
+  urlTemplate ? null,
   unpack ? "none", # "none" | "zip" | "tar"
   binary ? pname, # path to the main binary after unpack (single-file mode)
   installDir ? null, # dir to copy wholesale (dir-install mode)
@@ -36,6 +42,21 @@ let
   mkNaked = import ./mk-naked.nix;
   sys = (import ./systems.nix).${system};
 
+  # Reuse the repo's shared hashes.json (the same file nix-update bumps) instead
+  # of a duplicated literal hash. url comes from the shared interpolate template.
+  fetchurl = import ./fetchurl.nix;
+  interpolate = import ../lib/interpolate.nix;
+  hashData = if hashesFile == null then null else builtins.fromJSON (builtins.readFile hashesFile);
+  resolvedVersion = if hashData == null then version else hashData.version;
+  resolvedSrc =
+    if src != null then
+      src
+    else
+      fetchurl {
+        url = interpolate urlTemplate { version = resolvedVersion; };
+        hash = hashData.hashes.${system} or hashData.${system};
+      };
+
   libpath = builtins.concatStringsSep ":" (
     map (p: "${p}/lib") (
       [
@@ -47,10 +68,10 @@ let
   );
   drv = mkNaked {
     inherit system;
-    name = "${pname}-${version}";
+    name = "${pname}-${resolvedVersion}";
     env = {
+      src = resolvedSrc;
       inherit
-        src
         pname
         mainProgram
         kind

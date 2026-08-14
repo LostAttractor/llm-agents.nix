@@ -1,22 +1,18 @@
-# eca (Editor Code Assistant) - dynamic GraalVM native binary. Ported from
-# packages/eca onto the naked base: fetch the release zip, unzip, patchelf to
-# the pinned glibc + zlib. No nixpkgs.
+# eca (Editor Code Assistant) - dynamic GraalVM binary. Reuses the repo's shared
+# source of truth: version + hash from packages/eca/hashes.json (what nix-update
+# bumps), url from the interpolated template. No duplicated, drift-prone hash.
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "eca";
-  version = "0.153.1";
-  src = fetchurl {
-    url = "https://github.com/editor-code-assistant/eca/releases/download/0.153.1/eca-native-linux-amd64.zip";
-    hash = "sha256-PPGaLdF3ovWT+CtJXZ5UdzaGvrtRozR2soq4WOLK+G0=";
-  };
+  hashesFile = ../../packages/eca/hashes.json;
+  urlTemplate = "https://github.com/editor-code-assistant/eca/releases/download/{version}/eca-native-linux-amd64.zip";
   unpack = "zip";
   binary = "eca";
   kind = "patchelf";
