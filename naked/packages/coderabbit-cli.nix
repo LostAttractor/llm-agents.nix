@@ -1,21 +1,20 @@
 # coderabbit-cli — bun-compiled binary in a zip. Ported onto the naked base.
+# Reuses the repo's shared source of truth: version + hash from
+# packages/coderabbit-cli/hashes.json (what nix-update bumps), url from the
+# interpolated template. No duplicated, drift-prone hash.
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "coderabbit-cli";
-  version = "0.7.2";
   mainProgram = "coderabbit";
-  src = fetchurl {
-    url = "https://cli.coderabbit.ai/releases/0.7.2/coderabbit-linux-x64.zip";
-    hash = "sha256-Mt06WhI4+mjrfPqVzBnPatSYCIJYnGFsDjALkg8buGU=";
-  };
+  hashesFile = ../../packages/coderabbit-cli/hashes.json;
+  urlTemplate = "https://cli.coderabbit.ai/releases/{version}/coderabbit-linux-x64.zip";
   unpack = "zip";
   binary = "coderabbit";
   kind = "loader";

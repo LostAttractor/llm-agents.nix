@@ -1,20 +1,19 @@
 # amp (Sourcegraph) - bun-compiled single-file binary + ripgrep runtime dep.
+# Reuses the repo's shared source of truth: version + hash from
+# packages/amp/hashes.json (what nix-update bumps), url from the interpolated
+# template. No duplicated, drift-prone hash.
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "amp";
-  version = "0.0.1786738049-g32e30e";
-  src = fetchurl {
-    url = "https://static.ampcode.com/cli/0.0.1786738049-g32e30e/amp-linux-x64";
-    hash = "sha256-drrdTPxsIAXi3xSkBJM+g9rZ3TDLKTEUSaODepbv3pc=";
-  };
+  hashesFile = ../../packages/amp/hashes.json;
+  urlTemplate = "https://static.ampcode.com/cli/{version}/amp-linux-x64";
   unpack = "none";
   kind = "loader";
   runtimePkgs = [ pins.ripgrep ];

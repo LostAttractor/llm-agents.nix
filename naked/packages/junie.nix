@@ -7,17 +7,13 @@
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "junie";
-  version = "2651.4";
-  src = fetchurl {
-    url = "https://github.com/JetBrains/junie/releases/download/2651.4/junie-release-2651.4-linux-amd64.zip";
-    hash = "sha256-zHCHPdPW0NxTlPPnPxIXnC4rgBzc/ldYLdf+YICS/hU=";
-  };
+  hashesFile = ../../packages/junie/hashes.json;
+  urlTemplate = "https://github.com/JetBrains/junie/releases/download/{version}/junie-release-{version}-linux-amd64.zip";
   unpack = "zip";
   installDir = "junie-app";
   entrypoint = "bin/junie";

@@ -9,17 +9,13 @@
 # allow them to stay unresolved (like nixpkgs autoPatchelfIgnoreMissingDeps).
 { system, pins }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "copilot-cli";
-  version = "1.0.80";
-  src = fetchurl {
-    url = "https://registry.npmjs.org/@github/copilot-linux-x64/-/copilot-linux-x64-1.0.80.tgz";
-    hash = "sha256-ehzux5xB0amqAgPC0bbMSoTjWKbdMAkgecDcucCjRSE=";
-  };
+  hashesFile = ../../packages/copilot-cli/hashes.json;
+  urlTemplate = "https://registry.npmjs.org/@github/copilot-linux-x64/-/copilot-linux-x64-{version}.tgz";
   unpack = "tar";
   installDir = "package";
   entrypoint = "copilot";

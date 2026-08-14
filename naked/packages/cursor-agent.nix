@@ -1,21 +1,19 @@
 # cursor-agent - dynamic binary shipped as a whole package dir (dir-install)
-# plus a coreutils runtime dep.
+# plus a coreutils runtime dep. Reuses the repo's shared source of truth:
+# version + hash from packages/cursor-agent/hashes.json (what nix-update bumps),
+# url from the interpolated template. No duplicated, drift-prone hash.
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "cursor-agent";
-  version = "2026.08.11-e8db854";
-  src = fetchurl {
-    url = "https://downloads.cursor.com/lab/2026.08.11-e8db854/linux/x64/agent-cli-package.tar.gz";
-    hash = "sha256-v/9L9vTp3TDB0O8KcLYHewdAFd0pSOTFBoXVOv3Pzlo=";
-  };
+  hashesFile = ../../packages/cursor-agent/hashes.json;
+  urlTemplate = "https://downloads.cursor.com/lab/{version}/linux/x64/agent-cli-package.tar.gz";
   unpack = "tar";
   installDir = "dist-package";
   kind = "patchelf";

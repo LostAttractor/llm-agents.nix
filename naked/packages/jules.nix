@@ -1,20 +1,18 @@
-# jules (Google CLI) — Go binary in a tarball.
+# jules (Google CLI) — Go binary in a tarball. Reuses the repo's shared source
+# of truth: version + hash from packages/jules/hashes.json (what nix-update
+# bumps), url from the interpolated template. No duplicated, drift-prone hash.
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "jules";
-  version = "0.1.42";
-  src = fetchurl {
-    url = "https://storage.googleapis.com/jules-cli/v0.1.42/jules_external_v0.1.42_linux_amd64.tar.gz";
-    hash = "sha256-c869LI+Jubsk703MuM15Q8y2npmzfeJnwvV5Mjen0QM=";
-  };
+  hashesFile = ../../packages/jules/hashes.json;
+  urlTemplate = "https://storage.googleapis.com/jules-cli/v{version}/jules_external_v{version}_linux_amd64.tar.gz";
   unpack = "tar";
   binary = "jules";
   kind = "patchelf";

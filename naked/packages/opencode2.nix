@@ -1,17 +1,16 @@
 # opencode2 - bun-compiled binary in an npm tarball (package/), ported onto naked.
+# Reuses the repo's shared source of truth: version + hash from
+# packages/opencode2/hashes.json (what nix-update bumps), url from the
+# interpolated template. No duplicated, drift-prone hash.
 { system, pins }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "opencode2";
-  version = "0.0.0-next-17444";
-  src = fetchurl {
-    url = "https://registry.npmjs.org/@opencode-ai/cli-linux-x64/-/cli-linux-x64-0.0.0-next-17444.tgz";
-    hash = "sha256-54iGtij74Sck19YItCjrww8PHPhBPrMbHt2d4FZzms8=";
-  };
+  hashesFile = ../../packages/opencode2/hashes.json;
+  urlTemplate = "https://registry.npmjs.org/@opencode-ai/cli-linux-x64/-/cli-linux-x64-{version}.tgz";
   unpack = "tar";
   binary = "package/bin/opencode2";
   kind = "loader";

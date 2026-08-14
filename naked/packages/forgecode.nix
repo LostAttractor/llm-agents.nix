@@ -1,22 +1,21 @@
 # forgecode (`forge`) — dynamic single-file binary. Ported onto the naked base
-# (patchelf if dynamic; left intact if the release is static).
+# (patchelf if dynamic; left intact if the release is static). Reuses the repo's
+# shared source of truth: version + hash from packages/forgecode/hashes.json
+# (what nix-update bumps), url from the interpolated template. No duplicated,
+# drift-prone hash.
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "forgecode";
-  version = "2.13.21";
   mainProgram = "forge";
-  src = fetchurl {
-    url = "https://github.com/tailcallhq/forgecode/releases/download/v2.13.21/forge-x86_64-unknown-linux-gnu";
-    hash = "sha256-MArPaeOepaRS5lRPMZFHAxehQia2sakYIclYFeB6i4g=";
-  };
+  hashesFile = ../../packages/forgecode/hashes.json;
+  urlTemplate = "https://github.com/tailcallhq/forgecode/releases/download/v{version}/forge-x86_64-unknown-linux-gnu";
   unpack = "none";
   kind = "patchelf";
 }

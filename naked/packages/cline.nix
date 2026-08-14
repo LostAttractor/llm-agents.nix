@@ -5,17 +5,13 @@
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "cline";
-  version = "3.0.55";
-  src = fetchurl {
-    url = "https://registry.npmjs.org/@cline/cli-linux-x64/-/cli-linux-x64-3.0.55.tgz";
-    hash = "sha256-ghh2+L0vIijC/dP+pxr50Jkgh6Ccq2uFlz6oVTiuuKU=";
-  };
+  hashesFile = ../../packages/cline/hashes.json;
+  urlTemplate = "https://registry.npmjs.org/@cline/cli-linux-x64/-/cli-linux-x64-{version}.tgz";
   unpack = "tar";
   binary = "package/bin/cline";
   kind = "loader";

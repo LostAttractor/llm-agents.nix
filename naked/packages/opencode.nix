@@ -1,17 +1,16 @@
-# opencode - bun-compiled single-file binary in a tar.gz, ported onto the naked base.
+# opencode - bun-compiled single-file binary in a tar.gz, ported onto the naked
+# base. Reuses the repo's shared source of truth: version + hash from
+# packages/opencode/hashes.json (what nix-update bumps), url from the
+# interpolated template. No duplicated, drift-prone hash.
 { system, pins }:
 let
-  fetchurl = import ../fetchurl.nix;
   mkBinary = import ../mk-binary.nix;
 in
 mkBinary {
   inherit system pins;
   pname = "opencode";
-  version = "1.18.18";
-  src = fetchurl {
-    url = "https://github.com/anomalyco/opencode/releases/download/v1.18.18/opencode-linux-x64.tar.gz";
-    hash = "sha256-DN3CIkGLhVNmmQWomAwM2nCI8A2iTYPWrHawHJ/bKq8=";
-  };
+  hashesFile = ../../packages/opencode/hashes.json;
+  urlTemplate = "https://github.com/anomalyco/opencode/releases/download/v{version}/opencode-linux-x64.tar.gz";
   unpack = "tar";
   binary = "opencode";
   kind = "loader";
