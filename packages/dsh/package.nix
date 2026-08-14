@@ -3,18 +3,17 @@
   buildNpmPackage,
   fetchurl,
   flake,
-  nodejs_22,
-  runCommand,
   makeWrapper,
+  nodejs,
+  runCommand,
   versionCheckHook,
   versionCheckHomeHook,
 }:
 
 let
   versionData = lib.importJSON ./hashes.json;
-  version = versionData.version;
+  inherit (versionData) version;
 
-  # The npm tarball ships no lockfile. Vendor one, kept in sync by update.py.
   srcWithLock = runCommand "dsh-source" { } ''
     mkdir -p $out
     tar -xzf ${
@@ -31,27 +30,19 @@ buildNpmPackage {
   inherit version;
   src = srcWithLock;
 
-  nodejs = nodejs_22;
   npmDepsFetcherVersion = 2;
   npmDepsHash = versionData.npmDepsHash;
 
-  # The npm package already contains the compiled CLI files.
   dontNpmBuild = true;
 
   nativeBuildInputs = [ makeWrapper ];
 
-  installPhase = ''
-    runHook preInstall
-
-    npm prune --omit=dev
-
-    mkdir -p $out/lib/dsh $out/bin
-    cp -r lib config package.json README* node_modules $out/lib/dsh/
-
-    makeWrapper ${lib.getExe nodejs_22} $out/bin/dsh \
-      --add-flags "$out/lib/dsh/lib/bin.js"
-
-    runHook postInstall
+  postInstall = ''
+    rm $out/bin/dsh
+    makeWrapper ${lib.getExe nodejs} $out/bin/dsh \
+      --argv0 dsh \
+      --add-flags "--expose-internals" \
+      --add-flags "$out/lib/node_modules/@deepseek-ai/dsh/lib/bin.js"
   '';
 
   doInstallCheck = true;
@@ -59,7 +50,7 @@ buildNpmPackage {
     versionCheckHook
     versionCheckHomeHook
   ];
-  versionCheckProgramArg = [ "--version" ];
+  versionCheckProgramArg = "--version";
 
   passthru.category = "AI Coding Agents";
 
@@ -67,10 +58,14 @@ buildNpmPackage {
     description = "Open-source agent harness developed by DeepSeek AI";
     homepage = "https://github.com/deepseek-ai/deepseek-harness";
     changelog = "https://github.com/deepseek-ai/deepseek-harness/releases";
+    downloadPage = "https://www.npmjs.com/package/@deepseek-ai/dsh";
     license = lib.licenses.mit;
-    sourceProvenance = with lib.sourceTypes; [ binaryBytecode ];
+    sourceProvenance = with lib.sourceTypes; [
+      binaryBytecode
+      fromSource
+    ];
     maintainers = with flake.lib.maintainers; [ JachinShen ];
     mainProgram = "dsh";
-    platforms = lib.platforms.unix;
+    platforms = lib.platforms.all;
   };
 }
