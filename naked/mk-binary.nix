@@ -9,18 +9,22 @@
 #                ELF rewrite, so leave it byte-intact and invoke the pinned
 #                loader through a wrapper instead.
 #
-# runtimeBins: extra prebuilt binaries bundled onto PATH (e.g. a vendored
-# ripgrep), formatelf'd if dynamic.
+# installDir: dir-install mode - copy the whole extracted <installDir> tree to
+#   $out (the entrypoint is one file inside it), not just a single binary.
+# runtimeBins: prebuilt binaries bundled onto PATH (e.g. a vendored ripgrep).
+# runtimePkgs: pinned nixpkgs tools whose /bin joins PATH (e.g. pins.ripgrep).
 {
   pname,
   version,
   src,
   unpack ? "none", # "none" | "zip" | "tar"
-  binary ? pname, # path to the main binary after unpack
+  binary ? pname, # path to the main binary after unpack (single-file mode)
+  installDir ? null, # dir to copy wholesale (dir-install mode); entrypoint is mainProgram inside it
   mainProgram ? pname,
   kind ? "patchelf", # "patchelf" | "loader"
   libs ? [ ], # extra store paths whose /lib joins the rpath/library-path
   runtimeBins ? [ ], # [{ name; src; }] prebuilt binaries bundled onto PATH
+  runtimePkgs ? [ ], # pinned store paths whose /bin joins PATH
   system,
   pins,
 }:
@@ -42,7 +46,12 @@ let
     inherit system;
     name = "${pname}-${version}";
     env = {
-      inherit src;
+      inherit
+        src
+        pname
+        mainProgram
+        kind
+        ;
       busybox = seed.busybox;
       glibc = pins.glibc;
       formatelf = pins.formatelf;
@@ -50,18 +59,30 @@ let
       loader = "${pins.glibc}/lib/${sys.loader}";
       unpackKind = unpack;
       binaryPath = binary;
-      inherit mainProgram kind;
+      installDir = if installDir == null then "" else installDir;
       runtimeBins = builtins.concatStringsSep "\n" (map (b: "${b.name}=${b.src}") runtimeBins);
+      runtimePath = builtins.concatStringsSep ":" (map (p: "${p}/bin") runtimePkgs);
     };
     script = ''
       mkdir -p "$out/bin" "$out/libexec"
 
       case "$unpackKind" in
-        none) cp "$src" "$out/libexec/$mainProgram" ;;
-        zip)  unzip -q "$src"; cp "$binaryPath" "$out/libexec/$mainProgram" ;;
-        tar)  tar -xf "$src";  cp "$binaryPath" "$out/libexec/$mainProgram" ;;
+        none) ;;
+        zip)  unzip -q "$src" ;;
+        tar)  tar -xf "$src" ;;
       esac
-      chmod 0755 "$out/libexec/$mainProgram"  # writable so formatelf can rewrite it
+
+      if [ -n "$installDir" ]; then
+        # dir-install: copy the whole tree; entrypoint is one file inside it
+        bindir="$out/libexec/$pname"
+        mkdir -p "$bindir"
+        cp -r "$installDir/." "$bindir/"
+      else
+        bindir="$out/libexec"
+        if [ "$unpackKind" = none ]; then cp "$src" "$bindir/$mainProgram"; else cp "$binaryPath" "$bindir/$mainProgram"; fi
+      fi
+      chmod -R u+w "$bindir"
+      chmod 0755 "$bindir/$mainProgram"
 
       # patch a binary iff it is dynamic (has an interpreter)
       fixelf() {
@@ -78,17 +99,30 @@ let
       done
 
       if [ "$kind" = patchelf ]; then
-        fixelf "$out/libexec/$mainProgram"
+        if [ -n "$installDir" ]; then
+          # dir-install: the entrypoint may be a script wrapping bundled ELFs
+          # (e.g. a vendored node), so patch every ELF in the tree.
+          for f in $(find "$bindir" -type f); do
+            [ "$(head -c4 "$f" 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
+            fixelf "$f"
+          done
+        else
+          fixelf "$bindir/$mainProgram"
+        fi
       fi
+
+      # wrapper PATH: bundled bins ($out/libexec + bindir) then pinned tools
+      wrapperpath="$out/libexec:$bindir"
+      [ -n "$runtimePath" ] && wrapperpath="$wrapperpath:$runtimePath"
 
       ln -s "$busybox" "$out/libexec/sh"
       {
         echo "#!$out/libexec/sh"
-        echo "export PATH=\"$out/libexec\''${PATH:+:\$PATH}\""
+        echo "export PATH=\"$wrapperpath\''${PATH:+:\$PATH}\""
         if [ "$kind" = loader ]; then
-          echo "exec \"$loader\" --library-path \"$libpath\" \"$out/libexec/$mainProgram\" \"\$@\""
+          echo "exec \"$loader\" --library-path \"$libpath\" \"$bindir/$mainProgram\" \"\$@\""
         else
-          echo "exec \"$out/libexec/$mainProgram\" \"\$@\""
+          echo "exec \"$bindir/$mainProgram\" \"\$@\""
         fi
       } > "$out/bin/$mainProgram"
       chmod +x "$out/bin/$mainProgram"

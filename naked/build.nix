@@ -37,6 +37,8 @@ in
       mk = name: import (./packages + "/${name}.nix") { inherit system pins; };
     in
     {
+      amp = mk "amp";
+      cursor-agent = mk "cursor-agent";
       eca = mk "eca";
       droid = mk "droid";
       grok = mk "grok";

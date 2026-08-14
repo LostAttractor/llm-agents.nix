@@ -12,6 +12,9 @@ system:
     zlib = builtins.storePath /nix/store/zks9mfsn4rqr6z9g6pcj2xqzcsplj0nb-zlib-1.3.2;
     zstd = builtins.storePath /nix/store/pxahscw9vl9vac1nbjpy6bhz3vbk3cpl-zstd-1.5.7;
     formatelf = builtins.storePath /nix/store/r6a970q9v1bzdfrd8dcqjmnfs94lh45g-formatelf-0-unstable-2026-08-11;
+    # runtime deps for the ported packages (x86_64-only, so aarch64 omits them)
+    ripgrep = builtins.storePath /nix/store/axp6zlky4x2v3jwcbq24a2cz25hzlw9b-ripgrep-15.2.0;
+    coreutils = builtins.storePath /nix/store/97d5ygrvqj55f4nx1x34wfdcc7qn11c0-coreutils-9.11;
   };
   aarch64-linux = {
     glibc = builtins.storePath /nix/store/f8q4w2hbjvwy7qqwpnvbf5f4qwyww6cp-glibc-2.42-67;

@@ -26,4 +26,6 @@ in
   gccLib = pkgs.stdenv.cc.cc.lib;
   zlib = pkgs.zlib;
   zstd = pkgs.zstd;
+  ripgrep = pkgs.ripgrep;
+  coreutils = pkgs.coreutils;
 }
