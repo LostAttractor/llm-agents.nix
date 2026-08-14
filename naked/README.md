@@ -11,17 +11,17 @@ Build anything here with `nix build -f naked <attr>`.
 ## Architecture
 
 ```
-seed.nix      two truly-static prebuilt binaries fetched by URL, zero nixpkgs:
-              - bash-static (the builder; ignores argv[0], so it runs from a
-                hash-prefixed store path — Nix always sets argv[0]=builder)
-              - busybox-musl (sh + coreutils + tar/gzip/unzip in one binary)
-mk-naked.nix  the mkDerivation replacement. Builder = seed bash; it boots
-              busybox applets into PATH via `exec -a busybox` (busybox
-              dispatches on argv[0], which Nix hash-prefixes) then runs the
-              build script. ~10 lines vs stdenv's ~2000.
+seed.nix      ONE truly-static prebuilt binary fetched by URL, zero nixpkgs:
+              busybox-musl (sh + coreutils + tar/gzip/xz/unzip). The build
+              *builder* is the sandbox's own /bin/sh (Nix guarantees it), so we
+              don't even fetch a shell.
+mk-naked.nix  the mkDerivation replacement. Builder = /bin/sh; it boots busybox
+              applets into PATH via `exec -a busybox` (busybox dispatches on
+              argv[0], which Nix hash-prefixes) then runs the build script.
+              ~10 lines vs stdenv's ~2000.
 fetchurl.nix  naked builtin:fetchurl (flat + executable variants)
 pinned.nix    THE nixpkgs boundary (see below)
-toolchains/   bun, node, rust from upstream prebuilt binaries
+toolchains/   bun, node, rust, zig from upstream prebuilt binaries
 ```
 
 ## What works (all built + run in a nixpkgs-free sandbox, x86_64-linux)
@@ -31,11 +31,13 @@ toolchains/   bun, node, rust from upstream prebuilt binaries
 | `hello` | seed userland smoke test (mkdir/cp/ln/chmod) — builds + runs |
 | `bun` | `bun --version` → 1.3.14. Wrapped with the pinned loader, **not** patchelf'd (bun's appended runtime payload segfaults on any ELF rewrite) |
 | `node` | `node --version` → v22.14.0, runs JS. patchelf'd (safe: no appended payload) |
-| `rust` | `rustc 1.83.0` + `cargo 1.83.0` run; `rustc` compiles source → rlib (full frontend + LLVM codegen + std) |
+| `rust` | `rustc 1.83.0` + `cargo 1.83.0` run; compiles source → rlib, and (with zig) links full executables |
+| `zig` | `zig cc` — a self-contained C/C++ compiler + linker + libc, **no glibc pin**. Emits fully static musl binaries. |
+| `rust-zig-link-demo` | prebuilt rustc + `zig cc` → a **fully static** rust executable (no PT_INTERP, no glibc, no nixpkgs) that runs |
 
-**Eval payoff:** the three naked toolchains resolve their drvPaths in **0.05s**
-vs **1.0s** for the nixpkgs equivalents — ~20×, and the naked layer imports
-*zero* nixpkgs.
+**Eval payoff:** the naked toolchains resolve their drvPaths in **0.05s** vs
+**1.0s** for the nixpkgs equivalents — ~20×, and the naked layer imports *zero*
+nixpkgs.
 
 ## The honest boundary: `pinned.nix`
 
@@ -54,24 +56,31 @@ stock nixpkgs glibc/patchelf/zlib/zstd by store path:
 This is the same reasoning as pinning chromium: a bounded, cache-substitutable
 pin, not a fork.
 
+## What the glibc pin is now (and isn't) for
+
+zig closed the "last mile": **building/linking** our own code needs no nixpkgs
+and no glibc — `zig cc` is a complete static C toolchain. The pinned
+glibc/patchelf is now needed only to **run the upstream prebuilt toolchain
+binaries** (bun/node/rustc ship glibc-dynamic). Output artifacts built through
+zig depend on nothing. Fully dropping the pin would mean either upstream musl
+toolchain builds or rebuilding glibc (= stdenv).
+
 ## What is NOT done (limitations)
 
-- **Rust can't link executables.** rustc compiles to rlib/obj here, but linking
-  a binary needs a C toolchain (crt objects + `ld` + libc). That's another pin
-  (cc/binutils/glibc-dev) or shipping `rust-lld` + crt — not attempted.
 - **x86_64-linux only.** URLs, hashes, and pinned paths are hardcoded per-arch.
 - **Toolchain layer only.** No per-package builders yet (the `buildNpmPackage` /
   bun-package / `buildRustPackage` equivalents). This proves the *base*; the
   packages still need porting onto it to actually shed `mkDerivation`.
 - **Darwin unaddressed.**
-- **The glibc/patchelf pin is an irreducible tie** short of bootstrapping libc.
+- **glibc/patchelf still pinned** to run the glibc-dynamic upstream toolchains.
 
 ## Takeaway
 
-The architecture works: naked fetchers + a tiny builder + prebuilt toolchains
-build real software with no nixpkgs eval, ~20× faster at the toolchain layer.
-But "remove nixpkgs" is ~90%: the last mile (libc, the C linker) is where you
-either pin from the standard cache (pragmatic, done here) or rebuild stdenv
-(huge). And the flamegraph's `mkDerivation` tax only disappears for packages
-actually *ported onto* this base — the toolchains alone don't move the full-set
-number.
+The architecture works: naked fetchers + a tiny builder + prebuilt toolchains +
+`zig cc` build and link real software (down to fully static rust binaries) with
+no nixpkgs eval, ~20× faster at the toolchain layer. "Remove nixpkgs" for the
+fetch → toolchain → compile → link → wrap path is essentially done; the only
+residual nixpkgs tie is the glibc needed to *run* the upstream prebuilt
+toolchains. The flamegraph's `mkDerivation` tax only disappears for packages
+actually *ported onto* this base — the next step is porting the per-package
+builders, starting with the binary-wrapper packages (fetch + patchelf + wrap).

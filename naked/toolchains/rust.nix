@@ -15,6 +15,12 @@ let
     url = "https://static.rust-lang.org/dist/${name}-${version}-${triple}.tar.gz";
     inherit hash;
   };
+  # musl std, so rustc --target x86_64-unknown-linux-musl can emit fully static
+  # binaries (linked by zig cc), which need no glibc at all.
+  muslStd = fetchurl {
+    url = "https://static.rust-lang.org/dist/rust-std-${version}-x86_64-unknown-linux-musl.tar.gz";
+    hash = "sha256-HAQ23gjeZBnSn6935cmDH2Tpw2mJJ2nfqkx+1BHFjRo=";
+  };
 in
 mkNaked {
   name = "rust-${version}";
@@ -22,6 +28,7 @@ mkNaked {
     rustc = comp "rustc" "sha256-V06zNWd7/6iOWyNROcd4TPEjRki7z4sPk8cSQBOGiRE=";
     cargo = comp "cargo" "sha256-WGvVjnaBsJ/9yVGRuqlds/fADXOfnLFaYMQP2t4k/d8=";
     ruststd = comp "rust-std" "sha256-XMozMPcT+nJ521OEiQwmZTXQeahc39GlLmnFXykducQ=";
+    inherit muslStd;
     glibc = pinned.glibc;
     patchelf = pinned.patchelf;
     gccLib = pinned.gccLib;
@@ -37,6 +44,8 @@ mkNaked {
     cp -r "rustc-${version}-${triple}/rustc/." "$out/"
     cp -r "cargo-${version}-${triple}/cargo/." "$out/"
     cp -r "rust-std-${version}-${triple}/rust-std-${triple}/." "$out/"
+    tar -xzf "$muslStd"
+    cp -r "rust-std-${version}-x86_64-unknown-linux-musl/rust-std-x86_64-unknown-linux-musl/." "$out/"
     chmod -R u+w "$out"
 
     RPATH="$out/lib:$glibc/lib:$gccLib/lib:$zlib/lib:$zstd/lib"
