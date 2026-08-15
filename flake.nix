@@ -51,6 +51,14 @@
         lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./packages)
       );
 
+      # corepkgs' own machinery packages (formatelf, wrapBuddy, buildNpmPackage,
+      # versionCheckHomeHook) - build helpers, not agents. Auto-discovered from
+      # corepkgs/packages and callPackage'd into the same scope so consuming
+      # nixpkgs packages resolve them by argument name, exactly as before.
+      coreHelperNames = builtins.attrNames (
+        lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./corepkgs/packages)
+      );
+
       checkNames = lib.mapAttrsToList (name: _type: lib.removeSuffix ".nix" name) (
         lib.filterAttrs (name: type: type == "regular" && lib.hasSuffix ".nix" name) (
           builtins.readDir ./checks
@@ -135,6 +143,9 @@
               allPackages = packages;
             }
             // lib.genAttrs packageNames (name: self.callPackage (./packages + "/${name}/package.nix") { })
+            // lib.genAttrs coreHelperNames (
+              name: self.callPackage (./corepkgs/packages + "/${name}/package.nix") { }
+            )
           );
 
           # Generate a standard passthru.updateScript from a package's
