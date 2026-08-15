@@ -48,6 +48,9 @@ mkBinary {
 
   meta = {
     description = "AI memory CLI - crash-safe, single-file storage with semantic search";
+    # Inline-pinned x86_64 binary only (mkBinary cannot yet read this
+    # package's nested per-platform hashes.json); gate accordingly.
+    platforms = [ "x86_64-linux" ];
     homepage = "https://memvid.com";
     changelog = "https://github.com/memvid/memvid/releases";
     license = flake.lib.licenses.asl20;

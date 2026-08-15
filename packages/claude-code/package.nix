@@ -60,6 +60,12 @@ mkBinary {
 
   meta = {
     description = "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster";
+    # Linux only for now: the sandbox shim pulls bubblewrap + socat, which are
+    # Linux-only pins (mkBinary has no per-platform runtimePkgs yet).
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
     homepage = "https://claude.ai/code";
     changelog = "https://github.com/anthropics/claude-code/releases";
     license = flake.lib.licenses.unfree;

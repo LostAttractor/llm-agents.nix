@@ -37,6 +37,9 @@ mkBinary {
 
   meta = {
     description = "Factory AI's Droid - AI-powered development agent for your terminal";
+    # Inline-pinned x86_64 binary only (mkBinary cannot yet read this
+    # package's nested per-platform hashes.json); gate accordingly.
+    platforms = [ "x86_64-linux" ];
     homepage = "https://factory.ai";
     changelog = "https://docs.factory.ai/changelog/cli-updates";
     downloadPage = "https://factory.ai/product/ide";

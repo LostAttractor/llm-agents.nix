@@ -57,6 +57,9 @@ mkBinary {
 
   meta = {
     description = "Qoder AI CLI tool - Terminal-based AI assistant for code development";
+    # Inline-pinned x86_64 binary only (mkBinary cannot yet read this
+    # package's nested per-platform hashes.json); gate accordingly.
+    platforms = [ "x86_64-linux" ];
     homepage = "https://qoder.com";
     changelog = "https://qoder.com/changelog";
     downloadPage = "https://qoder.com/download";

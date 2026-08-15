@@ -56,6 +56,12 @@ mkBinary {
 
   meta = {
     description = "Junie, JetBrains AI coding agent CLI";
+    # Linux only for now: the darwin JRE dir-install path is not yet handled by
+    # the corepkgs darwin builder (needs a darwin machine to verify).
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
     homepage = "https://github.com/JetBrains/junie";
     changelog = "https://github.com/JetBrains/junie/releases";
     license = flake.lib.licenses.unfree;

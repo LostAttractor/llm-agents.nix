@@ -58,6 +58,9 @@ mkBinary {
 
   meta = {
     description = "Qoder CLI (mainland China edition) - terminal-based AI coding assistant for China-region accounts";
+    # Inline-pinned x86_64 binary only (mkBinary cannot yet read this
+    # package's nested per-platform hashes.json); gate accordingly.
+    platforms = [ "x86_64-linux" ];
     homepage = "https://qoder.cn";
     changelog = "https://qoder.cn/changelog";
     downloadPage = "https://qoder.cn/download";
