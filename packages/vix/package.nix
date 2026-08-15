@@ -1,5 +1,6 @@
-# vix - built from source on corepkgs (nixpkgs-free) via mkGo, static
-# (CGO_ENABLED=0). No external deps (stdlib only), so no vendorHash. Two bins.
+# vix - built from source on corepkgs (nixpkgs-free) via mkGo. cgo = true: the
+# tree-sitter go bindings compile bundled grammar C via zig cc (no external C
+# lib); the output is dynamic, patchelf'd to the pinned glibc. In-tree vendor/.
 {
   mkGo,
   coreFetchurl,
@@ -12,6 +13,7 @@ mkGo {
     url = "https://github.com/get-vix/vix/archive/refs/tags/v0.5.7.tar.gz";
     hash = "sha256-/yE7Xt7DLpylDU3ZuZizjCySxxMq4g1z1TfhaYB61GQ=";
   };
+  cgo = true;
   subPackages = [
     "cmd/vix"
     "cmd/vixd"

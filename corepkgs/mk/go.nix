@@ -2,8 +2,8 @@
 # toolchain. CGO_ENABLED=0 so the output is a fully STATIC binary - no glibc, no
 # patchelf, no formatelf, nothing to wrap; it just runs. Modules are vendored by
 # go-vendor.nix (a single vendorHash FOD, since go.sum hashes are not
-# fetchurl-compatible). CGO packages (needing a C toolchain) are out of scope for
-# now.
+# fetchurl-compatible). cgo = true builds cgo packages via zig cc (dynamic
+# output, patchelf'd to the pinned glibc); buildInputs adds C-lib pins.
 {
   pname,
   version ? null,
@@ -14,6 +14,8 @@
   binaries ? [ pname ], # output binary names (parallel to `subPackages`)
   ldflags ? [ ], # extra -ldflags entries
   tags ? [ ], # -tags
+  cgo ? false, # CGO_ENABLED=1: compile cgo C via zig cc; output is dynamic, patchelf'd to the pinned glibc
+  buildInputs ? [ ], # C-library pins (cgo external libs) - /lib joins the rpath, /lib/pkgconfig joins PKG_CONFIG_PATH
   mainProgram ? builtins.head binaries,
   meta ? { },
   category ? null,
@@ -24,6 +26,14 @@
 let
   mkNaked = import ./naked-sh.nix;
   go = import ../toolchains/go.nix { inherit system pins; };
+  zig = import ../toolchains/zig.nix { inherit system; };
+  sys = (import ../systems.nix).${system};
+  gnuTarget = "${sys.zig.platform}-gnu";
+  extraLibPath = builtins.concatStringsSep ":" (map (p: "${p}/lib") buildInputs);
+  pkgConfigPath = builtins.concatStringsSep ":" (map (p: "${p}/lib/pkgconfig") buildInputs);
+  # cgo output rpath: pinned glibc + gccLib (+ any C-lib buildInputs)
+  cgoLibpath =
+    "${pins.glibc}/lib:${pins.gccLib}/lib" + (if extraLibPath == "" then "" else ":${extraLibPath}");
   # null vendorHash = the module has no external deps (stdlib only); skip
   # vendoring and build offline with -mod=mod.
   vendor =
@@ -54,14 +64,47 @@ let
       sourceRoot = if sourceRoot == null then "" else sourceRoot;
       ldflags = builtins.concatStringsSep " " ldflags;
       tags = builtins.concatStringsSep "," tags;
+      useCgo = if cgo then "1" else "";
+      inherit zig gnuTarget pkgConfigPath;
+      cgoLibpath = if cgo then cgoLibpath else "";
+      glibc = pins.glibc;
+      formatelf = pins.formatelf;
+      loader = sys.loader;
+      pkgConfigBin = "${pins.pkgConfig}/bin";
     };
     script = ''
       export HOME="$NIX_BUILD_TOP"
       export GOPATH="$NIX_BUILD_TOP/gopath"
       export GOCACHE="$NIX_BUILD_TOP/gocache"
       export GOTOOLCHAIN=local
-      export CGO_ENABLED=0
       export PATH="$go/bin:$PATH"
+
+      if [ -n "$useCgo" ]; then
+        # cgo: compile the C via zig cc; provide zig's llvm ar/ranlib + pkg-config
+        # for `#cgo pkg-config:` directives. The output is dynamic - patchelf'd
+        # to the pinned glibc after the build.
+        export CGO_ENABLED=1
+        cat > "$NIX_BUILD_TOP/zcc" <<EOF
+      #!/bin/sh
+      filtered=
+      for a in "\$@"; do
+        case "\$a" in --target=*|-m64|-m32) continue ;; esac
+        filtered="\$filtered \$a"
+      done
+      exec "$zig/bin/zig" cc -target ${gnuTarget} \$filtered
+      EOF
+        chmod +x "$NIX_BUILD_TOP/zcc"
+        export CC="$NIX_BUILD_TOP/zcc"
+        for t in ar ranlib; do
+          { echo "#!/bin/sh"; echo "exec \"$zig/bin/zig\" $t \"\$@\""; } > "$NIX_BUILD_TOP/$t"
+          chmod +x "$NIX_BUILD_TOP/$t"
+        done
+        export AR="$NIX_BUILD_TOP/ar"
+        export PATH="$NIX_BUILD_TOP:$pkgConfigBin:$PATH"
+        [ -n "$pkgConfigPath" ] && export PKG_CONFIG_PATH="$pkgConfigPath"
+      else
+        export CGO_ENABLED=0
+      fi
 
       tar -xzf "$src"
       cd "$(tar -tzf "$src" | head -1 | cut -d/ -f1)"
@@ -85,14 +128,19 @@ let
         bin="''${pair##*:}"
         # quote $ldf/$tagf: they hold space-separated ldflags as ONE go arg
         go build ''${ldf:+"$ldf"} ''${tagf:+"$tagf"} -o "$out/bin/$bin" "./$pkg"
+        # cgo output is a dynamic ELF: point it at the pinned glibc + set rpath.
+        if [ -n "$useCgo" ]; then
+          "$formatelf/bin/formatelf" --set-interpreter "$glibc/lib/$loader" --force-rpath --set-rpath "$cgoLibpath" "$out/bin/$bin"
+        fi
       done
     '';
   };
 in
 drv
 // {
-  # go source builds are linux-only for now (the naked go toolchain is Linux);
-  # the output is static (no interpreter, no NEEDED), so the FHS check is trivial.
+  # go source builds are linux-only for now (the naked go toolchain is Linux).
+  # CGO_ENABLED=0 output is static (trivial FHS); a cgo output is a dynamic ELF
+  # patchelf'd to the pinned glibc (+ any C-lib buildInputs).
   meta = {
     platforms = [ "x86_64-linux" ];
     inherit mainProgram;
@@ -102,8 +150,8 @@ drv
     (if category == null then { } else { inherit category; })
     // (if updater == null then { } else { inherit updater; });
   fhs = {
-    kind = "static";
-    libpath = "";
+    kind = if cgo then "patchelf" else "static";
+    libpath = if cgo then cgoLibpath else "";
     inherit mainProgram;
     ignoreMissing = "";
   };
