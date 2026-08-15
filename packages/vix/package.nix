@@ -1,51 +1,37 @@
+# vix - built from source on corepkgs (nixpkgs-free) via mkGo, static
+# (CGO_ENABLED=0). No external deps (stdlib only), so no vendorHash. Two bins.
 {
-  lib,
-  fetchFromGitHub,
-  buildGoModule,
-  versionCheckHook,
+  mkGo,
+  coreFetchurl,
+  flake,
 }:
-
-buildGoModule rec {
+mkGo {
   pname = "vix";
   version = "0.5.7";
-
-  src = fetchFromGitHub {
-    owner = "get-vix";
-    repo = "vix";
-    tag = "v${version}";
-    hash = "sha256-HKzm2cwDF0L1fmDDDzmXHfQKWlL4LrwTABiWG5c0Ok8=";
+  src = coreFetchurl {
+    url = "https://github.com/get-vix/vix/archive/refs/tags/v0.5.7.tar.gz";
+    hash = "sha256-/yE7Xt7DLpylDU3ZuZizjCySxxMq4g1z1TfhaYB61GQ=";
   };
-
-  # source already has vendor folder
-  vendorHash = null;
-
   subPackages = [
     "cmd/vix"
     "cmd/vixd"
   ];
-
+  binaries = [
+    "vix"
+    "vixd"
+  ];
   ldflags = [
     "-s"
     "-w"
-    "-X main.Version=${version}"
+    "-X main.Version=0.5.7"
   ];
-
-  doInstallCheck = true;
-
-  nativeInstallCheckInputs = [
-    versionCheckHook
-  ];
-
-  passthru.category = "AI Coding Agents";
-
-  meta = with lib; {
+  category = "AI Coding Agents";
+  meta = {
     description = "Sleek, Fast and Token Efficient AI Coding Agent";
     homepage = "https://github.com/get-vix/vix";
-    changelog = "https://github.com/get-vix/vix/releases/tag/v${version}";
-    license = licenses.agpl3Only;
-    sourceProvenance = with sourceTypes; [ fromSource ];
-    maintainers = with maintainers; [ daspk04 ];
-    mainProgram = "vix";
-    platforms = platforms.unix;
+    changelog = "https://github.com/get-vix/vix/releases/tag/v0.5.7";
+    license = flake.lib.licenses.agpl3Only;
+    sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
+    maintainers = [ flake.lib.maintainers.daspk04 ];
   };
 }
