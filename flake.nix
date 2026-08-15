@@ -239,6 +239,23 @@
 
       checks = eachSystem (
         system:
+        # FHS guard for every corepkgs package (it carries a `.fhs` passthru):
+        # assert the output is store-only, no ELF left on a host loader. ELF-only,
+        # so Linux systems only. Replaces the per-spike checks the swap removed.
+        let
+          fhsChecks = lib.optionalAttrs (lib.hasSuffix "-linux" system) (
+            lib.mapAttrs' (
+              name: pkg:
+              lib.nameValuePair "fhs-${name}" (
+                import ./corepkgs/mk/check-fhs.nix {
+                  package = pkg;
+                  inherit name system;
+                  pins = import ./corepkgs/pins-pkgs.nix pkgsFor.${system};
+                }
+              )
+            ) (lib.filterAttrs (_name: pkg: pkg ? fhs) packages.${system})
+          );
+        in
         lib.mapAttrs' (name: pkg: lib.nameValuePair "pkgs-${name}" pkg) packages.${system}
         // lib.genAttrs checkNames (
           name:
@@ -250,8 +267,9 @@
         // {
           devshell-default = devShells.${system}.default;
         }
+        // fhsChecks
         # corepkgs: the nixpkgs-free packaging system (corepkgs/), exposed as checks.<system>.naked-*
-        # so nixbot builds it. Linux only; x86_64 also gets the ported packages.
+        # so nixbot builds it (toolchains + formatelf + hello). Linux only.
         // lib.optionalAttrs (lib.hasSuffix "-linux" system) (
           lib.mapAttrs' (name: v: lib.nameValuePair "naked-${name}" v) (
             import ./corepkgs/flake.nix pkgsFor.${system}
