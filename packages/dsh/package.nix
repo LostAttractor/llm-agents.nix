@@ -1,71 +1,37 @@
+# dsh - built on corepkgs (nixpkgs-free) via mkNpm. Prebuilt registry tarball
+# (dontNpmBuild); node_modules vendored from the committed lock. The bin needs
+# node's --expose-internals flag, so we override the launcher (nixpkgs makeWrapper
+# --add-flags equiv).
 {
-  lib,
-  buildNpmPackage,
-  fetchurl,
+  mkNpm,
+  coreFetchurl,
   flake,
-  makeWrapper,
-  nodejs,
-  runCommand,
-  versionCheckHook,
-  versionCheckHomeHook,
 }:
-
-let
-  versionData = lib.importJSON ./hashes.json;
-  inherit (versionData) version;
-
-  srcWithLock = runCommand "dsh-source" { } ''
-    mkdir -p $out
-    tar -xzf ${
-      fetchurl {
-        url = "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-${version}.tgz";
-        hash = versionData.sourceHash;
-      }
-    } -C $out --strip-components=1
-    cp ${./package-lock.json} $out/package-lock.json
-  '';
-in
-buildNpmPackage {
+mkNpm {
   pname = "dsh";
-  inherit version;
-  src = srcWithLock;
-
-  npmDepsFetcherVersion = 2;
-  npmDepsHash = versionData.npmDepsHash;
-
-  dontNpmBuild = true;
-
-  nativeBuildInputs = [ makeWrapper ];
-
-  postInstall = ''
-    rm $out/bin/dsh
-    makeWrapper ${lib.getExe nodejs} $out/bin/dsh \
-      --argv0 dsh \
-      --add-flags "--expose-internals" \
-      --add-flags "$out/lib/node_modules/@deepseek-ai/dsh/lib/bin.js"
-  '';
-
-  doInstallCheck = true;
-  nativeInstallCheckInputs = [
-    versionCheckHook
-    versionCheckHomeHook
-  ];
-  versionCheckProgramArg = "--version";
-
-  passthru.category = "AI Coding Agents";
-
+  version = "0.1.0-rc.6";
+  src = coreFetchurl {
+    url = "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.1.0-rc.6.tgz";
+    hash = "sha256-G4qaCtPH/q7OR5JuC9N8oVHHzPqZeVOvpf0BJheE6tw=";
+  };
+  packageLock = ./package-lock.json;
+  npmDepsHash = "sha256-ORD3lcEaxaSS8X92LKQ4TNucCZO04i4Aml+99wUiUvk=";
+  buildScript = "";
+  nativeAddons = true; # bundles a prebuilt node-addon-require-builtin .node addon
+  binWrappers.dsh = {
+    entry = "lib/bin.js";
+    nodeFlags = [ "--expose-internals" ];
+  };
+  category = "AI Coding Agents";
   meta = {
     description = "Open-source agent harness developed by DeepSeek AI";
     homepage = "https://github.com/deepseek-ai/deepseek-harness";
     changelog = "https://github.com/deepseek-ai/deepseek-harness/releases";
-    downloadPage = "https://www.npmjs.com/package/@deepseek-ai/dsh";
-    license = lib.licenses.mit;
-    sourceProvenance = with lib.sourceTypes; [
-      binaryBytecode
-      fromSource
+    license = flake.lib.licenses.mit;
+    sourceProvenance = [
+      flake.lib.sourceTypes.binaryBytecode
+      flake.lib.sourceTypes.fromSource
     ];
     maintainers = with flake.lib.maintainers; [ JachinShen ];
-    mainProgram = "dsh";
-    platforms = lib.platforms.all;
   };
 }

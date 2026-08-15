@@ -1,63 +1,30 @@
+# skills - built on corepkgs (nixpkgs-free) via mkNpm. Prebuilt registry tarball
+# (dontNpmBuild); node_modules vendored from the committed lock. Ships prebuilt
+# native addons (@rolldown/binding, lightningcss), so nativeAddons=true patchelfs
+# them to the pinned glibc (the autoPatchelfHook equivalent) - keeps it store-only.
 {
-  buildNpmPackage,
-  fetchurl,
-  lib,
-  mkUpdater,
-  runCommand,
-  versionCheckHook,
+  mkNpm,
+  coreFetchurl,
   flake,
 }:
-
-let
-  versionData = lib.importJSON ./hashes.json;
-  version = versionData.version;
-  # The npm tarball ships no lockfile; add the vendored one for buildNpmPackage.
-  srcWithLock = runCommand "skills-src-with-lock" { } ''
-    mkdir -p $out
-    tar -xzf ${
-      fetchurl {
-        url = "https://registry.npmjs.org/skills/-/skills-${version}.tgz";
-        hash = versionData.sourceHash;
-      }
-    } -C $out --strip-components=1
-    cp ${./package-lock.json} $out/package-lock.json
-  '';
-in
-buildNpmPackage {
-  npmDepsFetcherVersion = 2;
+mkNpm {
   pname = "skills";
-  inherit version;
-
-  src = srcWithLock;
-
-  npmDepsHash = versionData.npmDepsHash;
-  makeCacheWritable = true;
-
-  dontNpmBuild = true;
-
-  postFixup = ''
-    for bin in skills add-skill; do
-      wrapProgram $out/bin/$bin --set DISABLE_TELEMETRY 1
-    done
-  '';
-
-  doInstallCheck = true;
-  nativeInstallCheckInputs = [ versionCheckHook ];
-
-  passthru.category = "Skills & Plugins";
-  passthru.updater = mkUpdater {
-    kind = "npm";
-    purl = "pkg:npm/skills";
+  version = "1.5.22";
+  src = coreFetchurl {
+    url = "https://registry.npmjs.org/skills/-/skills-1.5.22.tgz";
+    hash = "sha256-EM7jkTnevmwBiPRycZSt5ZI0snfMyiMg4+1rYg7n8Us=";
   };
-
-  meta = with lib; {
+  packageLock = ./package-lock.json;
+  npmDepsHash = "sha256-OFkWnpgtXqWNVnoE/FrwcF8MB1AJpk5DuJbNJHEqNus=";
+  buildScript = "";
+  nativeAddons = true;
+  category = "Skills & Plugins";
+  meta = {
     description = "The open agent skills tool for installing and managing skills across AI coding agents";
     homepage = "https://github.com/vercel-labs/skills";
-    changelog = "https://github.com/vercel-labs/skills/releases/tag/v${version}";
-    license = licenses.mit;
-    sourceProvenance = with lib.sourceTypes; [ fromSource ];
+    changelog = "https://github.com/vercel-labs/skills/releases/tag/v1.5.22";
+    license = flake.lib.licenses.mit;
+    sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = with flake.lib.maintainers; [ kusold ];
-    mainProgram = "skills";
-    platforms = platforms.all;
   };
 }

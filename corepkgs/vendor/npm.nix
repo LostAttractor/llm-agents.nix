@@ -8,6 +8,7 @@
   npmDepsHash,
   sourceRoot ? null,
   packageLock ? null, # inject a committed package-lock.json (for registry tarballs that ship none, like nixpkgs' runCommand-injected lock)
+  omitOptional ? false, # `npm ci --omit=optional`: drop optionalDependencies (cross-platform prebuilds a package ships but does not need). NOT the default: many packages get their one platform-correct native binding via an optionalDependency.
   system,
   pins,
 }:
@@ -38,7 +39,7 @@ let
     [ -n "$sourceRoot" ] && cd "$sourceRoot"
 
     [ -n "$packageLock" ] && cp "$packageLock" package-lock.json
-    npm ci --ignore-scripts --no-audit --no-fund
+    npm ci --ignore-scripts --no-audit --no-fund $omitFlag
     cp -r node_modules "$out"
   '';
 in
@@ -47,6 +48,7 @@ derivation {
   inherit system src;
   sourceRoot = if sourceRoot == null then "" else sourceRoot;
   packageLock = if packageLock == null then "" else packageLock;
+  omitFlag = if omitOptional then "--omit=optional" else "";
   builder = "/bin/sh";
   args = [
     "-c"
