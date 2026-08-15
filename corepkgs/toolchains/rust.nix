@@ -12,7 +12,7 @@ let
   mkNaked = import ../mk/naked-sh.nix;
   sys = (import ../systems.nix).${system};
 
-  version = "1.90.0";
+  version = "1.97.1";
   gnu = sys.rust.gnu;
   musl = sys.rust.musl;
   comp =

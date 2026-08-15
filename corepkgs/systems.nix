@@ -26,10 +26,10 @@
     rust = {
       gnu = "x86_64-unknown-linux-gnu";
       musl = "x86_64-unknown-linux-musl";
-      rustc = "sha256-si1l/XX1DMA2wMtRRQBiglOqqBW/LhjsZWIKy4oa0kQ=";
-      cargo = "sha256-3A9wxuaBd20MXgGVO1BIjosvly7tWuzm0JTkl+pICrA=";
-      std = "sha256-gdfa1Yra+KmQR3HRqh6n6NxzIjb+ChsUigaM61At5/s=";
-      muslStd = "sha256-nov5lIKMxF6qItlOxnTzuscQ73dxumdCvzeucGocr3U=";
+      rustc = "sha256-HEQeQwwcyknf9UqNWcQQOL9vefe4dWWWyy82URoBXro=";
+      cargo = "sha256-kMvrit/oyg/L4BoYvZuZ0+Xpj9KcADAygo6/P/ug5O0=";
+      std = "sha256-Rbkn7Pd2uWRcou1bKH/GgUgkoHPDDHxdXArUQlKV7O4=";
+      muslStd = "sha256-0WDfyB0h/cclNIWfriSf7ParcGQDdfZPxOdwBaSMGNA=";
     };
   };
 
@@ -75,10 +75,10 @@
     rust = {
       gnu = "aarch64-unknown-linux-gnu";
       musl = "aarch64-unknown-linux-musl";
-      rustc = "sha256-ZI+o0DseniaJ/FMN1WTiP122naa4LVUezMTAp/FtKL8=";
-      cargo = "sha256-M1J4KLw4AmcC2FmWoowIqJTVN2pXVt2QhSR9NqoghAU=";
-      std = "sha256-YJ3ys2QAnYbDti98nSIloxg507/YHALkrlYzskMs700=";
-      muslStd = "sha256-71Rt+k50nFfT3UJFcxkzb2t4sJr0FENgK4myYxTEgqg=";
+      rustc = "sha256-jZ8wlaMQjjgjLxI2ReKgNovKZ8l1+LkQiABPj/2abTk=";
+      cargo = "sha256-yv3iQ1GLAW+CXROl8spP/X2A9ZZt++w1Oc0JLHxPmHE=";
+      std = "sha256-zv+kKP5XNQdBiFjVmt00KzUXMHJfNvdnmyUei2gQPew=";
+      muslStd = "sha256-mWWX9m7CLNBAHh8XFUXNhyZ9LvtVGdgRm3R0ZwU/Q4w=";
     };
   };
 }
