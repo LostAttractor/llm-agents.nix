@@ -1,33 +1,73 @@
-# copilot-language-server - built on corepkgs (nixpkgs-free) via mkNpm. Prebuilt
-# registry tarball (dontNpmBuild); node_modules vendored from the committed lock.
-# The upstream package.json bin escapes the package dir, so we override the
-# launcher to point node at the real dist entrypoint (nixpkgs makeWrapper equiv).
 {
-  mkNpm,
-  coreFetchurl,
-  flake,
+  lib,
+  buildNpmPackage,
+  fetchzip,
+  mkUpdater,
+  versionCheckHook,
+  nodejs_24,
+  runCommand,
+  makeWrapper,
 }:
-mkNpm {
+
+let
+  versionData = builtins.fromJSON (builtins.readFile ./hashes.json);
+  inherit (versionData) version hash npmDepsHash;
+
+  # Create a source with the vendored package-lock.json included
+  src = runCommand "copilot-language-server-src-with-lock" { } ''
+    mkdir -p $out
+    cp -r ${
+      fetchzip {
+        url = "https://registry.npmjs.org/@github/copilot-language-server/-/copilot-language-server-${version}.tgz";
+        inherit hash;
+      }
+    }/* $out/
+    cp ${./package-lock.json} $out/package-lock.json
+  '';
+in
+buildNpmPackage {
+  npmDepsFetcherVersion = 2;
+  nodejs = nodejs_24;
   pname = "copilot-language-server";
-  version = "1.532.0";
-  src = coreFetchurl {
-    url = "https://registry.npmjs.org/@github/copilot-language-server/-/copilot-language-server-1.532.0.tgz";
-    hash = "sha256-54AkqlAKHdmNxU3oh5aFiDNCbI8e9cemZEzsZUiPmWI=";
+  inherit version src npmDepsHash;
+  makeCacheWritable = true;
+
+  nativeBuildInputs = [ makeWrapper ];
+
+  # Skip optional platform-specific dependencies (not needed with Node.js 22+)
+  npmFlags = [
+    "--ignore-scripts"
+    "--omit=optional"
+  ];
+
+  dontNpmBuild = true;
+
+  # Fix the broken bin wrapper path created by npm for scoped packages
+  postInstall = ''
+    rm -rf $out/bin
+    mkdir -p $out/bin
+    makeWrapper ${nodejs_24}/bin/node $out/bin/copilot-language-server \
+      --add-flags "$out/lib/node_modules/@github/copilot-language-server/dist/language-server.js"
+  '';
+
+  doInstallCheck = true;
+  nativeInstallCheckInputs = [ versionCheckHook ];
+
+  passthru.category = "Utilities";
+  passthru.updater = mkUpdater {
+    kind = "npm";
+    purl = "pkg:npm/%40github/copilot-language-server";
+    fetchzip = true;
   };
-  packageLock = ./package-lock.json;
-  npmDepsHash = "sha256-a70kHH/Nvh9kB+kDvlcn2LfSEiVeY/ehHkadP6M5QUA=";
-  buildScript = "";
-  # upstream ships optional cross-platform clipboard/webview prebuilds it does
-  # not need (nixpkgs drops them the same way); omit them to stay store-only.
-  omitOptional = true;
-  binWrappers.copilot-language-server.entry = "dist/language-server.js";
-  category = "Utilities";
-  meta = {
+
+  meta = with lib; {
     description = "GitHub Copilot Language Server - AI pair programmer LSP";
     homepage = "https://github.com/github/copilot-language-server-release";
-    changelog = "https://github.com/github/copilot-language-server-release/releases/tag/1.532.0";
-    license = flake.lib.licenses.mit;
-    sourceProvenance = [ flake.lib.sourceTypes.binaryBytecode ];
-    maintainers = [ ];
+    changelog = "https://github.com/github/copilot-language-server-release/releases/tag/${version}";
+    downloadPage = "https://www.npmjs.com/package/@github/copilot-language-server";
+    license = licenses.mit;
+    sourceProvenance = with lib.sourceTypes; [ binaryBytecode ];
+    mainProgram = "copilot-language-server";
+    platforms = platforms.all;
   };
 }
