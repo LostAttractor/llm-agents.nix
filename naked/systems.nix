@@ -40,6 +40,11 @@
       url = "https://raw.githubusercontent.com/shutingrz/busybox-static-binaries-fat/1c31914c2398b04764b0e532299f8c842b4c6890/busybox-aarch64-linux-gnu";
       hash = "sha256-0lKJdLzmzYExtBDfj6o8vIMnqUsCgw/BbDxoZEJPlXQ=";
     };
+    nu = {
+      url = "https://github.com/nushell/nushell/releases/download/0.114.1/nu-0.114.1-aarch64-unknown-linux-musl.tar.gz";
+      hash = "sha256-T56IDnu/juWPOGDvSfRT6yYolltvLIgPsD1HdfKQtTY=";
+      dir = "nu-0.114.1-aarch64-unknown-linux-musl";
+    };
     bun.platform = "linux-aarch64";
     bun.hash = "sha256-on/7Y6gxA3WDbg1vZorhf6jY0YuIw3yCHGUzGXOhmjs=";
     node.platform = "linux-arm64";
