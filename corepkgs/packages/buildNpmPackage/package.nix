@@ -35,9 +35,10 @@ pkgs.emptyDirectory.overrideAttrs { name = "buildNpmPackage-guard"; }
   __functor =
     _:
     assert lib.assertMsg hasFetcherVersion msg;
-    # ast-grep-ignore: use-perSystem-buildNpmPackage
+    # the use-perSystem-buildNpmPackage rule is scoped to packages/**; this guard
+    # lives in corepkgs/ (the one sanctioned pkgs.buildNpmPackage use), so the
+    # rule never fires here and no suppression directive is needed.
     pkgs.buildNpmPackage;
-  # ast-grep-ignore: use-perSystem-buildNpmPackage
   override = pkgs.buildNpmPackage.override;
   passthru.hideFromDocs = true;
   meta = {
