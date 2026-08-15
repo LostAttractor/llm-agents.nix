@@ -12,6 +12,8 @@
   mkUpdater,
   flake,
   corePins,
+  lib,
+  system,
 }:
 let
   # system -> {platform} URL token, shared by the build and the updater.
@@ -33,7 +35,10 @@ mkBinary {
   # installation-method warnings, and non-essential model calls. DISABLE_TELEMETRY
   # / CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC are intentionally left unset - both
   # break remote-control (see numtide/llm-agents.nix#2811).
-  runtimePkgs = [
+  #
+  # bubblewrap + socat are Linux-only (namespaces); on darwin claude-code runs
+  # without the bwrap sandbox, so drop them there rather than fail to build.
+  runtimePkgs = lib.optionals (lib.hasSuffix "-linux" system) [
     corePins.bubblewrap
     corePins.socat
   ];
@@ -60,12 +65,6 @@ mkBinary {
 
   meta = {
     description = "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster";
-    # Linux only for now: the sandbox shim pulls bubblewrap + socat, which are
-    # Linux-only pins (mkBinary has no per-platform runtimePkgs yet).
-    platforms = [
-      "x86_64-linux"
-      "aarch64-linux"
-    ];
     homepage = "https://claude.ai/code";
     changelog = "https://github.com/anthropics/claude-code/releases";
     license = flake.lib.licenses.unfree;

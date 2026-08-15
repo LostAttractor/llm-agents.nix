@@ -29,7 +29,7 @@
   # systems out before src is forced. null = single-platform (urlTemplate has
   # the platform baked in, available only on `system`).
   platforms ? null,
-  unpack ? "none", # "none" | "zip" | "tar"
+  unpack ? "none", # "none" | "zip" | "tar" | "auto" (infer from the resolved URL extension)
   binary ? pname, # path to the main binary after unpack (single-file mode)
   installDir ? null, # dir to copy wholesale (dir-install mode)
   mainProgram ? pname, # name of the wrapper in $out/bin
@@ -73,14 +73,32 @@ let
         entry = platforms.${system};
       in
       if builtins.isAttrs entry then entry else { platform = entry; };
+  resolvedUrl =
+    if urlTemplate == null then
+      null
+    else
+      interpolate urlTemplate ({ version = resolvedVersion; } // platformVars);
   resolvedSrc =
     if src != null then
       src
     else
       fetchurl {
-        url = interpolate urlTemplate ({ version = resolvedVersion; } // platformVars);
+        url = resolvedUrl;
         hash = hashData.hashes.${system} or hashData.${system};
       };
+
+  # unpack = "auto" infers the archive kind from the resolved URL extension, so
+  # one package.nix can serve platforms whose assets differ (darwin .zip vs
+  # linux .tar.gz). Explicit "none"/"tar"/"zip" always win.
+  inferUnpack =
+    u:
+    if u != null && builtins.match ".*\\.zip" u != null then
+      "zip"
+    else if u != null && builtins.match ".*(\\.tar\\.gz|\\.tgz|\\.tar\\.xz|\\.tar)" u != null then
+      "tar"
+    else
+      "none";
+  resolvedUnpack = if unpack == "auto" then inferUnpack resolvedUrl else unpack;
 
   # Darwin Mach-O binaries link the always-present system libSystem via dyld -
   # no rpath rewriting, no loader, no glibc/formatelf pins. libpath is Linux-only.
@@ -114,7 +132,7 @@ let
       formatelf = if isDarwin then "" else pins.formatelf;
       inherit libpath;
       loader = if isDarwin then "" else "${pins.glibc}/lib/${sys.loader}";
-      unpackKind = unpack;
+      unpackKind = resolvedUnpack;
       binaryPath = binary;
       installDir = if installDir == null then "" else installDir;
       # __structuredAttrs: pass real structured data, not string-munged env vars.

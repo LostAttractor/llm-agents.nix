@@ -7,9 +7,8 @@
 # byte-intact and invokes the pinned glibc loader through the wrapper. It shells
 # out to ripgrep, pinned onto PATH.
 #
-# NOTE: the darwin build ships a .zip while linux ships .tar.gz, and mkBinary has
-# a single global `unpack`. So this corepkgs build supports only the two linux
-# (tar) platforms; the updater tracks the same set.
+# The darwin asset is a .zip while linux ships .tar.gz, so unpack = "auto" infers
+# the archive kind per platform from the resolved URL extension.
 {
   mkBinary,
   mkUpdater,
@@ -21,6 +20,7 @@ let
   platforms = {
     x86_64-linux = "mimocode-linux-x64.tar.gz";
     aarch64-linux = "mimocode-linux-arm64.tar.gz";
+    aarch64-darwin = "mimocode-darwin-arm64.zip";
   };
   urlTemplate = "https://github.com/XiaomiMiMo/MiMo-Code/releases/download/v{version}/{platform}";
 in
@@ -28,7 +28,7 @@ mkBinary {
   pname = "mimo-code";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;
-  unpack = "tar";
+  unpack = "auto";
   binary = "mimo";
   mainProgram = "mimo";
   kind = "loader";

@@ -5,10 +5,9 @@
 #
 # opencode ships a bun --compile single-file binary: on Linux its appended JS
 # payload segfaults on any ELF rewrite, so kind = "loader" leaves it byte-intact
-# and invokes the pinned glibc loader through the wrapper. Both linux assets are
-# tar.gz (x64 + arm64), so the build serves both linux arches via a platforms
-# map; the darwin asset is a .zip and mkBinary has a single unpack mode, so
-# darwin is excluded from the build (the updater still tracks every asset).
+# and invokes the pinned glibc loader through the wrapper; on darwin it links
+# libSystem and just runs. The linux assets are tar.gz and the darwin asset is a
+# .zip, so unpack = "auto" infers the archive kind per platform from the URL.
 {
   mkBinary,
   mkUpdater,
@@ -22,8 +21,9 @@ mkBinary {
   platforms = {
     x86_64-linux = "opencode-linux-x64.tar.gz";
     aarch64-linux = "opencode-linux-arm64.tar.gz";
+    aarch64-darwin = "opencode-darwin-arm64.zip";
   };
-  unpack = "tar";
+  unpack = "auto";
   binary = "opencode";
   kind = "loader";
   runtimePkgs = [ corePins.ripgrep ];
