@@ -105,10 +105,34 @@
               # is needed. Pins come pure from pkgs (corepkgs/pins-pkgs.nix);
               # the builders pre-bind system+pins so package.nix stays terse.
               corePins = import ./corepkgs/pins-pkgs.nix pkgs;
-              mkBinary = args: import ./corepkgs/mk-binary.nix (args // { inherit system; pins = self.corePins; });
-              mkCargo = args: import ./corepkgs/mk-cargo.nix (args // { inherit system; pins = self.corePins; });
+              mkBinary =
+                args:
+                import ./corepkgs/mk-binary.nix (
+                  args
+                  // {
+                    inherit system;
+                    pins = self.corePins;
+                  }
+                );
+              mkCargo =
+                args:
+                import ./corepkgs/mk-cargo.nix (
+                  args
+                  // {
+                    inherit system;
+                    pins = self.corePins;
+                  }
+                );
               mkNaked = args: import ./corepkgs/mk-naked.nix (args // { inherit system; });
-              checkFhs = args: import ./corepkgs/check-fhs.nix (args // { inherit system; pins = self.corePins; });
+              checkFhs =
+                args:
+                import ./corepkgs/check-fhs.nix (
+                  args
+                  // {
+                    inherit system;
+                    pins = self.corePins;
+                  }
+                );
               # Validate a declarative passthru.updater config (see
               # scripts/updater/run.py); packages opt out of update.py with it.
               mkUpdater = import ./lib/mk-updater.nix { inherit (pkgs) lib; };
@@ -155,14 +179,29 @@
           withUpdateScript =
             name: pkg:
             if pkg ? updater then
-              pkg.overrideAttrs (old: {
-                passthru = (old.passthru or { }) // {
-                  updateScript = mkUpdateScript {
-                    inherit name;
-                    config = pkg.updater;
-                  };
+              let
+                updateScript = mkUpdateScript {
+                  inherit name;
+                  config = pkg.updater;
                 };
-              })
+              in
+              # nixpkgs packages get updateScript via overrideAttrs (lifts it
+              # top-level). corepkgs (naked) derivations have no overrideAttrs, so
+              # attach it directly - metadata only, no rebuild.
+              if pkg ? overrideAttrs then
+                pkg.overrideAttrs (old: {
+                  passthru = (old.passthru or { }) // {
+                    inherit updateScript;
+                  };
+                })
+              else
+                pkg
+                // {
+                  inherit updateScript;
+                  passthru = (pkg.passthru or { }) // {
+                    inherit updateScript;
+                  };
+                }
             else
               pkg;
 

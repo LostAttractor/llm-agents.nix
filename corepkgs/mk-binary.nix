@@ -40,6 +40,13 @@
   runtimePkgs ? [ ], # pinned store paths whose /bin joins PATH
   ignoreMissing ? [ ], # SONAMEs allowed to stay unresolved (optional deps of a bundled JRE etc.)
   setEnv ? { }, # { VAR = "val"; } exported in the wrapper before exec
+  extraArgs ? [ ], # flags appended to the wrapped exec, before "$@" (e.g. --no-auto-update)
+  aliases ? [ ], # extra $out/bin/<name> wrappers, each exec'd with argv0=<name>
+  # Package-level metadata carried onto the naked derivation so the flake's
+  # meta-completeness / README / updater machinery treat it like any package.
+  category ? null, # passthru.category
+  updater ? null, # passthru.updater (declarative updater config, already built by mkUpdater)
+  meta ? { }, # merged into output meta (description/homepage/changelog/license/sourceProvenance/maintainers)
   system,
   pins,
 }:
@@ -107,6 +114,7 @@ let
       # __structuredAttrs: pass real structured data, not string-munged env vars.
       inherit runtimeBins; # [ { name; src; } ]
       inherit setEnv; # { VAR = "val"; }
+      inherit extraArgs aliases; # wrapper flags + argv0-aliased wrappers
       runtimePath = builtins.concatStringsSep ":" (map (p: "${p}/bin") runtimePkgs);
     };
     # Nushell builder (see mk-naked.nix): `$attrs` is the JSON attrs record,
@@ -182,36 +190,50 @@ let
         }
       }
 
-      # wrapper PATH: bundled bins ($out/libexec + bindir) then pinned tools
-      mut wrapperpath = $"($out)/libexec:($bindir)"
-      if ($attrs.runtimePath | is-not-empty) {
-        $wrapperpath = $"($wrapperpath):($attrs.runtimePath)"
-      }
+      # wrapper PATH: bundled bins ($out/libexec + bindir) then pinned tools.
+      # let (not mut): the closure below captures it, and nushell closures
+      # cannot capture mutable variables.
+      let wrapperpath = (if ($attrs.runtimePath | is-not-empty) { $"($out)/libexec:($bindir):($attrs.runtimePath)" } else { $"($out)/libexec:($bindir)" })
 
       # wrapper interpreter: Linux uses the bundled busybox sh (nixpkgs-free);
       # darwin uses the system /bin/sh (always present, like libSystem).
-      mut sh = "/bin/sh"
-      if $attrs.os == "linux" {
-        ^ln -s $attrs.busybox $"($out)/libexec/sh"
-        $sh = $"($out)/libexec/sh"
+      let sh = (
+        if $attrs.os == "linux" {
+          ^ln -s $attrs.busybox $"($out)/libexec/sh"
+          $"($out)/libexec/sh"
+        } else { "/bin/sh" }
+      )
+
+      # immutable alias of the (mut) bindir so the closure can capture it
+      let wbindir = $bindir
+
+      # extra flags appended to the wrapped binary before "$@" (e.g. --no-auto-update)
+      let flags = ($attrs.extraArgs | each {|a| $'"($a)"' } | str join " ")
+
+      # write one wrapper: a /bin/sh script that sets PATH/env then exec's the
+      # binary. argv0 lets aliases (e.g. `agent`) make the binary see a
+      # different name; `exec -a` is supported by both busybox ash and macOS sh.
+      let mkwrapper = {|wname: string, argv0: string|
+        mut lines = [ $"#!($sh)" ]
+        $lines = ($lines | append $'export PATH="($wrapperpath)''${PATH:+:$PATH}"')
+        if ($attrs.setEnv | is-not-empty) {
+          for e in ($attrs.setEnv | transpose key value) {
+            $lines = ($lines | append $'export ($e.key)=($e.value)')
+          }
+        }
+        let tail = (if ($flags | is-empty) { ' "$@"' } else { $' ($flags) "$@"' })
+        # loader-invoke is Linux-only (bun --compile); darwin execs directly.
+        if $attrs.kind == "loader" and $attrs.os == "linux" {
+          $lines = ($lines | append $'exec -a "($argv0)" "($attrs.loader)" --library-path "($attrs.libpath)" "($wbindir)/($attrs.entry)"($tail)')
+        } else {
+          $lines = ($lines | append $'exec -a "($argv0)" "($wbindir)/($attrs.entry)"($tail)')
+        }
+        (($lines | str join "\n") + "\n") | save --raw --force $"($out)/bin/($wname)"
+        ^chmod +x $"($out)/bin/($wname)"
       }
 
-      # the wrapper is itself a /bin/sh script (shebang -> the sh above)
-      mut lines = [ $"#!($sh)" ]
-      $lines = ($lines | append $'export PATH="($wrapperpath)''${PATH:+:$PATH}"')
-      if ($attrs.setEnv | is-not-empty) {
-        for e in ($attrs.setEnv | transpose key value) {
-          $lines = ($lines | append $'export ($e.key)=($e.value)')
-        }
-      }
-      # loader-invoke is Linux-only (bun --compile); darwin execs directly.
-      if $attrs.kind == "loader" and $attrs.os == "linux" {
-        $lines = ($lines | append $'exec "($attrs.loader)" --library-path "($attrs.libpath)" "($bindir)/($attrs.entry)" "$@"')
-      } else {
-        $lines = ($lines | append $'exec "($bindir)/($attrs.entry)" "$@"')
-      }
-      (($lines | str join "\n") + "\n") | save --raw --force $"($out)/bin/($attrs.mainProgram)"
-      ^chmod +x $"($out)/bin/($attrs.mainProgram)"
+      do $mkwrapper $attrs.mainProgram $attrs.mainProgram
+      for a in $attrs.aliases { do $mkwrapper $a $a }
     '';
   };
 in
@@ -221,10 +243,22 @@ drv
   # platforms is the full supported set (map keys) so an unsupported current
   # system filters out before src is forced; single-platform builds report
   # just [ system ]. Reading .meta never forces the derivation (lazy `//`).
+  # The caller's meta (description/homepage/changelog/license/sourceProvenance/
+  # maintainers) is merged on top; platforms/mainProgram are the defaults.
   meta = {
     platforms = if platforms == null then [ system ] else builtins.attrNames platforms;
     inherit mainProgram;
-  };
+  }
+  // meta;
+  # passthru: category (README + meta-completeness) and the declarative updater
+  # config. `updater` is also lifted top-level because the flake's
+  # withUpdateScript keys on `pkg ? updater`.
+  passthru =
+    (if category == null then { } else { inherit category; })
+    // (if updater == null then { } else { inherit updater; });
+}
+// (if updater == null then { } else { inherit updater; })
+// {
   fhs = {
     inherit kind libpath mainProgram;
     ignoreMissing = builtins.concatStringsSep " " ignoreMissing;
