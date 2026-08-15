@@ -117,6 +117,7 @@
                 mkBinary
                 mkCargo
                 mkGo
+                mkNpm
                 mkNaked
                 checkFhs
                 coreFetchurl
