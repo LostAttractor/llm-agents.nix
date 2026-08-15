@@ -113,7 +113,7 @@
                 ;
               # Validate a declarative passthru.updater config (see
               # scripts/updater/run.py); packages opt out of update.py with it.
-              mkUpdater = import ./lib/mk-updater.nix { inherit (pkgs) lib; };
+              mkUpdater = import ./corepkgs/lib/mk-updater.nix { inherit (pkgs) lib; };
               # `bun build --compile` copies the running bun binary into the
               # executable it produces, so bun ends up inside our outputs
               # rather than being a build tool we can leave to the consumer.
@@ -139,7 +139,7 @@
 
           # Generate a standard passthru.updateScript from a package's
           # declarative passthru.updater config (see lib/mk-update-script.nix).
-          mkUpdateScript = import ./lib/mk-update-script.nix {
+          mkUpdateScript = import ./corepkgs/lib/mk-update-script.nix {
             inherit (pkgs)
               lib
               writeShellApplication
@@ -209,7 +209,7 @@
       });
     in
     {
-      lib = import ./lib { inherit inputs; };
+      lib = import ./corepkgs/lib/maintainers.nix { inherit inputs; };
 
       inherit packages devShells;
 
