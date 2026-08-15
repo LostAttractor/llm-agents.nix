@@ -17,6 +17,12 @@
   cargoLock, # path to the package's Cargo.lock
   binaries ? [ pname ], # binaries to install from target/release/
   cargoBuildFlags ? [ ], # e.g. [ "--no-default-features" "--features" "x" "-p" "sub" ]
+  mainProgram ? builtins.head binaries,
+  # Package metadata carried onto the naked derivation (like mkBinary), so the
+  # flake's meta-completeness / README / updater machinery treat it normally.
+  meta ? { },
+  category ? null,
+  updater ? null,
   system,
   pins,
 }:
@@ -30,73 +36,96 @@ let
   gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target
   rustGnu = sys.rust.gnu; # cargo [target.<triple>]
   vendor = cargoVendor { inherit cargoLock system; };
-in
-mkNaked {
-  inherit system;
-  name = if version == null then "${pname}-naked" else "${pname}-${version}";
-  env = {
-    inherit
-      src
-      vendor
-      rust
-      zig
-      rustGnu
-      gnuTarget
-      ;
-    installBins = builtins.concatStringsSep " " binaries;
-    buildFlags = builtins.concatStringsSep " " cargoBuildFlags;
-    glibc = pins.glibc;
-    gccLib = pins.gccLib;
-    formatelf = pins.formatelf;
-    loader = sys.loader;
+  # the zcc post-link sets rpath to the pinned glibc + gccLib
+  libpath = "${pins.glibc}/lib:${pins.gccLib}/lib";
+  drv = mkNaked {
+    inherit system;
+    name = if version == null then "${pname}-naked" else "${pname}-${version}";
+    env = {
+      inherit
+        src
+        vendor
+        rust
+        zig
+        rustGnu
+        gnuTarget
+        ;
+      installBins = builtins.concatStringsSep " " binaries;
+      buildFlags = builtins.concatStringsSep " " cargoBuildFlags;
+      glibc = pins.glibc;
+      gccLib = pins.gccLib;
+      formatelf = pins.formatelf;
+      loader = sys.loader;
+    };
+    script = ''
+      export HOME="$NIX_BUILD_TOP"
+      export CARGO_HOME="$NIX_BUILD_TOP/.cargo"
+      export ZIG_GLOBAL_CACHE_DIR="$NIX_BUILD_TOP/zig-cache"
+      export PATH="$rust/bin:$zig/bin:$PATH"
+
+      ld="$glibc/lib/$loader"
+      libp="$glibc/lib:$gccLib/lib"
+
+      # zig cc wrapper: force the glibc target (else zig falls back to musl and
+      # rust's gnu std can't resolve gnu_get_libc_version/mmap64), then POST-LINK
+      # patch each produced executable with the pinned formatelf (skip -shared:
+      # dylibs have no interpreter).
+      cat > "$NIX_BUILD_TOP/zcc" <<EOF
+      #!/bin/sh
+      "$zig/bin/zig" cc -target ${gnuTarget} "\$@" || exit \$?
+      shared=0; out=""; prev=""
+      for a in "\$@"; do
+        [ "\$a" = "-shared" ] && shared=1
+        [ "\$prev" = "-o" ] && out="\$a"
+        prev="\$a"
+      done
+      if [ "\$shared" -eq 0 ] && [ -n "\$out" ] && [ -f "\$out" ]; then
+        "$formatelf/bin/formatelf" --set-interpreter "$ld" --force-rpath --set-rpath "$libp" "\$out" 2>/dev/null || true
+      fi
+      EOF
+      chmod +x "$NIX_BUILD_TOP/zcc"
+      export CC="$NIX_BUILD_TOP/zcc"
+
+      tar -xzf "$src"
+      cd "$(tar -tzf "$src" | head -1 | cut -d/ -f1)"
+
+      mkdir -p .cargo
+      cat > .cargo/config.toml <<EOF
+      [source.crates-io]
+      replace-with = "vendored"
+      [source.vendored]
+      directory = "$vendor"
+      [target.${rustGnu}]
+      linker = "$NIX_BUILD_TOP/zcc"
+      EOF
+
+      cargo build --release --offline --locked $buildFlags
+
+      mkdir -p "$out/bin"
+      for b in $installBins; do
+        cp "target/release/$b" "$out/bin/$b"
+      done
+    '';
   };
-  script = ''
-    export HOME="$NIX_BUILD_TOP"
-    export CARGO_HOME="$NIX_BUILD_TOP/.cargo"
-    export ZIG_GLOBAL_CACHE_DIR="$NIX_BUILD_TOP/zig-cache"
-    export PATH="$rust/bin:$zig/bin:$PATH"
-
-    ld="$glibc/lib/$loader"
-    libp="$glibc/lib:$gccLib/lib"
-
-    # zig cc wrapper: force the glibc target (else zig falls back to musl and
-    # rust's gnu std can't resolve gnu_get_libc_version/mmap64), then POST-LINK
-    # patch each produced executable with the pinned formatelf (skip -shared:
-    # dylibs have no interpreter).
-    cat > "$NIX_BUILD_TOP/zcc" <<EOF
-    #!/bin/sh
-    "$zig/bin/zig" cc -target ${gnuTarget} "\$@" || exit \$?
-    shared=0; out=""; prev=""
-    for a in "\$@"; do
-      [ "\$a" = "-shared" ] && shared=1
-      [ "\$prev" = "-o" ] && out="\$a"
-      prev="\$a"
-    done
-    if [ "\$shared" -eq 0 ] && [ -n "\$out" ] && [ -f "\$out" ]; then
-      "$formatelf/bin/formatelf" --set-interpreter "$ld" --force-rpath --set-rpath "$libp" "\$out" 2>/dev/null || true
-    fi
-    EOF
-    chmod +x "$NIX_BUILD_TOP/zcc"
-    export CC="$NIX_BUILD_TOP/zcc"
-
-    tar -xzf "$src"
-    cd "$(tar -tzf "$src" | head -1 | cut -d/ -f1)"
-
-    mkdir -p .cargo
-    cat > .cargo/config.toml <<EOF
-    [source.crates-io]
-    replace-with = "vendored"
-    [source.vendored]
-    directory = "$vendor"
-    [target.${rustGnu}]
-    linker = "$NIX_BUILD_TOP/zcc"
-    EOF
-
-    cargo build --release --offline --locked $buildFlags
-
-    mkdir -p "$out/bin"
-    for b in $installBins; do
-      cp "target/release/$b" "$out/bin/$b"
-    done
-  '';
+in
+drv
+// {
+  # rust source builds are linux-only for now (the naked rust + zig toolchains
+  # are Linux); callers can widen meta.platforms once aarch64 is verified.
+  meta = {
+    platforms = [ "x86_64-linux" ];
+    inherit mainProgram;
+  }
+  // meta;
+  passthru =
+    (if category == null then { } else { inherit category; })
+    // (if updater == null then { } else { inherit updater; });
+  # the produced binaries are patchelf'd to the pinned glibc/gccLib, so the FHS
+  # check treats them like a kind = "patchelf" mkBinary output.
+  fhs = {
+    kind = "patchelf";
+    inherit libpath mainProgram;
+    ignoreMissing = "";
+  };
 }
+// (if updater == null then { } else { inherit updater; })

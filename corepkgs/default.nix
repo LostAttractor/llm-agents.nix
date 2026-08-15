@@ -47,6 +47,7 @@ in
   # so a consumer's package.nix stays terse (just `mkBinary { ... }`).
   lib = {
     mkBinary = args: import ./mk/binary.nix (args // { inherit system pins; });
+    mkCargo = args: import ./mk/cargo.nix (args // { inherit system pins; });
     mkNaked = args: import ./mk/naked.nix (args // { inherit system; });
     mkNakedSh = args: import ./mk/naked-sh.nix (args // { inherit system; });
     checkFhs = args: import ./mk/check-fhs.nix (args // { inherit system pins; });

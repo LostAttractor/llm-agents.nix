@@ -115,6 +115,7 @@
               corePins = core.pins;
               inherit (core.lib)
                 mkBinary
+                mkCargo
                 mkNaked
                 checkFhs
                 coreFetchurl
