@@ -35,6 +35,8 @@ in
   openssl = pkgs.openssl.out;
   opensslDev = pkgs.openssl.dev;
   pkgConfig = pkgs.pkg-config;
+  icu = pkgs.icu.out;
+  icuDev = pkgs.icu.dev;
   bzip2 = pkgs.bzip2.out;
   xz = pkgs.xz.out;
   bubblewrap = pkgs.bubblewrap;

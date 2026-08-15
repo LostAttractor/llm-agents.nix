@@ -1,73 +1,42 @@
+# gastown - built from source on corepkgs (nixpkgs-free) via mkGo with cgo (it
+# links ICU via cgo). zig cc compiles the cgo C; the dynamic output is patchelf'd
+# to the pinned glibc + icu. buildInputs pass icu (lib for rpath) + icuDev
+# (pkgconfig/headers for the #cgo pkg-config).
 {
-  lib,
-  buildGoModule,
-  fetchFromGitHub,
-  makeWrapper,
-  beads,
-  dolt,
-  gitMinimal,
-  icu,
-  sqlite,
-  tmux,
-  versionCheckHook,
+  mkGo,
+  coreFetchurl,
+  corePins,
+  flake,
 }:
-
-buildGoModule rec {
+mkGo {
   pname = "gastown";
   version = "1.2.1";
-
-  src = fetchFromGitHub {
-    owner = "gastownhall";
-    repo = "gastown";
-    tag = "v${version}";
-    hash = "sha256-U3spPM8tKp5aoWy+l1qpRtrfIppkQAPSp1z50FQUv2I=";
+  src = coreFetchurl {
+    url = "https://github.com/gastownhall/gastown/archive/refs/tags/v1.2.1.tar.gz";
+    hash = "sha256-9cXvzcHsxA8rjvuVpYJviLphlhN7wukZ1go5tCz0Rro=";
   };
-
   vendorHash = "sha256-PQT/Xq9na3vI8Oy9INBYJf3GsiN5IxAVCxrNLhyIpO8=";
-
-  nativeBuildInputs = [ makeWrapper ];
-
-  buildInputs = [ icu ];
-
+  cgo = true;
+  buildInputs = [
+    corePins.icu
+    corePins.icuDev
+  ];
   subPackages = [ "cmd/gt" ];
-
+  binaries = [ "gt" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=github.com/steveyegge/gastown/internal/cmd.Version=${version}"
+    "-X=github.com/steveyegge/gastown/internal/cmd.Version=1.2.1"
     "-X=github.com/steveyegge/gastown/internal/cmd.Build=release"
     "-X=github.com/steveyegge/gastown/internal/cmd.BuiltProperly=1"
   ];
-
-  doCheck = false;
-
-  postInstall = ''
-    wrapProgram $out/bin/gt \
-      --prefix PATH : ${
-        lib.makeBinPath [
-          beads
-          dolt
-          gitMinimal
-          sqlite
-          tmux
-        ]
-      }
-  '';
-
-  doInstallCheck = true;
-
-  nativeInstallCheckInputs = [ versionCheckHook ];
-
-  passthru.category = "Workflow & Project Management";
-
-  meta = with lib; {
+  category = "Workflow & Project Management";
+  meta = {
     description = "Gas Town - multi-agent workspace manager";
     homepage = "https://github.com/gastownhall/gastown";
-    changelog = "https://github.com/gastownhall/gastown/releases/tag/v${version}";
-    license = licenses.mit;
-    sourceProvenance = with sourceTypes; [ fromSource ];
-    maintainers = with maintainers; [ zaninime ];
-    mainProgram = "gt";
-    platforms = platforms.unix;
+    changelog = "https://github.com/gastownhall/gastown/releases/tag/v1.2.1";
+    license = flake.lib.licenses.mit;
+    sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
+    maintainers = [ flake.lib.maintainers.zaninime ];
   };
 }
