@@ -18,6 +18,8 @@
   sourceRoot ? null, # subdir of the source tree holding the workspace/crate (relative to the tarball's top dir), e.g. "rust" / "src-tauri"
   binaries ? [ pname ], # binaries to install from target/release/
   cargoBuildFlags ? [ ], # e.g. [ "--no-default-features" "--features" "x" "-p" "sub" ]
+  buildInputs ? [ ], # extra C-library pins whose /lib joins the link path + runtime rpath (for -sys crates linking a system lib)
+  openssl ? false, # convenience: wire the pinned openssl (OPENSSL_NO_VENDOR + LIB/INCLUDE dirs) for openssl-sys / native-tls
   mainProgram ? builtins.head binaries,
   # Package metadata carried onto the naked derivation (like mkBinary), so the
   # flake's meta-completeness / README / updater machinery treat it normally.
@@ -37,8 +39,13 @@ let
   gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target
   rustGnu = sys.rust.gnu; # cargo [target.<triple>]
   vendor = cargoVendor { inherit cargoLock system; };
-  # the zcc post-link sets rpath to the pinned glibc + gccLib
-  libpath = "${pins.glibc}/lib:${pins.gccLib}/lib";
+  # extra C-library pins (buildInputs + openssl) whose /lib joins the link path
+  # and the runtime rpath so -sys crates linking a system lib resolve it.
+  extraLibs = buildInputs ++ (if openssl then [ pins.openssl ] else [ ]);
+  extraLibPath = builtins.concatStringsSep ":" (map (p: "${p}/lib") extraLibs);
+  # the zcc post-link sets rpath to the pinned glibc + gccLib (+ extra C libs)
+  libpath =
+    "${pins.glibc}/lib:${pins.gccLib}/lib" + (if extraLibPath == "" then "" else ":${extraLibPath}");
   drv = mkNaked {
     inherit system;
     name = if version == null then "${pname}-naked" else "${pname}-${version}";
@@ -59,6 +66,12 @@ let
       gccLib = pins.gccLib;
       formatelf = pins.formatelf;
       loader = sys.loader;
+      inherit extraLibPath;
+      useOpenssl = if openssl then "1" else "";
+      opensslLibDir = if openssl then "${pins.openssl}/lib" else "";
+      opensslIncDir = if openssl then "${pins.opensslDev}/include" else "";
+      pkgConfigBin = "${pins.pkgConfig}/bin";
+      pkgConfigPath = if openssl then "${pins.opensslDev}/lib/pkgconfig" else "";
     };
     script = ''
       export HOME="$NIX_BUILD_TOP"
@@ -68,6 +81,18 @@ let
 
       ld="$glibc/lib/$loader"
       libp="$glibc/lib:$gccLib/lib"
+      [ -n "$extraLibPath" ] && libp="$libp:$extraLibPath"
+
+      # openssl-sys / native-tls: use the pinned openssl (headers + libs) instead
+      # of the vendored openssl-src (whose build.rs needs perl) or a system lib.
+      # pkg-config for -sys crates that probe it (openssl-sys, etc.)
+      export PATH="$pkgConfigBin:$PATH"
+      [ -n "$pkgConfigPath" ] && export PKG_CONFIG_PATH="$pkgConfigPath"
+      if [ -n "$useOpenssl" ]; then
+        export OPENSSL_NO_VENDOR=1
+        export OPENSSL_LIB_DIR="$opensslLibDir"
+        export OPENSSL_INCLUDE_DIR="$opensslIncDir"
+      fi
 
       # zig cc wrapper: force the glibc target (else zig falls back to musl and
       # rust's gnu std can't resolve gnu_get_libc_version/mmap64), then POST-LINK

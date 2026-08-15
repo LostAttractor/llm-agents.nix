@@ -116,6 +116,7 @@
               inherit (core.lib)
                 mkBinary
                 mkCargo
+                mkGo
                 mkNaked
                 checkFhs
                 coreFetchurl

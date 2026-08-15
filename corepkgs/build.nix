@@ -15,6 +15,7 @@ in
       node = import ./toolchains/node.nix { inherit system pins; };
       rust = import ./toolchains/rust.nix { inherit system pins; };
       zig = import ./toolchains/zig.nix { inherit system; };
+      go = import ./toolchains/go.nix { inherit system pins; };
       formatelf = import ./formatelf.nix { inherit system pins; };
       hello = mkNaked {
         inherit system;

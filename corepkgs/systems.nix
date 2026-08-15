@@ -23,6 +23,8 @@
     node.hash = "sha256-nZQpMlNZiAkQNNyUzF9CttyHhNY2bfOjbEycyzmW8MI=";
     zig.platform = "x86_64-linux";
     zig.hash = "sha256-cOSWZKdDdLSLUebz/fv0N/Y5XUJQkFBYi9SavlK6PQA=";
+    go.platform = "linux-amd64";
+    go.hash = "sha256-cI7/t3S+gjdXDQrdFjIlq7369PyiiyYR3xZ766T+74k=";
     rust = {
       gnu = "x86_64-unknown-linux-gnu";
       musl = "x86_64-unknown-linux-musl";
@@ -72,6 +74,8 @@
     node.hash = "sha256-jPMP9yUPlGO1PBj4nGxgbf2nA3ghWyyQXQqaiwi9ReA=";
     zig.platform = "aarch64-linux";
     zig.hash = "sha256-6ksJv7IuxvbGzqxXq2PvtrRuF6sI0h9p86SLOOFTTxc=";
+    go.platform = "linux-arm64";
+    go.hash = "sha256-0FB+np1/4BKq5XAQjL12wV3oeeFxMKuMuQ1NdEXLHy4=";
     rust = {
       gnu = "aarch64-unknown-linux-gnu";
       musl = "aarch64-unknown-linux-musl";

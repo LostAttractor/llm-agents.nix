@@ -20,6 +20,8 @@ system:
     expat = builtins.storePath /nix/store/x7hyp2ndwysydy2q1djdvjzlqzvqhg8x-expat-2.8.2;
     ncurses = builtins.storePath /nix/store/zlvs6miv8wfki399pmxri7x0sjd3429c-ncurses-6.6;
     openssl = builtins.storePath /nix/store/1mf3lj0mldr8732yvzjc12fig2407b3d-openssl-3.6.3;
+    opensslDev = builtins.storePath /nix/store/jvnhc1z9c04n4a7b2z2hzbajsa5i6ygd-openssl-3.6.3-dev;
+    pkgConfig = builtins.storePath /nix/store/0v0raqk1qw5g2a21km4xa1hwhaq4s976-pkg-config-wrapper-0.29.2;
     bzip2 = builtins.storePath /nix/store/0hckf4kx70qifvrsbh64hc2s5xfyrf97-bzip2-1.0.8;
     xz = builtins.storePath /nix/store/96hgnqnikm0k4pag8x35hb6s46nag1l3-xz-5.8.3;
     bubblewrap = builtins.storePath /nix/store/lqndphylsxqwbwm804n473pb4sqb98sh-bubblewrap-0.11.2;

@@ -33,6 +33,8 @@ in
   expat = pkgs.expat;
   ncurses = pkgs.ncurses;
   openssl = pkgs.openssl.out;
+  opensslDev = pkgs.openssl.dev;
+  pkgConfig = pkgs.pkg-config;
   bzip2 = pkgs.bzip2.out;
   xz = pkgs.xz.out;
   bubblewrap = pkgs.bubblewrap;
