@@ -7,6 +7,7 @@
   src,
   npmDepsHash,
   sourceRoot ? null,
+  packageLock ? null, # inject a committed package-lock.json (for registry tarballs that ship none, like nixpkgs' runCommand-injected lock)
   system,
   pins,
 }:
@@ -36,6 +37,7 @@ let
     cd "$(tar -tzf "$src" | head -1 | cut -d/ -f1)"
     [ -n "$sourceRoot" ] && cd "$sourceRoot"
 
+    [ -n "$packageLock" ] && cp "$packageLock" package-lock.json
     npm ci --ignore-scripts --no-audit --no-fund
     cp -r node_modules "$out"
   '';
@@ -44,6 +46,7 @@ derivation {
   name = "npm-vendor";
   inherit system src;
   sourceRoot = if sourceRoot == null then "" else sourceRoot;
+  packageLock = if packageLock == null then "" else packageLock;
   builder = "/bin/sh";
   args = [
     "-c"

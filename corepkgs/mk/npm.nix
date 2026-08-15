@@ -11,6 +11,7 @@
   src, # fetched source archive (.tar.gz, single top-level dir)
   npmDepsHash, # our node_modules FOD hash (build once with a fake hash to obtain)
   sourceRoot ? null, # subdir holding package.json (relative to the tarball top dir)
+  packageLock ? null, # committed package-lock.json to inject (registry tarballs that ship none)
   buildScript ? "build", # `npm run <buildScript>`; "" to skip (no build step)
   mainProgram ? pname,
   meta ? { },
@@ -27,6 +28,7 @@ let
       src
       npmDepsHash
       sourceRoot
+      packageLock
       system
       pins
       ;
