@@ -88,6 +88,13 @@ let
       # pkg-config for -sys crates that probe it (openssl-sys, etc.)
       export PATH="$pkgConfigBin:$PATH"
       [ -n "$pkgConfigPath" ] && export PKG_CONFIG_PATH="$pkgConfigPath"
+      # When linking a pinned shared C lib (openssl's libcrypto.so), that lib has
+      # its OWN undefined glibc refs (pthread_mutex_trylock@GLIBC_2.34, ...). They
+      # resolve at runtime (glibc is in the rpath), so relax zig/lld's default
+      # --no-allow-shlib-undefined at link time.
+      if [ -n "$extraLibPath" ]; then
+        export RUSTFLAGS="-C link-arg=-Wl,--allow-shlib-undefined''${RUSTFLAGS:+ $RUSTFLAGS}"
+      fi
       if [ -n "$useOpenssl" ]; then
         export OPENSSL_NO_VENDOR=1
         export OPENSSL_LIB_DIR="$opensslLibDir"

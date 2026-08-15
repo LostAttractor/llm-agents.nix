@@ -36,23 +36,26 @@ default.nix       the importable API: { lib, packages, pins }
 flake.nix         standalone flake wrapping default.nix
 systems.nix       per-system table (loader, seed/toolchain URLs+hashes)
 seed.nix          the bootstrap seed (static busybox + static nushell), zero nixpkgs
-interpolate.nix   {name}-template interpolation (owned; the root imports it from here)
-fetchurl.nix      naked builtin:fetchurl (flat + executable)
-naked-fetchurl.nix  the eval-fast fetchurl the root routes bun2nix through
-pins-pkgs.nix     THE nixpkgs boundary: glibc/gccLib/formatelf/... from pkgs (pure, for the flake)
+pins-pkgs.nix     THE nixpkgs boundary: glibc/gccLib/formatelf/openssl/... from pkgs (pure, for the flake)
 pins-store.nix    the same pins as storePath (impure, ~instant eval, for standalone use)
-mk/
+fetch/            all fetcher machinery, together
+  fetchurl.nix · naked-fetchurl.nix · interpolate.nix · fetchurl-template.nix · platform-source.nix
+mk/               the constructors
   naked.nix       the ~10-line mkDerivation replacement. Builder = a truly-static
                   nushell; __structuredAttrs exposes derivation attrs as JSON the
                   script `open`s natively (real records, no string-munged env).
   naked-sh.nix    the tiny /bin/sh bootstrap that extracts nushell from its tarball
-                  (chicken-and-egg) and builds the toolchains
-  binary.nix      mkBinary — the nixpkgs-free platformSource + autoPatchelf + makeWrapper
+                  (chicken-and-egg) and builds the toolchains + source packages
+  binary.nix      mkBinary — nixpkgs-free platformSource + autoPatchelf + makeWrapper
+  cargo.nix       mkCargo — build a Rust package from source (rust + zig cc + vendored crates)
+  go.nix          mkGo    — build a Go package from source, fully static (CGO_ENABLED=0)
   check-fhs.nix   assert an output is store-only (no ELF left on a host loader)
-toolchains/       bun, node, rust, zig, python from upstream prebuilt binaries
-                  (the basis for source-built ports; not yet used by shipped packages)
-formatelf.nix     dogfood: build formatelf from source, nixpkgs-free (rust + zig cc)
-cargo-vendor.nix  vendor a Cargo.lock as naked builtin:fetchurl FODs
+lib/              build helpers (mk-updater, mk-update-script, rusty-v8, maintainers, ...)
+toolchains/       bun, node, rust, zig, go, python from upstream prebuilt binaries
+formatelf.nix     dogfood: formatelf built from source via mkCargo
+cargo-vendor.nix  vendor a Cargo.lock as naked builtin:fetchurl FODs (per-crate, by sha256)
+go-vendor.nix     vendor go modules as one vendorHash FOD (go.sum h1: hashes aren't fetchurl-able)
+packages/         corepkgs' OWN packages, by-name (formatelf, wrapBuddy, buildNpmPackage, ...)
 ```
 
 ## mkBinary knobs
@@ -76,6 +79,37 @@ cargo-vendor.nix  vendor a Cargo.lock as naked builtin:fetchurl FODs
   bundled JRE's optional AWT/X11 libs).
 - **Metadata**: `meta`, `category`, `updater` — carried onto the naked
   derivation so the flake's package machinery treats it normally.
+
+## Source builds — mkCargo (Rust) / mkGo (Go)
+
+Not every package ships a prebuilt binary. `mk/cargo.nix` and `mk/go.nix` build
+from source, nixpkgs-free, on the fetched upstream toolchains.
+
+**mkCargo** — rust source builds: naked rust toolchain, `zig cc` as the C
+linker, crates vendored by `cargo-vendor.nix`, each produced executable
+post-link-patched to the pinned glibc by formatelf. Handles:
+
+- pure crates.io, and **bundled C** (crates that compile their own C via the
+  `cc` crate — tree-sitter grammars, `libsqlite3-sys`/`rusqlite` bundled,
+  `libgit2-sys`, `ring`, quickjs, brotli, zstd/bzip2/lzma-sys …) using zig cc +
+  zig's llvm `ar`/`ranlib`;
+- **subdir workspaces** (`sourceRoot`, `cargoBuildFlags = ["-p" "crate"]`);
+- an **authoritative vendored `Cargo.lock`** (copied over the source's, `--locked`
+  dropped) — fixes tarballs whose in-tree lock is stale;
+- **openssl** (`openssl = true`): the pinned openssl (`OPENSSL_NO_VENDOR` +
+  lib/include dirs + pkg-config), so `openssl-sys`/`native-tls` link our openssl
+  instead of a system lib or an `openssl-src` build that needs perl.
+- Out of scope: `git`-dependency crates (need a git vendorer), and rust crates
+  that embed a separately-built JS frontend at compile time.
+
+**mkGo** — go source builds: naked go toolchain, `CGO_ENABLED=0`, so the output
+is a **fully static binary** — no glibc, no patchelf, no wrapper; it just runs,
+and the FHS check is trivial. Modules are vendored by `go-vendor.nix` as one
+`vendorHash` FOD (go.sum `h1:` tree-hashes aren't fetchurl-compatible, so — like
+nixpkgs' `buildGoModule` — `go mod vendor` runs with network and the caller
+commits the hash). **The vendorHash equals nixpkgs' `buildGoModule` vendorHash
+byte-for-byte**, so an existing package's `hashes.json` vendorHash is reused
+as-is when porting.
 
 ## Eval cost
 
