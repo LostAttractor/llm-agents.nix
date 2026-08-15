@@ -15,6 +15,7 @@
   version ? null,
   src, # fetched source archive (a .tar.gz with a single top-level dir)
   cargoLock, # path to the package's Cargo.lock
+  sourceRoot ? null, # subdir of the source tree holding the workspace/crate (relative to the tarball's top dir), e.g. "rust" / "src-tauri"
   binaries ? [ pname ], # binaries to install from target/release/
   cargoBuildFlags ? [ ], # e.g. [ "--no-default-features" "--features" "x" "-p" "sub" ]
   mainProgram ? builtins.head binaries,
@@ -52,6 +53,8 @@ let
         ;
       installBins = builtins.concatStringsSep " " binaries;
       buildFlags = builtins.concatStringsSep " " cargoBuildFlags;
+      cargoLockFile = cargoLock; # copied over the source's lock so the vendored lock is authoritative
+      sourceRoot = if sourceRoot == null then "" else sourceRoot;
       glibc = pins.glibc;
       gccLib = pins.gccLib;
       formatelf = pins.formatelf;
@@ -72,7 +75,21 @@ let
       # dylibs have no interpreter).
       cat > "$NIX_BUILD_TOP/zcc" <<EOF
       #!/bin/sh
-      "$zig/bin/zig" cc -target ${gnuTarget} "\$@" || exit \$?
+      # cc crate (-sys build scripts) passes its own --target=<triple> and -m64,
+      # which clash with our forced -target; drop them. Track -c so we only
+      # post-link-patch actual executables, not compiled .o objects. (nix store
+      # paths have no spaces, so unquoted \$filtered is safe.)
+      filtered=
+      compile=0
+      for a in "\$@"; do
+        case "\$a" in
+          --target=*|-m64|-m32) continue ;;
+          -c) compile=1 ;;
+        esac
+        filtered="\$filtered \$a"
+      done
+      "$zig/bin/zig" cc -target ${gnuTarget} \$filtered || exit \$?
+      [ "\$compile" -eq 1 ] && exit 0
       shared=0; out=""; prev=""
       for a in "\$@"; do
         [ "\$a" = "-shared" ] && shared=1
@@ -86,8 +103,29 @@ let
       chmod +x "$NIX_BUILD_TOP/zcc"
       export CC="$NIX_BUILD_TOP/zcc"
 
+      # cc-crate (-sys build scripts) archives compiled .o into .a with `ar` and
+      # `ranlib`; busybox ar cannot create archives, so provide zig's llvm-ar/
+      # ranlib. Put them (and zcc) on PATH so bare `ar`/`cc` invocations resolve.
+      for t in ar ranlib; do
+        {
+          echo "#!/bin/sh"
+          echo "exec \"$zig/bin/zig\" $t \"\$@\""
+        } > "$NIX_BUILD_TOP/$t"
+        chmod +x "$NIX_BUILD_TOP/$t"
+      done
+      export AR="$NIX_BUILD_TOP/ar"
+      export PATH="$NIX_BUILD_TOP:$PATH"
+
       tar -xzf "$src"
       cd "$(tar -tzf "$src" | head -1 | cut -d/ -f1)"
+      [ -n "$sourceRoot" ] && cd "$sourceRoot"
+
+      # Make the vendored lock authoritative: copy our Cargo.lock over the
+      # source's (they are usually identical; this also fixes tarballs whose
+      # in-tree lock is stale relative to Cargo.toml). Drop --locked since the
+      # lock is now ours and all deps are vendored + --offline.
+      cp "$cargoLockFile" Cargo.lock
+      chmod u+w Cargo.lock
 
       mkdir -p .cargo
       cat > .cargo/config.toml <<EOF
@@ -99,7 +137,7 @@ let
       linker = "$NIX_BUILD_TOP/zcc"
       EOF
 
-      cargo build --release --offline --locked $buildFlags
+      cargo build --release --offline $buildFlags
 
       mkdir -p "$out/bin"
       for b in $installBins; do
