@@ -33,6 +33,27 @@
     };
   };
 
+  # Darwin: Mach-O, not ELF - no loader, no busybox (macOS ships no static one),
+  # no glibc/formatelf pins. Prebuilt CLIs link the always-present system
+  # /usr/lib/libSystem via dyld, so they just run. The build leans on the system
+  # toolchain in the sandbox (/usr/bin/tar, /bin/chmod) the same way nixpkgs'
+  # darwin stdenv leans on system libSystem/SDK. Only nushell is fetched.
+  aarch64-darwin = {
+    nu = {
+      url = "https://github.com/nushell/nushell/releases/download/0.114.1/nu-0.114.1-aarch64-apple-darwin.tar.gz";
+      hash = "sha256-ywrJuXuYXNIXqVL0RDihTS3yqVUE2b2LwB7HPhNRsXk=";
+      dir = "nu-0.114.1-aarch64-apple-darwin";
+    };
+  };
+
+  x86_64-darwin = {
+    nu = {
+      url = "https://github.com/nushell/nushell/releases/download/0.114.1/nu-0.114.1-x86_64-apple-darwin.tar.gz";
+      hash = "sha256-RlmnhUW39qMD5mH+O9J2p2XGTM3mcRLTIEW+X+B18gY=";
+      dir = "nu-0.114.1-x86_64-apple-darwin";
+    };
+  };
+
   aarch64-linux = {
     loader = "ld-linux-aarch64.so.1";
     busybox = {

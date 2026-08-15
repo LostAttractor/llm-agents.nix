@@ -23,6 +23,12 @@
   src ? null,
   hashesFile ? null,
   urlTemplate ? null,
+  # { <system> = "<platform-token>"; } - the multi-platform map (mirrors
+  # lib/platform-source.nix). urlTemplate's {platform} token is filled per
+  # system, and meta.platforms is its key set so the flake gates unsupported
+  # systems out before src is forced. null = single-platform (urlTemplate has
+  # the platform baked in, available only on `system`).
+  platforms ? null,
   unpack ? "none", # "none" | "zip" | "tar"
   binary ? pname, # path to the main binary after unpack (single-file mode)
   installDir ? null, # dir to copy wholesale (dir-install mode)
@@ -41,6 +47,7 @@ let
   seed = import ./seed.nix { inherit system; };
   mkNaked = import ./mk-naked.nix;
   sys = (import ./systems.nix).${system};
+  isDarwin = builtins.match ".*-darwin" system != null;
 
   # Reuse the repo's shared hashes.json (the same file nix-update bumps) instead
   # of a duplicated literal hash. url comes from the shared interpolate template.
@@ -53,19 +60,30 @@ let
       src
     else
       fetchurl {
-        url = interpolate urlTemplate { version = resolvedVersion; };
+        url = interpolate urlTemplate (
+          {
+            version = resolvedVersion;
+          }
+          // (if platforms == null then { } else { platform = platforms.${system}; })
+        );
         hash = hashData.hashes.${system} or hashData.${system};
       };
 
-  libpath = builtins.concatStringsSep ":" (
-    map (p: "${p}/lib") (
-      [
-        pins.glibc
-        pins.gccLib
-      ]
-      ++ libs
-    )
-  );
+  # Darwin Mach-O binaries link the always-present system libSystem via dyld -
+  # no rpath rewriting, no loader, no glibc/formatelf pins. libpath is Linux-only.
+  libpath =
+    if isDarwin then
+      ""
+    else
+      builtins.concatStringsSep ":" (
+        map (p: "${p}/lib") (
+          [
+            pins.glibc
+            pins.gccLib
+          ]
+          ++ libs
+        )
+      );
   drv = mkNaked {
     inherit system;
     name = "${pname}-${resolvedVersion}";
@@ -76,12 +94,13 @@ let
         mainProgram
         kind
         ;
+      os = if isDarwin then "darwin" else "linux";
       entry = if entrypoint == null then mainProgram else entrypoint;
-      busybox = seed.busybox;
-      glibc = pins.glibc;
-      formatelf = pins.formatelf;
+      busybox = if isDarwin then "" else seed.busybox;
+      glibc = if isDarwin then "" else pins.glibc;
+      formatelf = if isDarwin then "" else pins.formatelf;
       inherit libpath;
-      loader = "${pins.glibc}/lib/${sys.loader}";
+      loader = if isDarwin then "" else "${pins.glibc}/lib/${sys.loader}";
       unpackKind = unpack;
       binaryPath = binary;
       installDir = if installDir == null then "" else installDir;
@@ -130,10 +149,11 @@ let
       for b in $attrs.runtimeBins {
         ^cp $b.src $"($out)/libexec/($b.name)"
         ^chmod 0755 $"($out)/libexec/($b.name)"
-        do $fixelf $"($out)/libexec/($b.name)"
+        if $attrs.os == "linux" { do $fixelf $"($out)/libexec/($b.name)" }
       }
 
-      if $attrs.kind == "patchelf" {
+      # ELF patching is Linux-only; Mach-O binaries need no rpath rewriting.
+      if $attrs.kind == "patchelf" and $attrs.os == "linux" {
         if ($attrs.installDir | is-not-empty) {
           # dir-install: patch every ELF in the tree - executables get the loader
           # + rpath, shared libs just get rpath. The rpath includes every dir in
@@ -168,17 +188,24 @@ let
         $wrapperpath = $"($wrapperpath):($attrs.runtimePath)"
       }
 
-      ^ln -s $attrs.busybox $"($out)/libexec/sh"
+      # wrapper interpreter: Linux uses the bundled busybox sh (nixpkgs-free);
+      # darwin uses the system /bin/sh (always present, like libSystem).
+      mut sh = "/bin/sh"
+      if $attrs.os == "linux" {
+        ^ln -s $attrs.busybox $"($out)/libexec/sh"
+        $sh = $"($out)/libexec/sh"
+      }
 
-      # the wrapper is itself a /bin/sh script (shebang -> the busybox sh symlink)
-      mut lines = [ $"#!($out)/libexec/sh" ]
+      # the wrapper is itself a /bin/sh script (shebang -> the sh above)
+      mut lines = [ $"#!($sh)" ]
       $lines = ($lines | append $'export PATH="($wrapperpath)''${PATH:+:$PATH}"')
       if ($attrs.setEnv | is-not-empty) {
         for e in ($attrs.setEnv | transpose key value) {
           $lines = ($lines | append $'export ($e.key)=($e.value)')
         }
       }
-      if $attrs.kind == "loader" {
+      # loader-invoke is Linux-only (bun --compile); darwin execs directly.
+      if $attrs.kind == "loader" and $attrs.os == "linux" {
         $lines = ($lines | append $'exec "($attrs.loader)" --library-path "($attrs.libpath)" "($bindir)/($attrs.entry)" "$@"')
       } else {
         $lines = ($lines | append $'exec "($bindir)/($attrs.entry)" "$@"')
@@ -190,6 +217,14 @@ let
 in
 drv
 // {
+  # meta so the flake's availableOn gating + checks treat it like a package.
+  # platforms is the full supported set (map keys) so an unsupported current
+  # system filters out before src is forced; single-platform builds report
+  # just [ system ]. Reading .meta never forces the derivation (lazy `//`).
+  meta = {
+    platforms = if platforms == null then [ system ] else builtins.attrNames platforms;
+    inherit mainProgram;
+  };
   fhs = {
     inherit kind libpath mainProgram;
     ignoreMissing = builtins.concatStringsSep " " ignoreMissing;

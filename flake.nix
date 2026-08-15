@@ -99,6 +99,16 @@
                 inherit (pkgs) stdenv;
                 inherit fetchurlTemplate;
               };
+              # corepkgs: the nixpkgs-free packaging system (corepkgs/). A
+              # package.nix that declares `mkBinary`/`mkCargo` is a corepkgs
+              # build — callPackage resolves these from the scope, so no routing
+              # is needed. Pins come pure from pkgs (corepkgs/pins-pkgs.nix);
+              # the builders pre-bind system+pins so package.nix stays terse.
+              corePins = import ./corepkgs/pins-pkgs.nix pkgs;
+              mkBinary = args: import ./corepkgs/mk-binary.nix (args // { inherit system; pins = self.corePins; });
+              mkCargo = args: import ./corepkgs/mk-cargo.nix (args // { inherit system; pins = self.corePins; });
+              mkNaked = args: import ./corepkgs/mk-naked.nix (args // { inherit system; });
+              checkFhs = args: import ./corepkgs/check-fhs.nix (args // { inherit system; pins = self.corePins; });
               # Validate a declarative passthru.updater config (see
               # scripts/updater/run.py); packages opt out of update.py with it.
               mkUpdater = import ./lib/mk-updater.nix { inherit (pkgs) lib; };
@@ -205,11 +215,11 @@
         // {
           devshell-default = devShells.${system}.default;
         }
-        # newpkgs: the nixpkgs-free packaging system (newpkgs/), exposed as checks.<system>.naked-*
+        # corepkgs: the nixpkgs-free packaging system (corepkgs/), exposed as checks.<system>.naked-*
         # so nixbot builds it. Linux only; x86_64 also gets the ported packages.
         // lib.optionalAttrs (lib.hasSuffix "-linux" system) (
           lib.mapAttrs' (name: v: lib.nameValuePair "naked-${name}" v) (
-            import ./newpkgs/flake.nix pkgsFor.${system}
+            import ./corepkgs/flake.nix pkgsFor.${system}
           )
         )
       );

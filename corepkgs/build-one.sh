@@ -4,7 +4,7 @@
 # Usage: bash naked/build-one.sh <name>
 set -u
 N="$1"
-R=/home/zimbatm/llm-agents.nix/newpkgs
+R=/home/zimbatm/llm-agents.nix/corepkgs
 PINS="import $R/pins-store.nix \"x86_64-linux\""
 PKG="import $R/packages/$N.nix { system = \"x86_64-linux\"; pins = $PINS; }"
 

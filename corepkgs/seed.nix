@@ -12,11 +12,17 @@ let
   fetchurl = import ./fetchurl.nix;
   mkNakedSh = import ./mk-naked-sh.nix;
   sys = (import ./systems.nix).${system};
+  isDarwin = builtins.match ".*-darwin" system != null;
 
-  busybox = fetchurl {
-    inherit (sys.busybox) url hash;
-    executable = true;
-  };
+  # Darwin has no static busybox; it uses the system toolchain in the sandbox.
+  busybox =
+    if isDarwin then
+      null
+    else
+      fetchurl {
+        inherit (sys.busybox) url hash;
+        executable = true;
+      };
   nuTar = fetchurl { inherit (sys.nu) url hash; };
   nushell = mkNakedSh {
     inherit system;
