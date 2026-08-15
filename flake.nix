@@ -105,6 +105,11 @@
               # Pins come pure from pkgs (corepkgs/pins-pkgs.nix); the builders
               # pre-bind system+pins so package.nix stays terse.
               corePins = import ./corepkgs/pins-pkgs.nix pkgs;
+              # corepkgs' builtin:fetchurl, exposed under a non-clashing name so
+              # a corepkgs package.nix can pull inline side-downloads (a vendored
+              # ripgrep, a hashless single binary) without shadowing pkgs.fetchurl
+              # for the nixpkgs packages.
+              coreFetchurl = import ./corepkgs/fetchurl.nix;
               mkBinary =
                 args:
                 import ./corepkgs/mk/binary.nix (
