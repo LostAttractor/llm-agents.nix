@@ -6,7 +6,7 @@
 {
   description = "corepkgs — a nixpkgs-free packaging system (static seed + nushell builder)";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  inputs."nixpkgs".url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
   # `...` accepts the `self` Nix always passes without deadnix stripping it.
   outputs =
