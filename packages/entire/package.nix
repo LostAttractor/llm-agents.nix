@@ -1,58 +1,35 @@
+# entire - built from source on corepkgs (nixpkgs-free) via mkGo. CGO_ENABLED=0,
+# so the output is a fully static binary (no glibc, no patchelf). Modules are
+# vendored by a single vendorHash FOD. Requires a go >= 1.26.4 toolchain (mkGo
+# ships 1.26.x).
 {
-  lib,
-  buildGoModule,
-  fetchFromGitHub,
+  mkGo,
+  coreFetchurl,
   flake,
-  go-bin,
-  unpinGoModVersionHook,
-  versionCheckHook,
-  versionCheckHomeHook,
 }:
-
-# entireio/auth-go requires a go >= 1.26.4 toolchain, but nixpkgs only ships
-# 1.26.3 so far; go-bin tracks the latest upstream patch release.
-(buildGoModule.override { go = go-bin; }) rec {
+mkGo {
   pname = "entire";
   version = "0.10.0";
-
-  src = fetchFromGitHub {
-    owner = "entireio";
-    repo = "cli";
-    tag = "v${version}";
-    hash = "sha256-PeCzPnIoeeyNsGqY7SXKykv8qmt2rY/3bQG0xqcPDP0=";
+  src = coreFetchurl {
+    url = "https://github.com/entireio/cli/archive/refs/tags/v0.10.0.tar.gz";
+    hash = "sha256-GlV8JDkueBna4WhNyUMhH/WsZpoC0zquZdc3OKFm4Es=";
   };
-
-  nativeBuildInputs = [ unpinGoModVersionHook ];
-
   vendorHash = "sha256-7/SWL5axi1jJur0mGEO9dMnGO8NXT1RlUnSzz/IvE0g=";
-
-  subPackages = [ "./cmd/entire" ];
-
+  subPackages = [ "cmd/entire" ];
+  binaries = [ "entire" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=github.com/entireio/cli/cmd/entire/cli/versioninfo.Version=${version}"
+    "-X=github.com/entireio/cli/cmd/entire/cli/versioninfo.Version=0.10.0"
   ];
 
-  doCheck = false;
-
-  doInstallCheck = true;
-  nativeInstallCheckInputs = [
-    versionCheckHook
-    versionCheckHomeHook
-  ];
-  versionCheckProgramArg = [ "version" ];
-
-  passthru.category = "Usage Analytics";
-
-  meta = with lib; {
+  category = "Usage Analytics";
+  meta = {
     description = "CLI tool that captures AI agent sessions and links them to code changes";
     homepage = "https://github.com/entireio/cli";
-    changelog = "https://github.com/entireio/cli/releases/tag/v${version}";
-    license = licenses.mit;
-    sourceProvenance = with sourceTypes; [ fromSource ];
-    maintainers = with flake.lib.maintainers; [ yutakobayashidev ];
-    mainProgram = "entire";
-    platforms = platforms.linux ++ platforms.darwin;
+    changelog = "https://github.com/entireio/cli/releases/tag/v0.10.0";
+    license = flake.lib.licenses.mit;
+    sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
+    maintainers = [ flake.lib.maintainers.yutakobayashidev ];
   };
 }

@@ -1,43 +1,33 @@
+# mindwalk - built from source on corepkgs (nixpkgs-free) via mkGo. CGO_ENABLED=0,
+# so the output is a fully static binary (no glibc, no patchelf). Modules are
+# vendored by a single vendorHash FOD (go.sum hashes are not fetchurl-compatible).
 {
-  lib,
-  buildGoModule,
-  fetchFromGitHub,
+  mkGo,
+  coreFetchurl,
+  flake,
 }:
-
-buildGoModule rec {
+mkGo {
   pname = "mindwalk";
   version = "0.5.0";
-
-  src = fetchFromGitHub {
-    owner = "cosmtrek";
-    repo = "mindwalk";
-    tag = "v${version}";
-    hash = "sha256-CZ+E66X/sfytCmqYD96iNesLZYmbWZ/u9V6pDiljxaA=";
+  src = coreFetchurl {
+    url = "https://github.com/cosmtrek/mindwalk/archive/refs/tags/v0.5.0.tar.gz";
+    hash = "sha256-hNL6FQan4OD3lOgeT82AUFpIhGzCRy6e3oKUJYHZKoI=";
   };
-
   vendorHash = "sha256-qVoj03LNLbdoCUAOydK7oEHsuZ1BZ6Z2jwYB3gPOfrw=";
-
-  # The pre-built web UI is committed at the tag under
-  # internal/server/static, so no npm build is needed.
   subPackages = [ "cmd/mindwalk" ];
-
-  env.CGO_ENABLED = "0";
-
+  binaries = [ "mindwalk" ];
   ldflags = [
     "-s"
     "-w"
   ];
 
-  passthru.category = "Usage Analytics";
-
-  meta = with lib; {
+  category = "Usage Analytics";
+  meta = {
     description = "Visualization tool that replays coding-agent sessions on a 3D map of your codebase";
     homepage = "https://github.com/cosmtrek/mindwalk";
-    changelog = "https://github.com/cosmtrek/mindwalk/releases/tag/v${version}";
-    license = licenses.mit;
-    sourceProvenance = with sourceTypes; [ fromSource ];
-    maintainers = with maintainers; [ zimbatm ];
-    mainProgram = "mindwalk";
-    platforms = platforms.unix;
+    changelog = "https://github.com/cosmtrek/mindwalk/releases/tag/v0.5.0";
+    license = flake.lib.licenses.mit;
+    sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
+    maintainers = [ flake.lib.maintainers.zimbatm ];
   };
 }

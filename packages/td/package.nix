@@ -1,45 +1,33 @@
+# td - built from source on corepkgs (nixpkgs-free) via mkGo. CGO_ENABLED=0,
+# so the output is a fully static binary (no glibc, no patchelf). Modules are
+# vendored by a single vendorHash FOD (go.sum hashes are not fetchurl-compatible).
 {
-  lib,
+  mkGo,
+  coreFetchurl,
   flake,
-  buildGoModule,
-  fetchFromGitHub,
-  versionCheckHook,
 }:
-
-buildGoModule rec {
+mkGo {
   pname = "td";
   version = "0.57.0";
-
-  src = fetchFromGitHub {
-    owner = "marcus";
-    repo = "td";
-    tag = "v${version}";
-    hash = "sha256-IdVv3Vp5hR2UBog77gEboRz1x675zpuHgvMqY6nSYRo=";
+  src = coreFetchurl {
+    url = "https://github.com/marcus/td/archive/refs/tags/v0.57.0.tar.gz";
+    hash = "sha256-rTRQyK8DkERlVgk66UqXs4JAB8CY+FUtHQBGd1rXDSY=";
   };
-
   vendorHash = "sha256-/IWBYL+WfLz7vDdUs//0KY8rb9mOv4S1jBXCZbYxJRo=";
-
+  binaries = [ "td" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=main.Version=${version}"
+    "-X=main.Version=0.57.0"
   ];
 
-  doCheck = false;
-
-  doInstallCheck = true;
-  nativeInstallCheckInputs = [ versionCheckHook ];
-
-  passthru.category = "Workflow & Project Management";
-
-  meta = with lib; {
+  category = "Workflow & Project Management";
+  meta = {
     description = "A minimalist CLI for tracking tasks across AI coding sessions.";
     homepage = "https://github.com/marcus/td";
-    changelog = "https://github.com/marcus/td/releases/tag/v${version}";
-    license = licenses.mit;
-    sourceProvenance = with sourceTypes; [ fromSource ];
-    maintainers = with flake.lib.maintainers; [ afterthought ];
-    mainProgram = "td";
-    platforms = platforms.linux ++ platforms.darwin;
+    changelog = "https://github.com/marcus/td/releases/tag/v0.57.0";
+    license = flake.lib.licenses.mit;
+    sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
+    maintainers = [ flake.lib.maintainers.afterthought ];
   };
 }
