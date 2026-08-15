@@ -6,7 +6,7 @@
   system,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
+  fetchurl = import ../fetch/fetchurl.nix;
   mkNaked = import ../mk/naked-sh.nix;
   seed = import ../seed.nix { inherit system; };
   sys = (import ../systems.nix).${system};

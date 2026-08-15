@@ -6,7 +6,7 @@
   flake,
 }:
 let
-  interpolate = import ../corepkgs/interpolate.nix;
+  interpolate = import ../corepkgs/fetch/interpolate.nix;
   casesJson = builtins.readFile ../scripts/updater/interpolate_cases.json;
   cases = builtins.fromJSON casesJson;
   nixResults = map (case: interpolate case.template case.vars) cases;

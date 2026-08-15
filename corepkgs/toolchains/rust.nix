@@ -8,7 +8,7 @@
   pins,
 }:
 let
-  fetchurl = import ../fetchurl.nix;
+  fetchurl = import ../fetch/fetchurl.nix;
   mkNaked = import ../mk/naked-sh.nix;
   sys = (import ../systems.nix).${system};
 

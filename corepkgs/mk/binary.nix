@@ -24,7 +24,7 @@
   hashesFile ? null,
   urlTemplate ? null,
   # { <system> = "<platform-token>"; } - the multi-platform map (mirrors
-  # lib/platform-source.nix). urlTemplate's {platform} token is filled per
+  # fetch/platform-source.nix). urlTemplate's {platform} token is filled per
   # system, and meta.platforms is its key set so the flake gates unsupported
   # systems out before src is forced. null = single-platform (urlTemplate has
   # the platform baked in, available only on `system`).
@@ -58,13 +58,13 @@ let
 
   # Reuse the repo's shared hashes.json (the same file nix-update bumps) instead
   # of a duplicated literal hash. url comes from the shared interpolate template.
-  fetchurl = import ../fetchurl.nix;
-  interpolate = import ../interpolate.nix;
+  fetchurl = import ../fetch/fetchurl.nix;
+  interpolate = import ../fetch/interpolate.nix;
   hashData = if hashesFile == null then null else builtins.fromJSON (builtins.readFile hashesFile);
   resolvedVersion = if hashData == null then version else hashData.version;
   # A platforms entry is either a string (shorthand for the {platform} token) or
   # an attrset of arbitrary URL vars (e.g. { os = "linux"; cpu = "x86_64"; } for
-  # a "{os}/{cpu}" template) - same contract as lib/platform-source.nix.
+  # a "{os}/{cpu}" template) - same contract as fetch/platform-source.nix.
   platformVars =
     if platforms == null then
       { }

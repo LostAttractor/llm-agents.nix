@@ -74,14 +74,10 @@
           # primitives (system/pins pre-bound); `core.pins` the pkgs-sourced pins.
           core = import ./corepkgs { inherit system pkgs; };
 
-          # Generic {name}-template interpolation (Nix mirror of str.format) and
-          # a templated fetchurl built on it — the single templated-URL primitive
-          # shared between a package's build and its declarative updater.
+          # All fetcher machinery (interpolate, fetchurl-template, platform-source)
+          # lives in corepkgs/fetch and is exposed via core.lib.
           interpolate = core.lib.interpolate;
-          fetchurlTemplate = import ./lib/fetchurl-template.nix {
-            inherit (pkgs) fetchurl;
-            inherit interpolate;
-          };
+          fetchurlTemplate = core.lib.fetchurlTemplate;
 
           # Route bun2nix's per-dep fetches through naked-fetchurl: ~3.4s (~15%)
           # off eval, all in the bun packages. Output paths unchanged (FODs),
@@ -100,10 +96,7 @@
                 interpolate
                 fetchurlTemplate
                 ;
-              platformSource = import ./lib/platform-source.nix {
-                inherit (pkgs) stdenv;
-                inherit fetchurlTemplate;
-              };
+              platformSource = core.lib.platformSource;
               # corepkgs: the nixpkgs-free packaging system (corepkgs/). A
               # package.nix that declares `mkBinary` is a corepkgs build —
               # callPackage resolves it from the scope, so no routing is needed.

@@ -16,6 +16,29 @@
 }:
 let
   build = import ./build.nix;
+
+  # All fetcher machinery lives together in ./fetch. fetchurlTemplate +
+  # platformSource need pkgs (fetchurl/stdenv), so they are null in the
+  # standalone (pkgs = null) path, which does not build nixpkgs packages.
+  interpolate = import ./fetch/interpolate.nix;
+  coreFetchurl = import ./fetch/fetchurl.nix;
+  nakedFetchurl = import ./fetch/naked-fetchurl.nix;
+  fetchurlTemplate =
+    if pkgs == null then
+      null
+    else
+      import ./fetch/fetchurl-template.nix {
+        inherit (pkgs) fetchurl;
+        inherit interpolate;
+      };
+  platformSource =
+    if pkgs == null then
+      null
+    else
+      import ./fetch/platform-source.nix {
+        inherit (pkgs) stdenv;
+        inherit fetchurlTemplate;
+      };
 in
 {
   inherit system pins;
@@ -27,9 +50,13 @@ in
     mkNaked = args: import ./mk/naked.nix (args // { inherit system; });
     mkNakedSh = args: import ./mk/naked-sh.nix (args // { inherit system; });
     checkFhs = args: import ./mk/check-fhs.nix (args // { inherit system pins; });
-    coreFetchurl = import ./fetchurl.nix;
-    interpolate = import ./interpolate.nix;
-    nakedFetchurl = import ./naked-fetchurl.nix;
+    inherit
+      coreFetchurl
+      interpolate
+      nakedFetchurl
+      fetchurlTemplate
+      platformSource
+      ;
     seed = import ./seed.nix { inherit system; };
     systems = import ./systems.nix;
     inherit pins system;
