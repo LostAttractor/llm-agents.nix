@@ -69,10 +69,15 @@
         let
           system = pkgs.stdenv.hostPlatform.system;
 
+          # corepkgs, the nixpkgs-free packaging system, as an importable API
+          # (corepkgs/default.nix). `core.lib` is the builder API + owned
+          # primitives (system/pins pre-bound); `core.pins` the pkgs-sourced pins.
+          core = import ./corepkgs { inherit system pkgs; };
+
           # Generic {name}-template interpolation (Nix mirror of str.format) and
           # a templated fetchurl built on it — the single templated-URL primitive
           # shared between a package's build and its declarative updater.
-          interpolate = import ./corepkgs/interpolate.nix;
+          interpolate = core.lib.interpolate;
           fetchurlTemplate = import ./lib/fetchurl-template.nix {
             inherit (pkgs) fetchurl;
             inherit interpolate;
@@ -82,7 +87,7 @@
           # off eval, all in the bun packages. Output paths unchanged (FODs),
           # only bun-cache .drv inputs differ, so it is a one-time cache rebuild.
           pkgsBun = pkgs // {
-            fetchurl = import ./corepkgs/naked-fetchurl.nix;
+            fetchurl = core.lib.nakedFetchurl;
           };
 
           scope = lib.makeScope pkgs.newScope (
@@ -102,33 +107,17 @@
               # corepkgs: the nixpkgs-free packaging system (corepkgs/). A
               # package.nix that declares `mkBinary` is a corepkgs build —
               # callPackage resolves it from the scope, so no routing is needed.
-              # Pins come pure from pkgs (corepkgs/pins-pkgs.nix); the builders
-              # pre-bind system+pins so package.nix stays terse.
-              corePins = import ./corepkgs/pins-pkgs.nix pkgs;
-              # corepkgs' builtin:fetchurl, exposed under a non-clashing name so
-              # a corepkgs package.nix can pull inline side-downloads (a vendored
-              # ripgrep, a hashless single binary) without shadowing pkgs.fetchurl
-              # for the nixpkgs packages.
-              coreFetchurl = import ./corepkgs/fetchurl.nix;
-              mkBinary =
-                args:
-                import ./corepkgs/mk/binary.nix (
-                  args
-                  // {
-                    inherit system;
-                    pins = self.corePins;
-                  }
-                );
-              mkNaked = args: import ./corepkgs/mk/naked.nix (args // { inherit system; });
-              checkFhs =
-                args:
-                import ./corepkgs/mk/check-fhs.nix (
-                  args
-                  // {
-                    inherit system;
-                    pins = self.corePins;
-                  }
-                );
+              # The builders come from core.lib (system/pins pre-bound), so
+              # package.nix stays terse; `coreFetchurl` is corepkgs' builtin
+              # fetchurl under a non-clashing name (inline side-downloads without
+              # shadowing pkgs.fetchurl for the nixpkgs packages).
+              corePins = core.pins;
+              inherit (core.lib)
+                mkBinary
+                mkNaked
+                checkFhs
+                coreFetchurl
+                ;
               # Validate a declarative passthru.updater config (see
               # scripts/updater/run.py); packages opt out of update.py with it.
               mkUpdater = import ./lib/mk-updater.nix { inherit (pkgs) lib; };
@@ -239,18 +228,22 @@
 
       checks = eachSystem (
         system:
-        # FHS guard for every corepkgs package (it carries a `.fhs` passthru):
-        # assert the output is store-only, no ELF left on a host loader. ELF-only,
-        # so Linux systems only. Replaces the per-spike checks the swap removed.
         let
+          core = import ./corepkgs {
+            inherit system;
+            pkgs = pkgsFor.${system};
+          };
+          # FHS guard for every corepkgs package (it carries a `.fhs` passthru):
+          # assert the output is store-only, no ELF left on a host loader.
+          # ELF-only, so Linux systems only. Replaces the per-spike checks the
+          # swap removed.
           fhsChecks = lib.optionalAttrs (lib.hasSuffix "-linux" system) (
             lib.mapAttrs' (
               name: pkg:
               lib.nameValuePair "fhs-${name}" (
-                import ./corepkgs/mk/check-fhs.nix {
+                core.lib.checkFhs {
                   package = pkg;
-                  inherit name system;
-                  pins = import ./corepkgs/pins-pkgs.nix pkgsFor.${system};
+                  inherit name;
                 }
               )
             ) (lib.filterAttrs (_name: pkg: pkg ? fhs) packages.${system})
@@ -268,13 +261,9 @@
           devshell-default = devShells.${system}.default;
         }
         // fhsChecks
-        # corepkgs: the nixpkgs-free packaging system (corepkgs/), exposed as checks.<system>.naked-*
-        # so nixbot builds it (toolchains + formatelf + hello). Linux only.
-        // lib.optionalAttrs (lib.hasSuffix "-linux" system) (
-          lib.mapAttrs' (name: v: lib.nameValuePair "naked-${name}" v) (
-            import ./corepkgs/flake.nix pkgsFor.${system}
-          )
-        )
+        # corepkgs' own machinery (seed + toolchains + formatelf + hello),
+        # exposed as checks.<system>.naked-* so nixbot builds it.
+        // lib.mapAttrs' (name: v: lib.nameValuePair "naked-${name}" v) core.packages
       );
     };
 }
