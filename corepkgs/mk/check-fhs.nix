@@ -35,6 +35,17 @@ mkNaked {
     let ignore = ($attrs.ignoreMissing | split row " " | where {|x| $x != "" })
 
     mut fail = false
+
+    # $out folder structure must be FHS-conventional: only hier(7)-style
+    # top-level entries, no files dumped at the output root.
+    let allowedTop = ["bin" "sbin" "lib" "lib64" "libexec" "share" "include" "etc" "var" "opt" "nix-support"]
+    for entry in (^ls -1 $pkg | lines) {
+      if not ($entry in $allowedTop) {
+        print $"non-FHS $out top-level entry: ($entry)"
+        $fail = true
+      }
+    }
+
     for f in (^find -L $pkg -type f | lines) {
       let magic = ((^head -c4 $f | ^od -An -tx1) | str replace --all --regex '[^0-9a-f]' "")
       if $magic != "7f454c46" { continue }
