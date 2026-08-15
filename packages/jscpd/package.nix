@@ -1,50 +1,33 @@
+# jscpd - built from source on corepkgs (nixpkgs-free) via mkCargo. The rust
+# workspace lives in the rust/ subdir (sourceRoot) and we build just the jscpd
+# binary crate (-p jscpd). Pure crates.io, no git deps.
 {
-  lib,
-  rustPlatform,
-  fetchFromGitHub,
-  versionCheckHook,
-  versionCheckHomeHook,
+  mkCargo,
+  coreFetchurl,
+  flake,
 }:
-
-rustPlatform.buildRustPackage rec {
+mkCargo {
   pname = "jscpd";
   version = "5.0.15";
-
-  src = fetchFromGitHub {
-    owner = "kucherenko";
-    repo = "jscpd";
-    tag = "v${version}";
-    hash = "sha256-ihzqdz01OvnPF7XduFAwvKZXx0IzcRkR23ISC8Oq6eQ=";
+  src = coreFetchurl {
+    url = "https://github.com/kucherenko/jscpd/archive/refs/tags/v5.0.15.tar.gz";
+    hash = "sha256-F5Z1CjMEEpBClLUDajFnfmcLWWEXxZhvEJGluInsNIs=";
   };
-
-  sourceRoot = "${src.name}/rust";
-
-  cargoHash = "sha256-IUJcpzxiwC5S0RaN7avN9LJPQP6FYd95Rzz2gAug+W0=";
-
+  cargoLock = ./Cargo.lock;
+  sourceRoot = "rust";
   cargoBuildFlags = [
     "-p"
     "jscpd"
   ];
+  binaries = [ "jscpd" ];
 
-  # Workspace tests exercise fixtures outside the rust/ source root.
-  doCheck = false;
-
-  doInstallCheck = true;
-  nativeInstallCheckInputs = [
-    versionCheckHook
-    versionCheckHomeHook
-  ];
-
-  passthru.category = "Code Review";
-
+  category = "Code Review";
   meta = {
     description = "Copy/paste detector for programming source code";
     homepage = "https://jscpd.dev";
-    changelog = "https://github.com/kucherenko/jscpd/releases/tag/v${version}";
-    license = lib.licenses.mit;
-    sourceProvenance = with lib.sourceTypes; [ fromSource ];
-    maintainers = with lib.maintainers; [ mic92 ];
-    mainProgram = "jscpd";
-    platforms = lib.platforms.all;
+    changelog = "https://github.com/kucherenko/jscpd/releases/tag/v5.0.15";
+    license = flake.lib.licenses.mit;
+    sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
+    maintainers = [ flake.lib.maintainers.mic92 ];
   };
 }
