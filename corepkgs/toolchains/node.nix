@@ -7,7 +7,7 @@
 }:
 let
   fetchurl = import ../fetchurl.nix;
-  mkNaked = import ../mk-naked-sh.nix;
+  mkNaked = import ../mk/naked-sh.nix;
   sys = (import ../systems.nix).${system};
 
   version = "22.14.0";

@@ -51,15 +51,15 @@
   pins,
 }:
 let
-  seed = import ./seed.nix { inherit system; };
-  mkNaked = import ./mk-naked.nix;
-  sys = (import ./systems.nix).${system};
+  seed = import ../seed.nix { inherit system; };
+  mkNaked = import ./naked.nix;
+  sys = (import ../systems.nix).${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
   # Reuse the repo's shared hashes.json (the same file nix-update bumps) instead
   # of a duplicated literal hash. url comes from the shared interpolate template.
-  fetchurl = import ./fetchurl.nix;
-  interpolate = import ../lib/interpolate.nix;
+  fetchurl = import ../fetchurl.nix;
+  interpolate = import ../interpolate.nix;
   hashData = if hashesFile == null then null else builtins.fromJSON (builtins.readFile hashesFile);
   resolvedVersion = if hashData == null then version else hashData.version;
   resolvedSrc =

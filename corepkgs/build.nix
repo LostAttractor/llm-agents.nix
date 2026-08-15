@@ -3,8 +3,8 @@
 #   default.nix  -> pins-store.nix (storePath; fast standalone eval, impure)
 #   flake.nix    -> pins-pkgs.nix  (from pkgs; pure, so nixbot can build it)
 let
-  mkNaked = import ./mk-naked.nix;
-  checkFhs = import ./check-fhs.nix;
+  mkNaked = import ./mk/naked.nix;
+  checkFhs = import ./mk/check-fhs.nix;
 in
 {
   toolchains =

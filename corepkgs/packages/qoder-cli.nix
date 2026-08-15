@@ -2,7 +2,7 @@
 { system, pins }:
 let
   fetchurl = import ../fetchurl.nix;
-  mkBinary = import ../mk-binary.nix;
+  mkBinary = import ../mk/binary.nix;
 in
 mkBinary {
   inherit system pins;

@@ -9,7 +9,7 @@
 # template. No duplicated, drift-prone hash.
 { system, pins }:
 let
-  mkBinary = import ../mk-binary.nix;
+  mkBinary = import ../mk/binary.nix;
 in
 mkBinary {
   inherit system pins;

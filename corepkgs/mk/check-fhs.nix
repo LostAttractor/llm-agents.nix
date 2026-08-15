@@ -9,7 +9,7 @@
 #
 # Build script is nushell (the mk-naked builder), reading __structuredAttrs.
 let
-  mkNaked = import ./mk-naked.nix;
+  mkNaked = import ./naked.nix;
 in
 {
   package,

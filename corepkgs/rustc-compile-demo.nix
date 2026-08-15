@@ -1,5 +1,5 @@
 let
-  mkNaked = import ./mk-naked.nix;
+  mkNaked = import ./mk/naked.nix;
   rust = import ./toolchains/rust.nix;
 in
 mkNaked {

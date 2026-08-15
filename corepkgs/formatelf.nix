@@ -8,7 +8,7 @@
 }:
 let
   fetchurl = import ./fetchurl.nix;
-  mkNaked = import ./mk-naked-sh.nix;
+  mkNaked = import ./mk/naked-sh.nix;
   cargoVendor = import ./cargo-vendor.nix;
   sys = (import ./systems.nix).${system};
   rust = import ./toolchains/rust.nix { inherit system pins; };

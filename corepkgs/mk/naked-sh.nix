@@ -11,7 +11,7 @@
   system,
 }:
 let
-  fetchurl = import ./fetchurl.nix;
+  fetchurl = import ../fetchurl.nix;
   isDarwin = builtins.match ".*-darwin" system != null;
   # Linux: bundle a truly-static busybox and boot its applets onto PATH.
   # Darwin: macOS ships no static busybox; the sandbox exposes the system
@@ -21,7 +21,7 @@ let
       null
     else
       fetchurl {
-        inherit ((import ./systems.nix).${system}.busybox) url hash;
+        inherit ((import ../systems.nix).${system}.busybox) url hash;
         executable = true;
       };
   prelude =

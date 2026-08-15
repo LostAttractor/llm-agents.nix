@@ -2,7 +2,7 @@
 # rustc (prebuilt) does the frontend + codegen; zig cc does the link, targeting
 # musl-static so the output is a fully static binary that needs no glibc.
 let
-  mkNaked = import ./mk-naked.nix;
+  mkNaked = import ./mk/naked.nix;
   rust = import ./toolchains/rust.nix;
   zig = import ./toolchains/zig.nix;
 in

@@ -72,7 +72,7 @@
           # Generic {name}-template interpolation (Nix mirror of str.format) and
           # a templated fetchurl built on it — the single templated-URL primitive
           # shared between a package's build and its declarative updater.
-          interpolate = import ./lib/interpolate.nix;
+          interpolate = import ./corepkgs/interpolate.nix;
           fetchurlTemplate = import ./lib/fetchurl-template.nix {
             inherit (pkgs) fetchurl;
             inherit interpolate;
@@ -82,7 +82,7 @@
           # off eval, all in the bun packages. Output paths unchanged (FODs),
           # only bun-cache .drv inputs differ, so it is a one-time cache rebuild.
           pkgsBun = pkgs // {
-            fetchurl = import ./lib/naked-fetchurl.nix;
+            fetchurl = import ./corepkgs/naked-fetchurl.nix;
           };
 
           scope = lib.makeScope pkgs.newScope (
@@ -100,33 +100,24 @@
                 inherit fetchurlTemplate;
               };
               # corepkgs: the nixpkgs-free packaging system (corepkgs/). A
-              # package.nix that declares `mkBinary`/`mkCargo` is a corepkgs
-              # build — callPackage resolves these from the scope, so no routing
-              # is needed. Pins come pure from pkgs (corepkgs/pins-pkgs.nix);
-              # the builders pre-bind system+pins so package.nix stays terse.
+              # package.nix that declares `mkBinary` is a corepkgs build —
+              # callPackage resolves it from the scope, so no routing is needed.
+              # Pins come pure from pkgs (corepkgs/pins-pkgs.nix); the builders
+              # pre-bind system+pins so package.nix stays terse.
               corePins = import ./corepkgs/pins-pkgs.nix pkgs;
               mkBinary =
                 args:
-                import ./corepkgs/mk-binary.nix (
+                import ./corepkgs/mk/binary.nix (
                   args
                   // {
                     inherit system;
                     pins = self.corePins;
                   }
                 );
-              mkCargo =
-                args:
-                import ./corepkgs/mk-cargo.nix (
-                  args
-                  // {
-                    inherit system;
-                    pins = self.corePins;
-                  }
-                );
-              mkNaked = args: import ./corepkgs/mk-naked.nix (args // { inherit system; });
+              mkNaked = args: import ./corepkgs/mk/naked.nix (args // { inherit system; });
               checkFhs =
                 args:
-                import ./corepkgs/check-fhs.nix (
+                import ./corepkgs/mk/check-fhs.nix (
                   args
                   // {
                     inherit system;

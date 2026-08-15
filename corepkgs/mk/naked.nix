@@ -13,7 +13,7 @@
   system,
 }:
 let
-  seed = import ./seed.nix { inherit system; };
+  seed = import ../seed.nix { inherit system; };
   isDarwin = builtins.match ".*-darwin" system != null;
   # Darwin: no static busybox; the sandbox exposes the system archive/chmod
   # tools (/usr/bin, /bin), the same way nixpkgs' darwin stdenv leans on the
