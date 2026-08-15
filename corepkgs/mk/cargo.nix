@@ -19,7 +19,13 @@
   binaries ? [ pname ], # binaries to install from target/release/
   cargoBuildFlags ? [ ], # e.g. [ "--no-default-features" "--features" "x" "-p" "sub" ]
   buildInputs ? [ ], # extra C-library pins whose /lib joins the link path + runtime rpath (for -sys crates linking a system lib)
+  # git dependencies Cargo.lock pins to a github repo whose ROOT is a single
+  # crate. Each: { crate = "<name>"; source = "<the Cargo.lock source string>";
+  # hash = "<SRI of github archive at the resolved rev>"; }. Workspace-member git
+  # deps (crate in a subdir) are not handled.
+  gitDeps ? [ ],
   openssl ? false, # convenience: wire the pinned openssl (OPENSSL_NO_VENDOR + LIB/INCLUDE dirs) for openssl-sys / native-tls
+  extraEnv ? { }, # extra build-time env vars (become derivation env, exported to cargo/build.rs): RUSTC_BOOTSTRAP, a pinned data file path a build.rs reads, a version override, ...
   mainProgram ? builtins.head binaries,
   # Package metadata carried onto the naked derivation (like mkBinary), so the
   # flake's meta-completeness / README / updater machinery treat it normally.
@@ -38,7 +44,54 @@ let
 
   gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target
   rustGnu = sys.rust.gnu; # cargo [target.<triple>]
-  vendor = cargoVendor { inherit cargoLock system; };
+
+  fetchurl = import ../fetch/fetchurl.nix;
+  # Parse one git dep's Cargo.lock source string into the pieces the vendorer +
+  # config.toml need. source = "git+<url>[?rev=|?branch=|?tag=<v>]#<resolved-rev>".
+  parseGit =
+    g:
+    let
+      m = builtins.match "git\\+(https://[^?#]+)(\\?([^#]*))?#(.*)" g.source;
+      url = builtins.elemAt m 0;
+      query = builtins.elemAt m 2; # e.g. "rev=abc" / "branch=x" / null
+      rev = builtins.elemAt m 3; # resolved commit (the #fragment)
+      sourceKey = "git+${url}" + (if query == null then "" else "?${query}");
+      kv = if query == null then null else builtins.match "(rev|branch|tag)=(.*)" query;
+      fieldLine = if kv == null then "" else "${builtins.elemAt kv 0} = \"${builtins.elemAt kv 1}\"";
+    in
+    {
+      inherit (g) crate;
+      inherit
+        url
+        rev
+        sourceKey
+        fieldLine
+        ;
+      archive = fetchurl {
+        url = "${url}/archive/${rev}.tar.gz";
+        hash = g.hash;
+        name = "${g.crate}-${rev}.tar.gz";
+      };
+    };
+  gits = map parseGit gitDeps;
+  # a [source."..."] replacement block per git dep, all pointing at the vendor dir
+  gitConfig = builtins.concatStringsSep "\n" (
+    map (
+      g:
+      ''
+        [source."${g.sourceKey}"]
+        git = "${g.url}"
+      ''
+      + (if g.fieldLine == "" then "" else g.fieldLine + "\n")
+      + ''
+        replace-with = "vendored"
+      ''
+    ) gits
+  );
+  vendor = cargoVendor {
+    inherit cargoLock system;
+    gitDeps = map (g: { inherit (g) crate archive; }) gits;
+  };
   # extra C-library pins (buildInputs + openssl) whose /lib joins the link path
   # and the runtime rpath so -sys crates linking a system lib resolve it.
   extraLibs = buildInputs ++ (if openssl then [ pins.openssl ] else [ ]);
@@ -72,7 +125,10 @@ let
       opensslIncDir = if openssl then "${pins.opensslDev}/include" else "";
       pkgConfigBin = "${pins.pkgConfig}/bin";
       pkgConfigPath = if openssl then "${pins.opensslDev}/lib/pkgconfig" else "";
-    };
+    }
+    # caller build-time env (RUSTC_BOOTSTRAP, a build.rs data-file path, ...);
+    # derivation attrs are the builder's env vars, so these reach cargo/build.rs.
+    // extraEnv;
     script = ''
       export HOME="$NIX_BUILD_TOP"
       export CARGO_HOME="$NIX_BUILD_TOP/.cargo"
@@ -165,6 +221,7 @@ let
       replace-with = "vendored"
       [source.vendored]
       directory = "$vendor"
+      ${gitConfig}
       [target.${rustGnu}]
       linker = "$NIX_BUILD_TOP/zcc"
       EOF
