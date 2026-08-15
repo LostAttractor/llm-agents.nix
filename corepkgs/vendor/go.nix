@@ -11,9 +11,9 @@
   pins,
 }:
 let
-  fetchurl = import ./fetch/fetchurl.nix;
-  go = import ./toolchains/go.nix { inherit system pins; };
-  sys = (import ./systems.nix).${system};
+  fetchurl = import ../fetch/fetchurl.nix;
+  go = import ../toolchains/go.nix { inherit system pins; };
+  sys = (import ../systems.nix).${system};
   busybox = fetchurl {
     inherit (sys.busybox) url hash;
     executable = true;

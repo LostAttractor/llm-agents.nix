@@ -1,72 +1,36 @@
+# beads - built from source on corepkgs (nixpkgs-free) via mkGo with cgo. It
+# links ICU via go-icu-regex's cgo. zig cc compiles the cgo C; the dynamic
+# output is patchelf'd to the pinned glibc + icu. buildInputs pass icu (lib for
+# rpath) + icuDev (pkgconfig/headers). Note: upstream wraps bd with dolt on
+# PATH; mkGo does not wrap, so dolt must be provided at runtime separately.
 {
-  lib,
-  buildGoModule,
-  fetchFromGitHub,
-  makeWrapper,
-  dolt,
-  go-bin,
-  icu,
-  pkg-config,
-  versionCheckHook,
+  mkGo,
+  coreFetchurl,
+  corePins,
+  flake,
 }:
-
-buildGoModule.override { go = go-bin; } rec {
+mkGo {
   pname = "beads";
   version = "1.2.1";
-
-  src = fetchFromGitHub {
-    owner = "gastownhall";
-    repo = "beads";
-    tag = "v${version}";
-    hash = "sha256-0HcxHP/v9cFO4a/pB0KrqB1IiipJQ35XWoebS4vMK5E=";
+  src = coreFetchurl {
+    url = "https://github.com/gastownhall/beads/archive/refs/tags/v1.2.1.tar.gz";
+    hash = "sha256-s4VS0aMQ2T9LeyPxW/HQzv1T5WXX9DzMkPiVYRGQXPc=";
   };
-
   vendorHash = "sha256-mflgEu9g1k0UeyMA30WT4ON/8bpsNyIbIjAVTbjXpCs=";
-
-  nativeBuildInputs = [
-    makeWrapper
-    pkg-config
-  ];
-
+  cgo = true;
   buildInputs = [
-    icu
+    corePins.icu
+    corePins.icuDev
   ];
-
-  # go-icu-regex's cgo directives use raw -licui18n etc. with no
-  # `#cgo pkg-config:` line, so pkg-config never runs. With go-bin (the
-  # upstream prebuilt toolchain) on darwin the icu include dir does not
-  # make it into the compiler invocation; pass it explicitly so the
-  # build is independent of which cc cgo ends up resolving.
-  env = {
-    CGO_ENABLED = "1";
-    CGO_CFLAGS = "-I${lib.getDev icu}/include";
-    CGO_CXXFLAGS = "-I${lib.getDev icu}/include";
-    CGO_LDFLAGS = "-L${lib.getLib icu}/lib";
-  };
-
   subPackages = [ "cmd/bd" ];
-
-  doCheck = false;
-
-  postInstall = ''
-    wrapProgram $out/bin/bd \
-      --prefix PATH : ${lib.makeBinPath [ dolt ]}
-  '';
-
-  doInstallCheck = true;
-
-  nativeInstallCheckInputs = [ versionCheckHook ];
-
-  passthru.category = "Workflow & Project Management";
-
-  meta = with lib; {
+  binaries = [ "bd" ];
+  category = "Workflow & Project Management";
+  meta = {
     description = "A distributed issue tracker designed for AI-supervised coding workflows";
     homepage = "https://github.com/gastownhall/beads";
-    changelog = "https://github.com/gastownhall/beads/releases/tag/v${version}";
-    license = licenses.mit;
-    sourceProvenance = with sourceTypes; [ fromSource ];
-    maintainers = with maintainers; [ zimbatm ];
-    mainProgram = "bd";
-    platforms = platforms.unix;
+    changelog = "https://github.com/gastownhall/beads/releases/tag/v1.2.1";
+    license = flake.lib.licenses.mit;
+    sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
+    maintainers = [ flake.lib.maintainers.zimbatm ];
   };
 }

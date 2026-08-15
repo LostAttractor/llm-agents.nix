@@ -52,9 +52,9 @@ mk/               the constructors
   check-fhs.nix   assert an output is store-only (no ELF left on a host loader)
 lib/              build helpers (mk-updater, mk-update-script, rusty-v8, maintainers, ...)
 toolchains/       bun, node, rust, zig, go, python from upstream prebuilt binaries
-formatelf.nix     dogfood: formatelf built from source via mkCargo
-cargo-vendor.nix  vendor a Cargo.lock as naked builtin:fetchurl FODs (per-crate, by sha256)
-go-vendor.nix     vendor go modules as one vendorHash FOD (go.sum h1: hashes aren't fetchurl-able)
+vendor/           dependency vendorers
+  cargo.nix       vendor a Cargo.lock as naked builtin:fetchurl FODs (per-crate, by sha256)
+  go.nix          vendor go modules as one vendorHash FOD (go.sum h1: hashes aren't fetchurl-able)
 packages/         corepkgs' OWN packages, by-name (formatelf, wrapBuddy, buildNpmPackage, ...)
 ```
 
@@ -86,7 +86,7 @@ Not every package ships a prebuilt binary. `mk/cargo.nix` and `mk/go.nix` build
 from source, nixpkgs-free, on the fetched upstream toolchains.
 
 **mkCargo** — rust source builds: naked rust toolchain, `zig cc` as the C
-linker, crates vendored by `cargo-vendor.nix`, each produced executable
+linker, crates vendored by `vendor/cargo.nix`, each produced executable
 post-link-patched to the pinned glibc by formatelf. Handles:
 
 - pure crates.io, and **bundled C** (crates that compile their own C via the
@@ -104,7 +104,7 @@ post-link-patched to the pinned glibc by formatelf. Handles:
 
 **mkGo** — go source builds: naked go toolchain, `CGO_ENABLED=0`, so the output
 is a **fully static binary** — no glibc, no patchelf, no wrapper; it just runs,
-and the FHS check is trivial. Modules are vendored by `go-vendor.nix` as one
+and the FHS check is trivial. Modules are vendored by `vendor/go.nix` as one
 `vendorHash` FOD (go.sum `h1:` tree-hashes aren't fetchurl-compatible, so — like
 nixpkgs' `buildGoModule` — `go mod vendor` runs with network and the caller
 commits the hash). **The vendorHash equals nixpkgs' `buildGoModule` vendorHash

@@ -1,5 +1,5 @@
 # mkCargo: build a Rust package from source, nixpkgs-free, with the naked rust
-# toolchain + `zig cc` as the linker + crates vendored by cargo-vendor.nix.
+# toolchain + `zig cc` as the linker + crates vendored by vendor/cargo.nix.
 #
 # zig cc can't be handed --dynamic-linker (it re-sub-compiles glibc/compiler_rt
 # inheriting the flag, which they reject), so we link normally and POST-LINK
@@ -31,7 +31,7 @@
 }:
 let
   mkNaked = import ./naked-sh.nix;
-  cargoVendor = import ../cargo-vendor.nix;
+  cargoVendor = import ../vendor/cargo.nix;
   sys = (import ../systems.nix).${system};
   rust = import ../toolchains/rust.nix { inherit system pins; };
   zig = import ../toolchains/zig.nix { inherit system; };

@@ -40,7 +40,7 @@ let
     if vendorHash == null then
       null
     else
-      import ../go-vendor.nix {
+      import ../vendor/go.nix {
         inherit
           src
           vendorHash

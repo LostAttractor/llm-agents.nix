@@ -3,7 +3,7 @@
 # Each .crate is fetched by builtin:fetchurl using the sha256 straight from
 # Cargo.lock; the vendor dir gets a .cargo-checksum.json per crate.
 let
-  mkNaked = import ./mk/naked-sh.nix;
+  mkNaked = import ../mk/naked-sh.nix;
 
   fetchCrate =
     {
