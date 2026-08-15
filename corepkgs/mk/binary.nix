@@ -62,17 +62,23 @@ let
   interpolate = import ../interpolate.nix;
   hashData = if hashesFile == null then null else builtins.fromJSON (builtins.readFile hashesFile);
   resolvedVersion = if hashData == null then version else hashData.version;
+  # A platforms entry is either a string (shorthand for the {platform} token) or
+  # an attrset of arbitrary URL vars (e.g. { os = "linux"; cpu = "x86_64"; } for
+  # a "{os}/{cpu}" template) - same contract as lib/platform-source.nix.
+  platformVars =
+    if platforms == null then
+      { }
+    else
+      let
+        entry = platforms.${system};
+      in
+      if builtins.isAttrs entry then entry else { platform = entry; };
   resolvedSrc =
     if src != null then
       src
     else
       fetchurl {
-        url = interpolate urlTemplate (
-          {
-            version = resolvedVersion;
-          }
-          // (if platforms == null then { } else { platform = platforms.${system}; })
-        );
+        url = interpolate urlTemplate ({ version = resolvedVersion; } // platformVars);
         hash = hashData.hashes.${system} or hashData.${system};
       };
 

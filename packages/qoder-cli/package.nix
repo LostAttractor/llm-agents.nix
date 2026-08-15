@@ -1,52 +1,39 @@
+# qoder-cli (Qoder's `qodercli` AI coding assistant) - built on corepkgs, the
+# repo's nixpkgs-free packaging system. `mkBinary` fetches the prebuilt release
+# tarball and wraps it.
+#
+# qodercli is a bun --compile single-file binary, so kind = "loader" leaves it
+# byte-intact and invokes the pinned glibc loader through the wrapper.
+#
+# NOTE: qoder's ./hashes.json nests each platform's url+hash under `platforms`,
+# a shape mkBinary's shared-hashes reader cannot consume, so the source is
+# pinned inline (single-platform, mirroring the current hashes.json). The
+# declarative updater below still tracks all upstream platforms.
 {
-  lib,
-  flake,
+  mkBinary,
   mkUpdater,
-  stdenv,
-  fetchurl,
-  wrapBuddy,
-  versionCheckHook,
-  versionCheckHomeHook,
+  coreFetchurl,
+  flake,
 }:
-
-let
-  versionData = builtins.fromJSON (builtins.readFile ./hashes.json);
-  inherit (versionData) version platforms;
-
-  platform = stdenv.hostPlatform.system;
-  src = platforms.${platform} or (throw "Unsupported system: ${platform}");
-in
-stdenv.mkDerivation {
+mkBinary {
   pname = "qoder-cli";
-  inherit version;
-
-  src = fetchurl {
-    inherit (src) url hash;
+  version = "1.1.22";
+  mainProgram = "qodercli";
+  src = coreFetchurl {
+    url = "https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/releases/1.1.22/qodercli-linux-x64.tar.gz";
+    hash = "sha256-nrlsdKG9E4v82F6Yyz9KP5/EUQ/tMotrE/JZDnQZ5LE=";
+  };
+  unpack = "tar";
+  binary = "qodercli";
+  kind = "loader";
+  # Disable self-update: the store binary is read-only, so an in-place update
+  # attempt would just fail.
+  setEnv = {
+    QODER_DISABLE_AUTO_UPDATE = "1";
   };
 
-  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [ wrapBuddy ];
-
-  sourceRoot = ".";
-
-  dontStrip = true; # do not mess with the bun runtime
-
-  installPhase = ''
-    runHook preInstall
-
-    install -Dm755 qodercli $out/bin/qodercli
-
-    runHook postInstall
-  '';
-
-  doInstallCheck = true;
-
-  nativeInstallCheckInputs = [
-    versionCheckHook
-    versionCheckHomeHook
-  ];
-
-  passthru.category = "AI Coding Agents";
-  passthru.updater = mkUpdater {
+  category = "AI Coding Agents";
+  updater = mkUpdater {
     kind = "manifest";
     manifestUrl = "https://qoder-ide.oss-ap-southeast-1.aliyuncs.com/qodercli/channels/manifest.json";
     platformMap = [
@@ -68,19 +55,13 @@ stdenv.mkDerivation {
     ];
   };
 
-  meta = with lib; {
+  meta = {
     description = "Qoder AI CLI tool - Terminal-based AI assistant for code development";
     homepage = "https://qoder.com";
     changelog = "https://qoder.com/changelog";
     downloadPage = "https://qoder.com/download";
     license = flake.lib.licenses.unfree;
-    maintainers = with maintainers; [ ];
-    platforms = [
-      "x86_64-linux"
-      "aarch64-linux"
-      "aarch64-darwin"
-    ];
-    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
-    mainProgram = "qodercli";
+    sourceProvenance = [ flake.lib.sourceTypes.binaryNativeCode ];
+    maintainers = [ ];
   };
 }

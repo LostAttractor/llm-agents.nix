@@ -1,98 +1,47 @@
+# droid (Factory AI's CLI) - built on corepkgs, the repo's nixpkgs-free
+# packaging system. droid is a bun --compile single-file binary that bundles its
+# own ripgrep for code search.
+#
+# kind = "loader": a bun-compiled binary segfaults on any ELF rewrite (its
+# appended JS payload), so leave it byte-intact and invoke the pinned glibc
+# loader through the wrapper. rg is fetched separately and bundled onto PATH.
+#
+# NOTE: droid's ./hashes.json nests its hashes under `droid`/`ripgrep` per
+# platform, a shape mkBinary's shared-hashes reader cannot consume, so the
+# source is pinned inline (single-platform, mirroring the current hashes.json).
 {
-  lib,
+  mkBinary,
+  coreFetchurl,
   flake,
-  stdenv,
-  fetchurl,
-  makeWrapper,
-  wrapBuddy,
-  gcc-unwrapped,
-  versionCheckHook,
-  versionCheckHomeHook,
 }:
-
-let
-  versionData = builtins.fromJSON (builtins.readFile ./hashes.json);
-  inherit (versionData) version;
-
-  platformMap = {
-    x86_64-linux = "linux/x64";
-    aarch64-linux = "linux/arm64";
-    aarch64-darwin = "darwin/arm64";
-  };
-
-  platform = stdenv.hostPlatform.system;
-  platformPath = platformMap.${platform} or (throw "Unsupported system: ${platform}");
-in
-stdenv.mkDerivation {
+mkBinary {
   pname = "droid";
-  inherit version;
-
-  src = fetchurl {
-    url = "https://downloads.factory.ai/factory-cli/releases/${version}/${platformPath}/droid";
-    hash = versionData.droid.${platform};
+  version = "0.196.0";
+  src = coreFetchurl {
+    url = "https://downloads.factory.ai/factory-cli/releases/0.196.0/linux/x64/droid";
+    hash = "sha256-4Gof9XPv3B2PLDrqdAhX0hzX/ylEIJ9q594VX7v2zfw=";
   };
-
-  rgSrc = fetchurl {
-    url = "https://downloads.factory.ai/ripgrep/${platformPath}/rg";
-    hash = versionData.ripgrep.${platform};
-  };
-
-  nativeBuildInputs = [
-    makeWrapper
-  ]
-  ++ lib.optionals stdenv.hostPlatform.isLinux [
-    wrapBuddy
+  unpack = "none";
+  kind = "loader";
+  runtimeBins = [
+    {
+      name = "rg";
+      src = coreFetchurl {
+        url = "https://downloads.factory.ai/ripgrep/linux/x64/rg";
+        hash = "sha256-viR2yXY0K5IWYRtKhMG8LsZIjsXHkeoBmhMnJ2RO8Zw=";
+      };
+    }
   ];
 
-  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
-    gcc-unwrapped.lib
-  ];
+  category = "AI Coding Agents";
 
-  dontUnpack = true;
-  dontStrip = true;
-
-  installPhase = ''
-    runHook preInstall
-
-    mkdir -p $out/bin
-    mkdir -p $out/lib/factory
-
-    # Install the main droid binary
-    install -Dm755 $src $out/bin/droid
-
-    # Install ripgrep for code search functionality
-    install -Dm755 $rgSrc $out/lib/factory/rg
-
-    # Wrap droid to ensure ripgrep is in PATH
-    wrapProgram $out/bin/droid \
-      --prefix PATH : $out/lib/factory
-
-    runHook postInstall
-  '';
-
-  doInstallCheck = true;
-  # 0.104.0 unconditionally creates ~/.factory at startup before parsing
-  # --version, so the empty-env version check needs a writable HOME.
-  nativeInstallCheckInputs = [
-    versionCheckHook
-    versionCheckHomeHook
-  ];
-
-  passthru.category = "AI Coding Agents";
-
-  meta = with lib; {
+  meta = {
     description = "Factory AI's Droid - AI-powered development agent for your terminal";
     homepage = "https://factory.ai";
     changelog = "https://docs.factory.ai/changelog/cli-updates";
     downloadPage = "https://factory.ai/product/ide";
     license = flake.lib.licenses.unfree;
-    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
-    maintainers = with maintainers; [ ];
-    mainProgram = "droid";
-    platforms = [
-      "x86_64-linux"
-      "aarch64-linux"
-      "aarch64-darwin"
-    ];
+    sourceProvenance = [ flake.lib.sourceTypes.binaryNativeCode ];
+    maintainers = [ ];
   };
 }

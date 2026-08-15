@@ -2,9 +2,12 @@
 #   busybox - truly-static; provides archive extraction (tar/unzip/xz) that
 #             nushell has no built-in for.
 #   nu      - nushell (truly-static musl), the real build-script runtime. It is
-#             extracted from its tarball by the tiny sh bootstrap (mk-naked-sh),
+#             extracted from its tarball by the tiny sh bootstrap (mk/naked-sh),
 #             since nushell ships as a .tar.gz and nothing else can extract it
 #             before nu exists.
+#
+# These are trusted prebuilt static binaries for now. A future direction is to
+# bootstrap the seed properly from GNU Mes; keep this layer small and swappable.
 {
   system,
 }:
