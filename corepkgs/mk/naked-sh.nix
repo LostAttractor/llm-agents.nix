@@ -21,7 +21,7 @@ let
       null
     else
       fetchurl {
-        inherit ((import ../systems.nix).${system}.busybox) url hash;
+        inherit ((import ../seed/systems.nix).${system}.busybox) url hash;
         executable = true;
       };
   prelude =

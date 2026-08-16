@@ -12,7 +12,7 @@ let
   node = import ../packages/node-bin/package.nix { inherit system pins; };
 in
 {
-  seed = import ../seed.nix { inherit system; };
+  seed = import ../seed { inherit system; };
   zig = import ../packages/zig-bin/package.nix { inherit system; };
   bun = import ../packages/bun-bin/package.nix { inherit system pins; };
   inherit node;

@@ -12,7 +12,7 @@
 }:
 let
   fetchurl = import ../fetch/fetchurl.nix;
-  sys = (import ../systems.nix).${system};
+  sys = (import ../seed/systems.nix).${system};
   busybox = fetchurl {
     inherit (sys.busybox) url hash;
     executable = true;

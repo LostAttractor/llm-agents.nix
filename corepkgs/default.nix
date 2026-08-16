@@ -7,7 +7,7 @@
 # The two seed layers are threaded through the scope as swappable providers:
 #   pins       — prebuilt C libraries + tools (glibc, openssl, formatelf, ...).
 #                Default: the nixpkgs-free fetchClosure provider (pins-closure);
-#                when `pkgs` is passed (root flake), pins-pkgs.nix reuses it.
+#                when `pkgs` is passed (root flake), pins/pkgs.nix reuses it.
 #   toolchains — the compilers/runtimes we build WITH (rust, go, node, ...).
 #                Default: fetched prebuilt (toolchains/default.nix).
 # Swap either provider (e.g. a from-source bootstrap) without touching a
@@ -16,11 +16,11 @@
 {
   system ? builtins.currentSystem,
   pkgs ? null,
-  # Pins: from `pkgs` when given (pins-pkgs.nix, so the root flake reuses its own
+  # Pins: from `pkgs` when given (pins/pkgs.nix, so the root flake reuses its own
   # nixpkgs). Otherwise the pure, nixpkgs-free fetchClosure provider - which is
-  # what makes corepkgs a standalone flake with no nixpkgs input. (pins-store.nix
-  # remains for an explicit impure fast-eval path: `import ./pins-store.nix`.)
-  pins ? if pkgs != null then import ./pins-pkgs.nix pkgs else import ./pins-closure.nix system,
+  # what makes corepkgs a standalone flake with no nixpkgs input. (pins/store.nix
+  # remains for an explicit impure fast-eval path: `import ./pins/store.nix`.)
+  pins ? if pkgs != null then import ./pins/pkgs.nix pkgs else import ./pins/closure.nix system,
   # The toolchain set (seed, zig, bun, node, rust, go, python), threaded through
   # the constructor scope like `pins`. Swap this provider to change the bootstrap
   # (fetched-prebuilt -> from-source) without touching any constructor.
@@ -103,8 +103,8 @@ in
       fetchurlTemplate
       platformSource
       ;
-    seed = import ./seed.nix { inherit system; };
-    systems = import ./systems.nix;
+    seed = import ./seed { inherit system; };
+    systems = import ./seed/systems.nix;
     inherit pins system;
 
     # Meta helpers, exposed as un-called functions so the consumer supplies its

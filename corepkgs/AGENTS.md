@@ -33,11 +33,11 @@ corepkgs' only external dependency is two threaded "seed" attrsets, each a
 default arg you can override without touching a constructor:
 
 - **`pins`** — prebuilt C libs/tools (glibc, gccLib, openssl, zlib, formatelf,
-  ...). Default: `pins-closure.nix`, which `builtins.fetchClosure`es the exact
+  ...). Default: `pins/closure.nix`, which `builtins.fetchClosure`es the exact
   store paths from cache.nixos.org (formatelf from cache.numtide.com) — pure and
-  nixpkgs-free. When the root passes `pkgs`, `pins-pkgs.nix` reuses it (so CI can
+  nixpkgs-free. When the root passes `pkgs`, `pins/pkgs.nix` reuses it (so CI can
   rebuild pins from source on a cache miss). Regenerate the paths in
-  `pins-closure.nix` **and** `pins-store.nix` on a nixpkgs/formatelf bump.
+  `pins/closure.nix` **and** `pins/store.nix` on a nixpkgs/formatelf bump.
 - **`toolchains`** — rust, go, node, zig, bun, pnpm, python (+ seed). Default:
   `toolchains/default.nix` (the provider), which imports the prebuilt toolchain
   packages from `packages/<name>-bin/` (bun-bin, rust-bin, …). Each `-bin`
@@ -109,8 +109,11 @@ bundles (keytar/sharp/torch-CUDA), sdist-C-compile (python), exotic build tools
 
 ## Layout
 
+The top-level holds only the entry points (`default.nix`, `flake.nix`) + docs;
+everything else is a directory:
+
 `mk/` constructors · `vendor/` dep vendorers · `toolchains/default.nix` (the
 provider) · `fetch/` (owned fetch primitives) · `lib/` (meta helpers) ·
-`packages/` (machinery helpers + the `-bin` toolchain packages) · `pins-*.nix` ·
-`seed.nix` + `systems.nix` (per-arch platform tokens + rust triples + the static
-bootstrap seed).
+`packages/` (machinery helpers + the `-bin` toolchain packages) · `pins/`
+(pkgs/store/closure providers) · `seed/` (`default.nix` = the busybox+nushell
+seed, `systems.nix` = per-arch platform tokens + rust triples).

@@ -39,7 +39,7 @@
 let
   mkNaked = import ./naked-sh.nix;
   cargoVendor = import ../vendor/cargo.nix;
-  sys = (import ../systems.nix).${system};
+  sys = (import ../seed/systems.nix).${system};
   inherit (toolchains) rust zig;
 
   gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target

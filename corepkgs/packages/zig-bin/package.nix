@@ -8,8 +8,8 @@
 let
   fetchurl = import ../../fetch/fetchurl.nix;
   mkNaked = import ../../mk/naked-sh.nix;
-  seed = import ../../seed.nix { inherit system; };
-  sys = (import ../../systems.nix).${system};
+  seed = import ../../seed { inherit system; };
+  sys = (import ../../seed/systems.nix).${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
   inherit (data) version;

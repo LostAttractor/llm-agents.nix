@@ -51,9 +51,9 @@
   pins,
 }:
 let
-  seed = import ../seed.nix { inherit system; };
+  seed = import ../seed { inherit system; };
   mkNaked = import ./naked.nix;
-  sys = (import ../systems.nix).${system};
+  sys = (import ../seed/systems.nix).${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
   # Reuse the repo's shared hashes.json (the same file nix-update bumps) instead

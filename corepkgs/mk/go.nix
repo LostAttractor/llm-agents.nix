@@ -27,7 +27,7 @@
 let
   mkNaked = import ./naked-sh.nix;
   inherit (toolchains) go zig;
-  sys = (import ../systems.nix).${system};
+  sys = (import ../seed/systems.nix).${system};
   gnuTarget = "${sys.zig.platform}-gnu";
   extraLibPath = builtins.concatStringsSep ":" (map (p: "${p}/lib") buildInputs);
   pkgConfigPath = builtins.concatStringsSep ":" (map (p: "${p}/lib/pkgconfig") buildInputs);

@@ -12,8 +12,8 @@
   system,
 }:
 let
-  fetchurl = import ./fetch/fetchurl.nix;
-  mkNakedSh = import ./mk/naked-sh.nix;
+  fetchurl = import ../fetch/fetchurl.nix;
+  mkNakedSh = import ../mk/naked-sh.nix;
   sys = (import ./systems.nix).${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
