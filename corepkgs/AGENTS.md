@@ -61,8 +61,7 @@ GNU Mes bootstrap is a provider swap, no constructor changes.
   (OUR `pythonDepsHash`); wraps `[project.scripts]`. Manylinux-wheel deps OK.
 
 **Computing a FOD hash:** write the package with a placeholder
-(`sha256-AAAA...=`), run `nix build --no-link .#<pkg> 2>&1 | grep -oP
-'got:\s+\Ksha256-\S+'`, and paste it in. Never compute the hash from a separate
+(`sha256-AAAA...=`), run `nix build --no-link .#<pkg> 2>&1 | grep -oP 'got:\s+\Ksha256-\S+'`, and paste it in. Never compute the hash from a separate
 `--expr` with shell-escaped args (the escaping diverges from the real
 package.nix and yields a stale hash).
 
@@ -74,8 +73,7 @@ that bundle private libs in a `*.libs/` sibling dir pass.
 
 ## Porting a package (workflow)
 
-Read the nixpkgs recipe → get the source archive hash (`nix store
-prefetch-file`) + the lock/deps → write `packages/<name>/package.nix` on the
+Read the nixpkgs recipe → get the source archive hash (`nix store prefetch-file`) + the lock/deps → write `packages/<name>/package.nix` on the
 matching constructor → compute the FOD hash from the build's `got:` line →
 `nix build .#<name>` + `.#checks.<system>.fhs-<name>` → **revert on failure**
 (`git checkout -- packages/<name>/package.nix`) to keep the tree green.
