@@ -15,7 +15,7 @@ its layout; the consumer owns supplying nixpkgs deps to the functions it exposes
 The surface:
 
 - `core.lib` — the builder API + primitives: `mkBinary`, `mkCargo`, `mkGo`,
-  `mkNpm`, `mkBun`, `mkPython`, `mkNaked`, `mkNakedSh`, `checkFhs`, `coreFetchurl`,
+  `mkNpm`, `mkBun`, `mkPnpm`, `mkPython`, `mkNaked`, `mkNakedSh`, `checkFhs`, `coreFetchurl`,
   `interpolate`, `fetchurlTemplate`, `platformSource`, and the meta helpers
   `mkUpdater` / `mkUpdateScript` / `flakeLib` (un-called functions — the consumer
   passes its own `lib`/tools/`inputs`).
@@ -62,6 +62,11 @@ GNU Mes bootstrap is a provider swap, no constructor changes.
   naked bun runs via the glibc loader, so process.execPath is the loader and
   --compile fails BunSectionNotFound; bun can't be patchelf'd either). Optional
   `buildScript` for a pre-run asset/dist build.
+- `mkPnpm` — pnpm from source. Flat hoisted `node_modules` FOD (OUR
+  `pnpmDepsHash`, `--config.node-linker=hoisted`); runs `pnpm run <buildScript>`
+  then wraps `node <entry>`. The pnpm toolchain is the pnpm JS bundle on node.
+  Copies node_modules with `cp -r` (NOT `-L`) to keep pnpm's relative `.bin`
+  symlinks intact.
 - `mkPython` — python app from source. `pip install --target` FOD
   (OUR `pythonDepsHash`); wraps `[project.scripts]`. Manylinux-wheel deps OK.
 
