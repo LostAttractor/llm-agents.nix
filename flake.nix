@@ -62,7 +62,15 @@
         )
       );
 
-      pkgsFor = eachSystem (system: import nixpkgs { inherit system; });
+      pkgsFor = eachSystem (
+        system:
+        import nixpkgs {
+          inherit system;
+          # keep GHC out of eval: writeShellApplication's build-time shellcheck
+          # lint drags in the whole Haskell closure; we lint shell with shuck.
+          overlays = [ (import ./overlays/no-shellcheck-wrappers.nix) ];
+        }
+      );
 
       # Every package under packages/, built against the given package set.
       #

@@ -13,11 +13,6 @@ let
       pkgs.python3Packages.pyelftools
     ];
     text = builtins.readFile ./../../scripts/check.sh;
-    # writeShellApplication lints its wrapper with shellcheck (Haskell) at build
-    # time - the last thing forcing shellcheck into eval after the shuck swap.
-    # scripts/check.sh is already linted by shuck-check (it's a tracked *.sh), so
-    # drop the redundant per-wrapper shellcheck.
-    checkPhase = "";
   };
 
   # Like writeShellApplication, but for Nushell: nu shebang, runtimeInputs on
