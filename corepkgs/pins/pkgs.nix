@@ -3,16 +3,16 @@
 # pins/closure.nix. formatelf is rebuilt from the pinned rev.
 pkgs:
 let
+  # single-sourced with packages/formatelf (the auto-patchelf hook builds the same)
+  formatelfData = builtins.fromJSON (builtins.readFile ../packages/formatelf/hashes.json);
   formatelf = pkgs.rustPlatform.buildRustPackage {
     pname = "formatelf";
-    version = "0-unstable-2026-08-11";
+    inherit (formatelfData) version cargoHash;
     src = pkgs.fetchFromGitHub {
       owner = "Mic92";
       repo = "formatelf";
-      rev = "2b36d819b48c0bfd4a084e6f0ce430633d8ee5f4";
-      hash = "sha256-wWCpCxVogWKo/ivGfmAmD8YE8H4CQfs52lMdKsELK/w=";
+      inherit (formatelfData) rev hash;
     };
-    cargoHash = "sha256-+chzNYelw+fcWhIMSbJgVyOD48vV/Z6Cg5nhbfs16Xs=";
     doCheck = false;
   };
 in

@@ -9,22 +9,24 @@
 }:
 
 let
-  version = "0-unstable-2026-08-11";
+  # version + rev + src/cargo hashes live in ./hashes.json (single-sourced with
+  # pins/pkgs.nix, which rebuilds the same formatelf for the pin fallback).
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
   # Rust source + setup-hook script fetched from upstream; Nix packaging is
   # vendored in-tree.
   src = fetchFromGitHub {
     owner = "Mic92";
     repo = "formatelf";
-    rev = "2b36d819b48c0bfd4a084e6f0ce430633d8ee5f4";
-    hash = "sha256-wWCpCxVogWKo/ivGfmAmD8YE8H4CQfs52lMdKsELK/w=";
+    inherit (data) rev hash;
   };
 
   formatelf = rustPlatform.buildRustPackage {
     pname = "formatelf";
-    inherit version src;
+    inherit (data) version;
+    inherit src;
 
-    cargoHash = "sha256-+chzNYelw+fcWhIMSbJgVyOD48vV/Z6Cg5nhbfs16Xs=";
+    inherit (data) cargoHash;
 
     # test suite needs zig-built fixtures + a reference patchelf, absent from the
     # sandbox.
