@@ -38,9 +38,12 @@ default arg you can override without touching a constructor:
   nixpkgs-free. When the root passes `pkgs`, `pins-pkgs.nix` reuses it (so CI can
   rebuild pins from source on a cache miss). Regenerate the paths in
   `pins-closure.nix` **and** `pins-store.nix` on a nixpkgs/formatelf bump.
-- **`toolchains`** — rust, go, node, zig, bun, python (+ seed). Default:
-  `toolchains/default.nix` (fetched prebuilt). The toolchain a constructor uses
-  IS `core.packages.<name>` (single source of truth).
+- **`toolchains`** — rust, go, node, zig, bun, pnpm, python (+ seed). Default:
+  `toolchains/default.nix` (the provider), which imports the prebuilt toolchain
+  packages from `packages/<name>-bin/` (bun-bin, rust-bin, …). Each `-bin`
+  package reads its version + per-system hash from its own `hashes.json`; the
+  provider maps them to logical keys (`rust`, `go`, …) so constructors are
+  untouched. `core.packages` exposes them under the `-bin` names.
 
 Swapping either provider is the **bootstrap seam** — e.g. a from-source /
 GNU Mes bootstrap is a provider swap, no constructor changes.
@@ -80,6 +83,12 @@ GNU Mes bootstrap is a provider swap, no constructor changes.
 `--expr` with shell-escaped args (the escaping diverges from the real
 package.nix and yields a stale hash).
 
+**version + hashes live in `packages/<name>/hashes.json`, NOT inline** (the file
+nix-update bumps). `package.nix` does `let data = builtins.fromJSON (builtins.readFile ./hashes.json);` and reads `data.version`, `data.hash` (src), and any deps hash
+(`data.vendorHash` / `npmDepsHash` / `bunDepsHash` / `pnpmDepsHash` /
+`pythonDepsHash`), threading `${data.version}` into the src url + meta.changelog.
+Same for the `-bin` toolchains.
+
 ## FHS check
 
 `checkFhs` asserts a package output is **store-only** — no host loader, every
@@ -100,6 +109,8 @@ bundles (keytar/sharp/torch-CUDA), sdist-C-compile (python), exotic build tools
 
 ## Layout
 
-`mk/` constructors · `vendor/` dep vendorers · `toolchains/` · `fetch/` (owned
-fetch primitives) · `lib/` (meta helpers) · `packages/` (machinery packages) ·
-`pins-*.nix` · `seed.nix` + `systems.nix` (the static bootstrap seed).
+`mk/` constructors · `vendor/` dep vendorers · `toolchains/default.nix` (the
+provider) · `fetch/` (owned fetch primitives) · `lib/` (meta helpers) ·
+`packages/` (machinery helpers + the `-bin` toolchain packages) · `pins-*.nix` ·
+`seed.nix` + `systems.nix` (per-arch platform tokens + rust triples + the static
+bootstrap seed).

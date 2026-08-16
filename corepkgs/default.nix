@@ -2,7 +2,7 @@
 #
 #   core = import ./corepkgs { inherit system; }          # nixpkgs-free
 #   core.lib.mkBinary { ... }      # the builder API
-#   core.packages                  # corepkgs' own machinery (toolchains + hello)
+#   core.packages                  # corepkgs' own buildable outputs (-bin toolchains + hello)
 #
 # The two seed layers are threaded through the scope as swappable providers:
 #   pins       — prebuilt C libraries + tools (glibc, openssl, formatelf, ...).
