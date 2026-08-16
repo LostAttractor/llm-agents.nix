@@ -22,9 +22,10 @@ The surface:
 - `core.pins` — prebuilt C libraries + tools.
 - `core.toolchains` — the compilers/runtimes we build with.
 - `core.packages` — corepkgs' own buildable outputs (toolchains + `hello`).
-- `core.machinery` — the by-name helper package **functions** (formatelf,
-  wrapBuddy, buildNpmPackage, versionCheckHomeHook); the consumer `callPackage`s
-  them into its scope.
+- `core.machinery` — corepkgs' own by-name packages that the consumer
+  `callPackage`s into its scope: helpers (formatelf, wrapBuddy, buildNpmPackage,
+  versionCheckHomeHook) and tools (nixfmt-rs, the repo's Nix formatter, built via
+  mkCargo). Any non-`-bin` dir under `packages/` is picked up here.
 - `core.system`.
 
 ## Two seed layers, both swappable providers
