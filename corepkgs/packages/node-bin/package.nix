@@ -1,7 +1,7 @@
-# node-bin: the upstream prebuilt nodejs tarball, no nixpkgs, no stdenv. version
-# + per-system hash from ./hashes.json; per-arch platform token from systems.nix.
-# node is a plain dynamic executable (no appended payload), so patchelf (via
-# formatelf) is safe: set the pinned glibc interpreter + rpath.
+# node-bin: upstream prebuilt nodejs tarball. version + per-system hash from
+# ./hashes.json, platform token from systems.nix.
+# node is a plain dynamic executable (no appended payload), so patchelf is safe:
+# set the pinned glibc interpreter + rpath.
 {
   system,
   pins,

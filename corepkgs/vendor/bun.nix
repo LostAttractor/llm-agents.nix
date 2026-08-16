@@ -1,9 +1,8 @@
-# Vendor a bun project's dependencies into a fixed-output derivation: `bun
-# install --frozen-lockfile` from bun.lock produces node_modules, which we
-# output. Like npm's vendorer it is one FOD with a committed hash (bun's
-# per-package integrity hashes in bun.lock aren't a single fetchurl input).
-# --ignore-scripts keeps it deterministic + compiler-free; native deps ship
-# prebuilt platform binaries, which bun fetches without a build step.
+# Vendor a bun project's deps as ONE fixed-output derivation: `bun install
+# --frozen-lockfile` from bun.lock produces node_modules, which we output. bun's
+# integrity hashes aren't a single fetchurl input, so it's one committed-hash
+# FOD. --ignore-scripts keeps it deterministic + compiler-free (native deps ship
+# prebuilt binaries bun fetches without a build step).
 {
   src,
   bunDepsHash,

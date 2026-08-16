@@ -1,16 +1,11 @@
 { pkgs }:
-# Re-export of nixpkgs' buildNpmPackage with an eval-time guard.
+# nixpkgs' buildNpmPackage with an eval-time guard.
 #
-# Several packages here set `npmDepsFetcherVersion = 2`, whose FOD output (and
-# thus the committed npmDepsHash) depends on prefetch-npm-deps caching
-# packuments. On nixpkgs revisions predating that support the attribute is
-# silently ignored and the FOD falls back to v1 behaviour, surfacing only as a
-# confusing `hash mismatch in fixed-output derivation …-npm-deps.drv` (#4320).
-#
-# The guard fires for every consumption path that swaps out nixpkgs
-# (overlays.shared-nixpkgs, `inputs.llm-agents.inputs.nixpkgs.follows`, direct
-# callPackage), because the package scope is built against whatever `pkgs` is
-# in effect.
+# Our npm packages set `npmDepsFetcherVersion = 2`; their committed npmDepsHash
+# depends on it. Pre-support nixpkgs silently ignores the attr and falls back to
+# v1, surfacing only as a confusing FOD hash mismatch on -npm-deps.drv (#4320).
+# The guard fires on every path that swaps nixpkgs (the scope is built against
+# whatever `pkgs` is in effect).
 let
   inherit (pkgs) lib;
   hasFetcherVersion = (lib.functionArgs pkgs.fetchNpmDeps) ? fetcherVersion;
@@ -27,17 +22,15 @@ let
     https://github.com/numtide/llm-agents.nix/issues/4320.
   '';
 in
-# A real (empty) derivation so blueprint / buildbot can enumerate and "build"
-# it, plus a __functor that forwards to the actual builder so
-# `buildNpmPackage { … }` works in package.nix.
+# A real (empty) derivation so blueprint / buildbot can enumerate and "build" it;
+# the __functor forwards to the real builder so `buildNpmPackage { … }` works.
 pkgs.emptyDirectory.overrideAttrs { name = "buildNpmPackage-guard"; }
 // {
   __functor =
     _:
     assert lib.assertMsg hasFetcherVersion msg;
-    # the use-perSystem-buildNpmPackage rule is scoped to packages/**; this guard
-    # lives in corepkgs/ (the one sanctioned pkgs.buildNpmPackage use), so the
-    # rule never fires here and no suppression directive is needed.
+    # the use-perSystem-buildNpmPackage rule is scoped to packages/**; this is the
+    # one sanctioned pkgs.buildNpmPackage use, so no suppression is needed here.
     pkgs.buildNpmPackage;
   override = pkgs.buildNpmPackage.override;
   passthru.hideFromDocs = true;

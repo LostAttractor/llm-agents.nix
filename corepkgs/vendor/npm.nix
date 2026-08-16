@@ -1,14 +1,13 @@
-# Vendor an npm package's dependencies into a fixed-output derivation: `npm ci`
-# from package-lock.json produces node_modules, which we output. Like nixpkgs'
-# npmDepsHash it is one FOD with a committed hash (npm's own integrity hashes in
-# package-lock.json aren't a single fetchurl input). --ignore-scripts keeps it
-# deterministic + compiler-free (native-module packages are out of scope).
+# Vendor an npm package's deps as ONE fixed-output derivation: `npm ci` from
+# package-lock.json produces node_modules, which we output. npm's integrity
+# hashes aren't a single fetchurl input, so it's one committed-hash FOD.
+# --ignore-scripts keeps it deterministic + compiler-free (no native modules).
 {
   src,
   npmDepsHash,
   sourceRoot ? null,
-  packageLock ? null, # inject a committed package-lock.json (for registry tarballs that ship none, like nixpkgs' runCommand-injected lock)
-  omitOptional ? false, # `npm ci --omit=optional`: drop optionalDependencies (cross-platform prebuilds a package ships but does not need). NOT the default: many packages get their one platform-correct native binding via an optionalDependency.
+  packageLock ? null, # inject a committed package-lock.json (for registry tarballs that ship none)
+  omitOptional ? false, # npm ci --omit=optional: drop optionalDependencies. NOT default: many packages get their platform-correct native binding via an optionalDependency.
   system,
   node, # the node toolchain, threaded from the constructor scope
 }:

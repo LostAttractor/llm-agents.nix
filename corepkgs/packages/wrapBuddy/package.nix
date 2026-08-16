@@ -1,3 +1,5 @@
+# wrapBuddy: patches ELF binaries with a stub loader for NixOS, plus the setup
+# hook that applies it.
 {
   lib,
   stdenv,
@@ -19,32 +21,29 @@ let
     hash = "sha256-NlBlJbQsFKDgUtawzAEGF0iIO/xON2LXGw/axFOU4g8=";
   };
 
-  # Get interpreter info from stdenv attributes (avoids IFD)
+  # from stdenv attrs to avoid IFD
   dynamicLinker = stdenv.cc.bintools.dynamicLinker;
 
   libcLib = "${stdenv.cc.libc}/lib";
 
-  # Cross-compilation support:
-  # - CC (from stdenv) builds stubs for TARGET platform (what gets patched)
-  # - CXX_FOR_BUILD builds wrap-buddy for BUILD platform (what runs the patcher)
-  # For native builds, these are the same compiler.
+  # cross: CC (stdenv) builds stubs for TARGET (patched); CXX_FOR_BUILD builds the
+  # wrap-buddy patcher for BUILD (runs it). Same compiler on native builds.
   cxxForBuild = "${buildPackages.stdenv.cc}/bin/c++";
 
-  # Single derivation builds everything:
-  # - loader.bin, stub.bin (and 32-bit variants on x86_64)
-  # - wrap-buddy C++ patcher with embedded stubs
+  # one derivation builds loader.bin, stub.bin (+ 32-bit variants on x86_64) and
+  # the wrap-buddy C++ patcher with embedded stubs.
   wrapBuddy = stdenv.mkDerivation {
     pname = "wrap-buddy";
     inherit version src;
 
-    # depsBuildBuild: tools that run on BUILD and compile for BUILD
+    # runs on BUILD, compiles for BUILD
     depsBuildBuild = [
       buildPackages.stdenv.cc # C++ compiler for wrap-buddy
     ];
 
     nativeBuildInputs = [
-      binutils # objcopy (processes target ELF files)
-      xxd # for embedding stubs (platform-independent)
+      binutils # objcopy: processes target ELFs
+      xxd # embeds stubs
     ];
 
     makeFlags = [

@@ -1,6 +1,6 @@
 # Generate a nixpkgs-standard `passthru.updateScript` from a validated
-# `passthru.updater` config. The script carries its own tools so nothing about
-# the update lives in CI; it just runs scripts/updater/run.py against the config.
+# `passthru.updater` config. Carries its own tools so nothing about the update
+# lives in CI; just runs scripts/updater/run.py against the config.
 {
   lib,
   writeShellApplication,
@@ -25,8 +25,7 @@ let
     ];
   };
   extraTools = extraToolsByKind.${config.kind} or [ ];
-  # The flakeAttr is just `.#<name>`, so inject it instead of restating it in
-  # every config.
+  # flakeAttr is just `.#<name>`; inject it instead of restating in every config.
   needsFlakeAttr = builtins.elem config.kind [
     "github-source"
     "npm"

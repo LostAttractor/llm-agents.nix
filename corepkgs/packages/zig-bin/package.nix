@@ -1,7 +1,6 @@
-# zig-bin: the upstream prebuilt zig tarball, no nixpkgs, no stdenv, and -
-# uniquely - no glibc pin: the zig binary is truly static, and `zig cc` is a
-# complete self-contained C/C++ compiler + linker + libc. version + per-system
-# hash from ./hashes.json; per-arch platform token from systems.nix.
+# zig-bin: upstream prebuilt zig tarball. No glibc pin (uniquely): the zig binary
+# is truly static and `zig cc` is a self-contained C/C++ compiler + linker + libc.
+# version + per-system hash from ./hashes.json, platform token from systems.nix.
 {
   system,
 }:

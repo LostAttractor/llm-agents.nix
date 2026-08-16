@@ -1,9 +1,7 @@
-# mkDrvSh: the POSIX-sh bootstrap builder (sandbox /bin/sh + busybox). Used
-# only to extract nushell from its tarball; the real build logic uses mkDrv.nix
-# (nushell + __structuredAttrs). Kept minimal.
-# The builder is the sandbox's /bin/sh (Nix guarantees it); it boots busybox's
-# applets into PATH via `exec -a busybox` (busybox dispatches on argv[0], which
-# Nix hash-prefixes) then runs the build script. ~10 lines vs stdenv's ~2000.
+# mkDrvSh: the POSIX-sh bootstrap builder (sandbox /bin/sh + busybox). Used only
+# to extract nushell from its tarball; real build logic uses mkDrv.nix. Boots
+# busybox applets onto PATH via `exec -a busybox` (busybox dispatches on argv[0]),
+# then runs the script.
 {
   name,
   script,
@@ -13,9 +11,8 @@
 let
   fetchurl = import ../fetch/fetchurl.nix;
   isDarwin = builtins.match ".*-darwin" system != null;
-  # Linux: bundle a truly-static busybox and boot its applets onto PATH.
-  # Darwin: macOS ships no static busybox; the sandbox exposes the system
-  # toolchain (/usr/bin/tar, /bin/chmod), same as nixpkgs' darwin stdenv.
+  # Linux bundles a static busybox; Darwin has none, so use the sandbox's system
+  # tools (/usr/bin/tar, /bin/chmod) like nixpkgs' darwin stdenv.
   busybox =
     if isDarwin then
       null

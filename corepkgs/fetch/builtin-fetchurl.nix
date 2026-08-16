@@ -1,12 +1,7 @@
-# fetchurl on the builtin:fetchurl builder: a lone leaf derivation, no nixpkgs
-# fetchurl wrapper or stdenv thunk graph. Same output path as pkgs.fetchurl
-# for a given url + hash.
-#
-# Args are closed on purpose (url, hash, executable) - the builtin serves
-# nothing else (no unpack, auth, or curl opts), so anything extra fails loudly
-# instead of being silently dropped. bun2nix passes only { url, hash } (the
-# executable default is a no-op there); the corepkgs build layer also fetches
-# runnable binaries with `executable = true` (recursive/NAR hash + the +x bit).
+# fetchurl on the builtin:fetchurl builder: a leaf derivation, no nixpkgs
+# wrapper or stdenv graph. Same output path as pkgs.fetchurl for url + hash.
+# Args closed on purpose - no unpack/auth/curl opts, so extras fail loudly.
+# executable => recursive NAR hash + +x bit, for runnable binaries.
 {
   url,
   hash,

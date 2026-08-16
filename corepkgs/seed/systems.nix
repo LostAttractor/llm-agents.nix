@@ -1,10 +1,7 @@
-# Per-system table for corepkgs (PURE - no storePath, so it is usable
-# from a flake). Adding a system = adding a row. Arch-specific *pins* (glibc,
-# formatelf, ...) are NOT here; they come from a pins provider threaded in
-# (pins/store.nix for fast standalone eval, pins/pkgs.nix for the flake).
-#
-# Toolchain *versions* stay in the toolchain files (shared across arches); only
-# the per-arch platform token + hash live here.
+# Per-system table (pure - no storePath, usable from a flake). One row per system.
+# Arch-specific pins (glibc, formatelf) come from a pins provider, not here.
+# Toolchain versions stay in the toolchain files (shared across arches); only the
+# per-arch platform token + hash live here.
 {
   x86_64-linux = {
     loader = "ld-linux-x86-64.so.2";
@@ -27,11 +24,10 @@
     };
   };
 
-  # Darwin: Mach-O, not ELF - no loader, no busybox (macOS ships no static one),
-  # no glibc/formatelf pins. Prebuilt CLIs link the always-present system
-  # /usr/lib/libSystem via dyld, so they just run. The build leans on the system
-  # toolchain in the sandbox (/usr/bin/tar, /bin/chmod) the same way nixpkgs'
-  # darwin stdenv leans on system libSystem/SDK. Only nushell is fetched.
+  # Darwin: Mach-O, not ELF - no loader, no busybox, no glibc/formatelf pins.
+  # Prebuilt CLIs link system /usr/lib/libSystem via dyld, so they just run. The
+  # build uses the system toolchain in the sandbox (/usr/bin/tar, /bin/chmod).
+  # Only nushell is fetched.
   aarch64-darwin = {
     nu = {
       url = "https://github.com/nushell/nushell/releases/download/0.114.1/nu-0.114.1-aarch64-apple-darwin.tar.gz";

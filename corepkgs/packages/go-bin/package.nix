@@ -1,7 +1,7 @@
-# go-bin: the upstream prebuilt go tarball (go.dev/dl), no nixpkgs, no stdenv.
-# version + per-system hash from ./hashes.json; per-arch platform token from
-# systems.nix. go's own binaries are dynamic ELFs, so patchelf every one to the
-# pinned glibc (a CGO_ENABLED=0 build output is static and needs no patching).
+# go-bin: upstream prebuilt go tarball (go.dev/dl). version + per-system hash
+# from ./hashes.json, platform token from systems.nix.
+# go's own binaries are dynamic ELFs, so patchelf every one to the pinned glibc
+# (a CGO_ENABLED=0 build output is static and needs no patching).
 {
   system,
   pins,

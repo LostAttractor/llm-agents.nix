@@ -1,8 +1,7 @@
-# Vendor a pnpm project's dependencies into a fixed-output derivation. pnpm's
-# default layout is a symlink farm into a content-addressable store outside
-# node_modules; we force `--config.node-linker=hoisted` so node_modules is a
-# flat, self-contained tree (npm-like) that we can output and hash directly -
-# our own pnpmDepsHash, one FOD. --ignore-scripts keeps it compiler-free.
+# Vendor a pnpm project's deps as ONE fixed-output derivation. pnpm's default
+# layout is a symlink farm into a CA store outside node_modules; force
+# `--config.node-linker=hoisted` so node_modules is a flat self-contained tree
+# we can output and hash directly. --ignore-scripts keeps it compiler-free.
 {
   src,
   pnpmDepsHash,
@@ -39,11 +38,10 @@ let
       --config.store-dir="$NIX_BUILD_TOP/.pnpm-store" \
       --config.confirmModulesPurge=false
 
-    # cp -r (NOT -L): pnpm hardlinks package files from the store into node_modules
-    # (cp copies those as real files -> self-contained), but the .bin entries and
-    # package layout are RELATIVE symlinks within node_modules that must stay
-    # symlinks (dereferencing them relocates a bin's relative requires and breaks
-    # it, e.g. .bin/tsc's `import "../lib/tsc.js"`).
+    # cp -r (NOT -L): pnpm hardlinks store files into node_modules (cp copies
+    # them as real files -> self-contained), but .bin entries are RELATIVE
+    # symlinks that must stay symlinks; dereferencing relocates a bin's relative
+    # requires and breaks it (e.g. .bin/tsc's `import "../lib/tsc.js"`).
     cp -r node_modules "$out"
   '';
 in

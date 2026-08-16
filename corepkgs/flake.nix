@@ -1,13 +1,8 @@
-# corepkgs as a standalone flake — so `nix build ./corepkgs#packages.<system>.hello`
-# (or formatelf, bun, ...) works on its own. The root llm-agents.nix flake does
-# NOT consume this; it imports ./default.nix directly (core.lib.mkPackage), which
-# keeps eval fast and avoids a locked path input. This flake is purely for using
-# corepkgs by itself.
-#
-# corepkgs has NO nixpkgs input: pins come from pins/closure.nix (appendContext of
-# stock cache.nixos.org / cache.numtide.com paths - pure + nixpkgs-free), and
-# every toolchain/package fetches its upstream artifact via coreFetchurl. So this
-# flake needs no inputs at all.
+# corepkgs as a standalone flake, so `nix build ./corepkgs#packages.<system>.hello`
+# works on its own. The root flake does NOT consume this - it imports ./default.nix
+# directly (fast eval, no locked path input). This flake is only for using corepkgs
+# by itself. Zero inputs: pins come from pins/closure.nix and every package fetches
+# via coreFetchurl, so no nixpkgs input is needed.
 {
   description = "corepkgs — a nixpkgs-free packaging system (static seed + nushell builder)";
 

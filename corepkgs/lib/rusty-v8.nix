@@ -1,3 +1,4 @@
+# Fetch the prebuilt librusty_v8 static lib (+ optional src_binding) for the host.
 {
   lib,
   stdenv,

@@ -1,9 +1,7 @@
-# mkGo: build a Go package from source, nixpkgs-free, with the go
-# toolchain. CGO_ENABLED=0 so the output is a fully STATIC binary - no glibc, no
-# patchelf, no formatelf, nothing to wrap; it just runs. Modules are vendored by
-# go-vendor.nix (a single vendorHash FOD, since go.sum hashes are not
-# fetchurl-compatible). cgo = true builds cgo packages via zig cc (dynamic
-# output, patchelf'd to the pinned glibc); buildInputs adds C-lib pins.
+# mkGo: build a Go package from source, nixpkgs-free. CGO_ENABLED=0 -> a static
+# binary, no patchelf needed. Modules vendored by vendor/go.nix (one vendorHash
+# FOD; go.sum hashes aren't fetchurl-compatible). cgo = true compiles cgo C via
+# zig cc -> dynamic output patchelf'd to the pinned glibc; buildInputs adds C-lib pins.
 {
   pname,
   version ? null,
@@ -80,9 +78,8 @@ let
       export PATH="$go/bin:$PATH"
 
       if [ -n "$useCgo" ]; then
-        # cgo: compile the C via zig cc; provide zig's llvm ar/ranlib + pkg-config
-        # for `#cgo pkg-config:` directives. The output is dynamic - patchelf'd
-        # to the pinned glibc after the build.
+        # cgo: compile C via zig cc; provide zig's llvm ar/ranlib + pkg-config
+        # for `#cgo pkg-config:` directives. Dynamic output, patchelf'd below.
         export CGO_ENABLED=1
         cat > "$NIX_BUILD_TOP/zcc" <<EOF
       #!/bin/sh
@@ -138,9 +135,8 @@ let
 in
 drv
 // {
-  # go source builds are linux-only for now (the go toolchain is Linux).
-  # CGO_ENABLED=0 output is static (trivial FHS); a cgo output is a dynamic ELF
-  # patchelf'd to the pinned glibc (+ any C-lib buildInputs).
+  # linux-only for now. CGO_ENABLED=0 output is static; cgo output is a dynamic
+  # ELF patchelf'd to the pinned glibc.
   meta = {
     platforms = [ "x86_64-linux" ];
     inherit mainProgram;

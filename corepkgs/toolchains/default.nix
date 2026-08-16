@@ -1,12 +1,8 @@
-# The toolchain set: the compilers/runtimes corepkgs builds WITH, assembled once
-# and threaded through the constructor scope - mirroring `pins`. Constructors
-# receive `toolchains` and pick `toolchains.rust` etc. instead of re-importing
-# ../toolchains/<x>.nix, so the toolchain a constructor uses IS the one exposed
-# as corepkgs.packages.<name> (single source of truth).
-#
-# This is the bootstrap seam: swap this provider to change how the toolchains are
-# obtained - fetched prebuilt today, built from source later (the GNU Mes
-# direction) - without touching a single constructor. See [[corepkgs-bootstrap-direction]].
+# The toolchain set: compilers/runtimes corepkgs builds WITH, threaded through the
+# constructor scope like `pins`. Single source of truth - the toolchain a
+# constructor picks (toolchains.rust) IS the one exposed as packages.<name>.
+# Bootstrap seam: swap this provider (prebuilt today, GNU Mes from-source later)
+# without touching a constructor. See [[corepkgs-bootstrap-direction]].
 { system, pins }:
 let
   node = import ../packages/node-bin/package.nix { inherit system pins; };

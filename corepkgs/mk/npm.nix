@@ -1,17 +1,8 @@
-# mkNpm: build an npm package from source, nixpkgs-free, with the node
-# toolchain. Deps are vendored by vendor/npm.nix (a node_modules FOD with a
-# committed npmDepsHash - our own, not nixpkgs', since we vendor node_modules
-# rather than the npm cache). Runs the build script, installs the package under
-# $out/lib/node_modules/<pname>, and wraps each package.json "bin" as a
-# $out/bin/<name> node launcher.
-#
-# Two knobs cover the integration work nixpkgs does by hand:
-#   * binWrappers - override the auto launchers when a bin needs extra node flags
-#     (--expose-internals), env vars, a PATH prefix, or a corrected entry path.
-#   * nativeAddons - patchelf bundled prebuilt *.node / *.bare addons to the
-#     pinned glibc (the autoPatchelfHook equivalent), so a pure-JS package that
-#     ships a native binding stays store-only. node-gyp *building* an addon from
-#     source (python + C toolchain) is still out of scope.
+# mkNpm: build an npm package from source, nixpkgs-free. Deps vendored by
+# vendor/npm.nix (a node_modules FOD, our own npmDepsHash). Installs under
+# $out/lib/node_modules/<pname>, wraps each package.json "bin". Knobs: binWrappers
+# override auto launchers; nativeAddons patchelf bundled *.node/*.bare to pinned glibc.
+# node-gyp building an addon from source is out of scope.
 {
   pname,
   version,
@@ -56,9 +47,8 @@ let
   addonRpath =
     "${pins.glibc}/lib:${pins.gccLib}/lib" + (if addonLibPath == "" then "" else ":${addonLibPath}");
 
-  # Render one custom bin wrapper into a shell block. $node / $dest are build-time
-  # shell vars; everything else is Nix-interpolated. \$PATH / \$@ stay literal so
-  # the emitted wrapper defers them to its own runtime.
+  # Render one custom bin wrapper into a shell block. $node/$dest are build-time
+  # shell vars; \$PATH / \$@ stay literal so the emitted wrapper resolves them at runtime.
   renderWrapper =
     name: spec:
     let
@@ -119,8 +109,8 @@ let
       chmod -R u+w node_modules
 
       # patchShebangs: the sandbox has no /usr/bin/env, so rewrite every
-      # `#!/usr/bin/env node` in node_modules/.bin targets to our node. Without
-      # this, `npm run build` -> tsc/esbuild fail with "not found".
+      # `#!/usr/bin/env node` in node_modules/.bin targets to our node. Else
+      # `npm run build` -> tsc/esbuild fail with "not found".
       npm_cli="$node/lib/node_modules/npm/bin/npm-cli.js"
       for l in node_modules/.bin/*; do
         [ -e "$l" ] || continue
@@ -174,9 +164,8 @@ let
 in
 drv
 // {
-  # node runtime is dynamically linked (patchelf'd in the toolchain); the wrapper
-  # + installed JS have no ELF of their own unless the package bundles native
-  # addons - which we patchelf'd above. linux-only for now.
+  # The wrapper + installed JS have no ELF of their own unless the package
+  # bundles native addons, which we patchelf'd above. linux-only for now.
   meta = {
     platforms = [ "x86_64-linux" ];
     inherit mainProgram;

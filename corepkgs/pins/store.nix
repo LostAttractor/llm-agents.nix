@@ -1,9 +1,6 @@
-# Pin provider for standalone `nix build -f corepkgs`: the tools referenced via
-# builtins.storePath, so eval touches zero nixpkgs (the ~20x eval win). IMPURE
-# (storePath) - not usable from a flake; the flake uses pins/pkgs.nix instead.
-#
-# These are stock nixpkgs outputs (glibc/gccLib/zlib/zstd, in cache.nixos.org)
-# plus this repo's formatelf (numtide cache). Regenerate on a nixpkgs bump.
+# Pin provider referencing tools via builtins.storePath: zero nixpkgs at eval.
+# Impure, so not usable from a flake (use pins/pkgs.nix there). Regenerate on a
+# nixpkgs bump (keep in sync with pins/closure.nix).
 system:
 {
   x86_64-linux = {

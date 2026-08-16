@@ -1,11 +1,8 @@
-# mkPython: build a Python application from source, nixpkgs-free, with the
-# relocatable-CPython toolchain. Deps are vendored by vendor/python.nix (a
-# site-packages FOD produced by `pip install --target`, our own hash - not
-# nixpkgs' - since we vendor the installed tree, not a wheel cache). Installs the
-# site tree under $out/lib/pysite and wraps each console entry point as a
-# $out/bin/<name> launcher that runs the toolchain python with that tree on
-# PYTHONPATH. Pure-python + manylinux-wheel deps; sdist-compiled C deps are out
-# of scope for now.
+# mkPython: build a Python application from source, nixpkgs-free. Deps vendored
+# by vendor/python.nix (a site-packages FOD from `pip install --target`, our own
+# hash). Installs the site tree under $out/lib/pysite and wraps each console entry
+# point as a launcher running the toolchain python with that tree on PYTHONPATH.
+# Pure-python + manylinux-wheel deps only; sdist-compiled C deps out of scope.
 {
   pname,
   version,
@@ -93,9 +90,9 @@ drv
   passthru =
     (if category == null then { } else { inherit category; })
     // (if updater == null then { } else { inherit updater; });
-  # vendored wheels' compiled .so's carry no rpath (they rely on the toolchain's
+  # vendored wheels' .so's carry no rpath (they rely on the toolchain's
   # LD_LIBRARY_PATH); the fhs check resolves their NEEDED against the manylinux
-  # set, so a wheel needing a lib outside that pinned set fails loudly.
+  # set, so a wheel needing a lib outside it fails loudly.
   fhs = {
     kind = "patchelf";
     libpath = ldpath;

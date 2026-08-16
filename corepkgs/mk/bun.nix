@@ -1,16 +1,12 @@
-# mkBun: build a bun project from source, nixpkgs-free, with the bun
-# toolchain. Deps are vendored by vendor/bun.nix (a node_modules FOD, our own
-# bunDepsHash). We install the app + node_modules under $out/lib/<pname> and wrap
-# `bun run <entry>` as $out/bin/<mainProgram> - the same shape nixpkgs uses for
-# bun CLIs (makeWrapper bun --add-flags <entry>).
+# mkBun: build a bun project from source, nixpkgs-free. Deps vendored by
+# vendor/bun.nix (a node_modules FOD, our own bunDepsHash). Installs app +
+# node_modules under $out/lib/<pname> and wraps `bun run <entry>`.
 #
-# NOT `bun build --compile`: that reads process.execPath to find its base binary,
-# but the bun toolchain runs via the pinned glibc loader (execPath = the
-# loader), so --compile fails with BunSectionNotFound - and bun can't be
-# patchelf'd (its tail-appended runtime breaks on any ELF rewrite). Packages that
-# truly need the single compiled binary (e.g. one that walks execPath for bundled
-# assets) stay on nixpkgs. Bundled prebuilt *.node native addons are patchelf'd
-# to the pinned glibc (like mkNpm's nativeAddons).
+# NOT `bun build --compile`: it reads process.execPath to find its base binary,
+# but the toolchain runs via the pinned glibc loader (execPath = the loader), so
+# --compile fails BunSectionNotFound - and bun can't be patchelf'd (its tail-
+# appended runtime breaks on any ELF rewrite). Such packages stay on nixpkgs.
+# Bundled prebuilt *.node addons are patchelf'd to the pinned glibc.
 {
   pname,
   version,
@@ -75,7 +71,7 @@ let
       chmod -R u+w node_modules
 
       # bun's offline resolver refuses semver ranges (^/~) when only the pinned
-      # version is present; collapse them to exact pins so bun skips the (blocked)
+      # version is present; collapse them to exact pins so bun skips the blocked
       # registry lookup.
       for f in package.json packages/*/package.json bun.lock; do
         [ -f "$f" ] && sed -i 's/: "\^/: "/g; s/: "~/: "/g' "$f"
@@ -115,8 +111,8 @@ drv
   passthru =
     (if category == null then { } else { inherit category; })
     // (if updater == null then { } else { inherit updater; });
-  # $out has no ELF of its own; any bundled native *.node addon is patchelf'd to
-  # the pinned glibc, and the bun runtime it runs on is already store-only.
+  # $out has no ELF of its own; any bundled *.node addon is patchelf'd to the
+  # pinned glibc, and the bun runtime it runs on is already store-only.
   fhs = {
     kind = "patchelf";
     inherit libpath mainProgram;

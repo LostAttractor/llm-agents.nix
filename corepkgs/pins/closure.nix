@@ -1,20 +1,13 @@
-# Pin provider that is pure, nixpkgs-free, AND cache-free at eval: reference the
-# exact store paths via `builtins.appendContext` (attach Nix context to the
-# store-path string) instead of `builtins.fetchClosure`. Unlike fetchClosure this
-# does NOT fetch the narinfo at eval time, so eval is instant + fully offline;
-# each path is substituted from the configured caches at build/realize time
-# (cache.nixos.org for the nixpkgs pins, cache.numtide.com - wired in the flake's
-# nixConfig - for formatelf). This is the nixpkgs-multiverse "fast mode" trick:
-# https://fzakaria.com/2026/08/14/nixpkgs-multiverse-fast-mode (mkFakeDerivation).
-#
-# Like fetchClosure these can only be SUBSTITUTED, not built - fine, pins are
-# always pulled from cache. The root flake uses pins/pkgs.nix when it needs to
-# rebuild them from source (a cache miss). Regenerate the paths on a nixpkgs /
-# formatelf bump (same paths as pins/store.nix).
+# Pin provider: pure, nixpkgs-free, and cache-free at eval. References exact store
+# paths via `builtins.appendContext` instead of `builtins.fetchClosure` - no
+# narinfo fetch at eval, so eval is instant + offline; paths substitute from the
+# configured caches at realize time. Substitute-only, never built (a cache miss
+# falls back to pins/pkgs.nix). Regenerate on a nixpkgs/formatelf bump (keep in
+# sync with pins/store.nix).
 system:
 let
-  # attach `{ path = true; }` context to a store-path string, so Nix treats it as
-  # a substitutable store path without evaluating (or fetching) anything.
+  # `{ path = true; }` context makes Nix treat the string as a substitutable
+  # store path without evaluating or fetching anything.
   fake =
     p:
     builtins.appendContext p {

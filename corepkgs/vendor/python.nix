@@ -1,13 +1,12 @@
-# Vendor a Python application + its runtime deps into a fixed-output derivation.
-# `pip install --target` builds the app via its PEP 517 backend and resolves the
-# full dependency closure from PyPI (manylinux wheels + pure-python), producing a
-# flat site-packages tree we output. Like nixpkgs' pythonDepsHash it is one FOD
-# with a committed hash (pip's per-file hashes are not a single fetchurl input).
+# Vendor a Python app + its runtime deps as ONE fixed-output derivation. `pip
+# install --target` builds the app via its PEP 517 backend and resolves the full
+# closure from PyPI (manylinux wheels + pure-python) into a flat site tree we
+# output. pip's per-file hashes aren't a single fetchurl input, so it's one
+# committed-hash FOD.
 #
-# Determinism: --no-compile (no timestamped .pyc), and we strip the install
-# bookkeeping that embeds the nondeterministic build path (RECORD, direct_url.json)
-# or timestamps (__pycache__). Sdist-only deps that need a C compiler are out of
-# scope (the manylinux wheel path is compiler-free).
+# Determinism: --no-compile (no timestamped .pyc), and strip install bookkeeping
+# that embeds the build path (RECORD, direct_url.json) or timestamps
+# (__pycache__). Sdist-only C-compile deps are out of scope (wheels are compiler-free).
 {
   src,
   pythonDepsHash,
@@ -46,10 +45,9 @@ let
     find "$out" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
     find "$out" \( -name 'RECORD' -o -name 'direct_url.json' \) -delete 2>/dev/null || true
 
-    # pip's generated console scripts carry a `#!<toolchain python>` shebang, so
-    # the tree would reference a store path - forbidden in a fixed-output
-    # derivation (its hash can't capture referenced paths). mkPython regenerates
-    # the launchers from `entrypoints`, so drop pip's bin/ entirely.
+    # pip's console scripts carry a `#!<toolchain python>` shebang -> the tree
+    # references a store path, forbidden in a FOD (its hash can't capture refs).
+    # mkPython regenerates launchers from `entrypoints`, so drop pip's bin/.
     rm -rf "$out/bin"
   '';
 in

@@ -1,11 +1,9 @@
-# bun-bin: the upstream prebuilt bun binary, no nixpkgs, no stdenv. Prebuilt, so
-# it lives by-name with the -bin suffix; version + per-system hash come from
-# ./hashes.json (the file nix-update bumps), the per-arch platform token from
-# systems.nix.
+# bun-bin: upstream prebuilt bun binary. version + per-system hash from
+# ./hashes.json, platform token from systems.nix.
 #
 # bun must NOT be patchelf'd: it appends its JS runtime to the ELF tail and
 # recomputes that offset from the on-disk file, so any rewrite segfaults it.
-# Instead leave it byte-intact and invoke the pinned glibc loader via a wrapper.
+# Leave it byte-intact; invoke the pinned glibc loader via a wrapper.
 {
   system,
   pins,
@@ -39,7 +37,7 @@ mkDrvSh {
     cp bun-${plat}/bun "$out/libexec/bun"
     chmod +x "$out/libexec/bun"
 
-    # runtime shell: busybox via a symlink named "sh"
+    # runtime shell: busybox symlinked as "sh"
     ln -s "$busybox" "$out/libexec/sh"
     {
       echo "#!$out/libexec/sh"

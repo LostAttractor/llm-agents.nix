@@ -1,3 +1,5 @@
+# versionCheckHomeHook: gives versionCheckHook a writable $HOME (CLI tools that
+# create config/cache dirs fail without it).
 {
   lib,
   makeSetupHook,

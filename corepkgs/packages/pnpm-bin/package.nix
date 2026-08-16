@@ -1,7 +1,7 @@
-# pnpm-bin: the pnpm npm package (a self-contained JS bundle) run on the
-# node toolchain - no separate binary to patchelf. version + hash (arch-
-# independent) from ./hashes.json. `pnpm` execs `node dist/pnpm.cjs`, inheriting
-# node's pinned-glibc runtime.
+# pnpm-bin: the pnpm npm package (self-contained JS bundle) run on the node
+# toolchain - no separate binary to patchelf. version + hash (arch-independent)
+# from ./hashes.json. `pnpm` execs `node dist/pnpm.cjs`, inheriting node's
+# pinned-glibc runtime.
 {
   system,
   node,

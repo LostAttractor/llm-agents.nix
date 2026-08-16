@@ -1,11 +1,11 @@
 # Validate a declarative `passthru.updater` config, so a malformed one fails
-# `nix flake check` instead of the next weekly update run. The recipe lives as
-# data (nix eval --json) that scripts/updater/run.py consumes.
+# `nix flake check` instead of the next weekly update run. Consumed as data
+# (nix eval --json) by scripts/updater/run.py.
 { lib }:
 let
   requiredByKind = {
-    # flakeAttr is injected from the package name by mk-update-script.nix, so
-    # it is not a required config field here.
+    # flakeAttr is injected from the package name by mk-update-script.nix, not
+    # a required config field here.
     "github-source" = [
       "purl"
       "depHashKey"

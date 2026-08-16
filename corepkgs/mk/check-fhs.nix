@@ -1,13 +1,7 @@
-# checkFhs: assert a package output does NOT depend on the FHS - every library
-# an ELF needs must resolve inside /nix/store, and no ELF is left on a host
-# loader we don't control. The nixpkgs-free equivalent of autoPatchelfHook's guard.
-#
-# Mechanism-aware (reads package.fhs from mkPackage): patchelf packages resolve
-# NEEDED via the ELF rpath; loader packages via the wrapper's --library-path
-# (their own FHS interpreter is bypassed by the pinned loader); ignoreMissing
-# SONAMEs (a bundled JRE's optional AWT/X11 libs) are allowed to stay unresolved.
-#
-# Build script is nushell (the mkDrv builder), reading __structuredAttrs.
+# checkFhs: assert an output is store-only - every ELF's interpreter and NEEDED
+# libs resolve inside /nix/store, nothing left on a host loader. Reads the
+# constructor's package.fhs: kind = patchelf (resolve via rpath) or loader
+# (interpreter is meant to be non-store), libpath, ignoreMissing SONAMEs. nushell.
 let
   mkDrv = import ./drv.nix;
 in
@@ -50,9 +44,8 @@ mkDrv {
       let magic = ((^head -c4 $f | ^od -An -tx1) | str replace --all --regex '[^0-9a-f]' "")
       if $magic != "7f454c46" { continue }
 
-      # $ORIGIN expands to the ELF's own directory (a store path here), so a
-      # manylinux wheel's $ORIGIN-relative RPATH into its bundled *.libs/ sibling
-      # dir is store-only and self-contained - expand it before the store check.
+      # $ORIGIN = the ELF's own dir (a store path); expand it so a manylinux
+      # wheel's $ORIGIN-relative RPATH into its bundled *.libs/ counts as store-only.
       let origin = ($f | path dirname)
       let rpath = (do { ^$fe --print-rpath $f } | complete | get stdout | str trim | str replace --all '$ORIGIN' $origin)
       let search = ((if ($libpath | is-empty) { $rpath } else { $"($rpath):($libpath)" }) | split row ":" | where {|x| $x != "" })

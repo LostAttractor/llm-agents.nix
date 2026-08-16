@@ -1,7 +1,6 @@
-# Vendor a Cargo.lock's crates.io dependencies as fixed-output derivations and assemble a
-# cargo vendor directory - the nixpkgs-free equivalent of fetchCargoVendor.
-# Each .crate is fetched by builtin:fetchurl using the sha256 straight from
-# Cargo.lock; the vendor dir gets a .cargo-checksum.json per crate.
+# Vendor a Cargo.lock's crates.io deps: each .crate is one builtin:fetchurl FOD
+# keyed by the sha256 straight from Cargo.lock. Assemble the cargo vendor dir
+# with a .cargo-checksum.json per crate.
 let
   mkDrvSh = import ../mk/drv-sh.nix;
 
@@ -31,9 +30,9 @@ in
 {
   cargoLock,
   system,
-  # git dependencies: [{ crate = "<name>"; archive = <fetched github archive tarball>; }].
+  # git deps: [{ crate = "<name>"; archive = <fetched github archive tarball>; }].
   # cargo vendors a git dep under a plain <crate>/ dir with a null-package
-  # checksum; the source-replacement wiring lives in mk/cargo.nix's config.toml.
+  # checksum; source-replacement wiring lives in mk/cargo.nix's config.toml.
   gitDeps ? [ ],
 }:
 let

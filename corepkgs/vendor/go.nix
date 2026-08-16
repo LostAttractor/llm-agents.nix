@@ -1,8 +1,7 @@
-# Vendor a go module's dependencies into a fixed-output derivation. Unlike
-# cargo-vendor (per-crate builtin:fetchurl by sha256), go.sum records h1: tree
-# hashes that are not fetchurl-compatible, so - like nixpkgs' buildGoModule
-# vendorHash - the whole vendor/ dir is ONE FOD: `go mod vendor` runs with
-# network, and the caller commits the resulting hash. Deterministic given go.sum.
+# Vendor a go module's deps as ONE fixed-output derivation: `go mod vendor` runs
+# with network, caller commits the hash. go.sum records h1: tree hashes, not
+# fetchurl-compatible, so unlike cargo we can't do per-dep FODs. Deterministic
+# given go.sum.
 {
   src,
   vendorHash,

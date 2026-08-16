@@ -1,6 +1,5 @@
-# fetchurl with a templated URL. The single templated-URL primitive shared by a
-# package's build and its declarative updater, so the two can never fetch
-# different URLs. Extra args (hash, name, ...) pass through to fetchurl.
+# fetchurl with a templated URL. Shared by a package's build and its declarative
+# updater, so the two can never fetch different URLs. Extra args pass through.
 { fetchurl, interpolate }:
 
 {

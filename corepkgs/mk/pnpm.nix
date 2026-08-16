@@ -1,8 +1,7 @@
-# mkPnpm: build a pnpm project from source, nixpkgs-free, with the node +
-# pnpm toolchains. Deps are vendored by vendor/pnpm.nix (a flat hoisted
-# node_modules FOD, our own pnpmDepsHash). Runs the package's build script via
-# pnpm, installs dist + node_modules under $out/lib/<pname>, and wraps
-# `node <entry>` as $out/bin/<mainProgram> - the shape nixpkgs uses for pnpm CLIs.
+# mkPnpm: build a pnpm project from source, nixpkgs-free. Deps vendored by
+# vendor/pnpm.nix (a flat hoisted node_modules FOD, our own pnpmDepsHash). Runs
+# the build script via pnpm, installs dist + node_modules under $out/lib/<pname>,
+# and wraps `node <entry>`.
 {
   pname,
   version,
@@ -81,11 +80,9 @@ let
         esac
       done
 
-      # build (tsc/vite/... via the package's own script) against the vendored
-      # node_modules. Via .npmrc (not env, which nested `pnpm --filter` runs drop):
-      # offline (deps already present) + disable package-manager self-management
-      # (pnpm 10 otherwise fetches the exact pnpm in package.json's
-      # "packageManager" field, which fails offline).
+      # build (tsc/vite/... via the package's own script). Set via .npmrc, not env
+      # (nested `pnpm --filter` runs drop env): offline + disable package-manager
+      # self-management (pnpm 10 else fetches the "packageManager" pnpm, fails offline).
       printf 'offline=true\nmanage-package-manager-versions=false\n' >> .npmrc
       [ -n "$buildScript" ] && pnpm run "$buildScript"
 

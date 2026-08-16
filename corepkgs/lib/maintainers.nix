@@ -1,10 +1,10 @@
+# Custom license overrides + in-repo maintainers not yet in nixpkgs.
 { inputs, ... }:
 inputs."nixpkgs".lib.extend (
   _final: prev: {
     licenses = prev.licenses // {
-      # nixpkgs' unfree license, but with `free = true` so evaluating these
-      # packages does not require `allowUnfree`. They are still labelled as
-      # unfree in metadata and docs.
+      # nixpkgs' unfree license but `free = true`, so these packages evaluate
+      # without allowUnfree. Still labelled unfree in metadata and docs.
       unfree = prev.licenses.unfree // {
         free = true;
       };

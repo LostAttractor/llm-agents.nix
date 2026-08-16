@@ -1,10 +1,6 @@
-# Pin provider for the flake: the same tools, but sourced from the flake's
-# `pkgs` instead of builtins.storePath. PURE, so corepkgs can be a flake
-# output that nixbot builds on the real per-arch builders. Eval now touches
-# nixpkgs (unlike pins/store.nix), which is fine for a CI build check.
-#
-# formatelf is Mic92's patchelf replacement (the repo's own auto-patchelf tool),
-# rebuilt from the same rev the repo pins.
+# Pin provider sourcing the same tools from the flake's `pkgs`. Pure (touches
+# nixpkgs), so CI can rebuild pins from source on a cache miss - the fallback for
+# pins/closure.nix. formatelf is rebuilt from the pinned rev.
 pkgs:
 let
   formatelf = pkgs.rustPlatform.buildRustPackage {

@@ -1,9 +1,8 @@
 # rust-bin: upstream prebuilt rust components (rustc + cargo + rust-std gnu +
-# musl), no nixpkgs, no stdenv. version + per-system component hashes from
-# ./hashes.json; the target triples (gnu/musl, used by mkCargo too) stay in
-# systems.nix. Merge into one prefix, then formatelf every ELF: exes get the
-# pinned glibc interpreter + a transitive DT_RPATH, .so's get their stale
-# DT_RUNPATH stripped.
+# musl). version + per-system component hashes from ./hashes.json; target triples
+# (gnu/musl, shared with mkCargo) in systems.nix.
+# Merge into one prefix, then formatelf every ELF: exes get the pinned glibc
+# interpreter + a transitive DT_RPATH, .so's get their stale DT_RUNPATH stripped.
 {
   system,
   pins,
@@ -60,8 +59,8 @@ mkDrvSh {
     for exe in "$out/bin/rustc" "$out/bin/cargo"; do
       "$formatelf/bin/formatelf" --set-interpreter "$glibc/lib/${sys.loader}" --force-rpath --set-rpath "$RPATH" "$exe"
     done
-    # only real ELF objects: some *.so* files (musl self-contained stubs) are
-    # linker scripts, which formatelf rejects rather than ignoring.
+    # real ELF objects only: some *.so* (musl self-contained stubs) are linker
+    # scripts, which formatelf rejects rather than ignores.
     for so in $(find "$out/lib" -name '*.so*' -type f); do
       [ "$(head -c4 "$so" | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
       "$formatelf/bin/formatelf" --remove-rpath "$so" || true

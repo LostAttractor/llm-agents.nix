@@ -1,8 +1,8 @@
-# python-bin: the upstream relocatable prebuilt CPython (astral
-# python-build-standalone), no nixpkgs, no stdenv. version + release tag + hash
-# from ./hashes.json. Patchelf the interpreter to the pinned glibc; the wrapper
-# sets LD_LIBRARY_PATH to the manylinux external-library set. x86_64-linux only
-# (the manylinux lib pins are x86_64).
+# python-bin: upstream relocatable prebuilt CPython (astral
+# python-build-standalone). version + release tag + hash from ./hashes.json.
+# Patchelf the interpreter to the pinned glibc; the wrapper sets LD_LIBRARY_PATH
+# to the manylinux external-library set. x86_64-linux only (the manylinux lib
+# pins are x86_64).
 {
   system,
   pins,
@@ -21,7 +21,7 @@ let
     name = "cpython-${version}.tar.gz";
   };
 
-  # the manylinux external libraries wheels are allowed to link
+  # manylinux external libs that wheels may link against
   manylinux = [
     pins.glibc
     pins.gccLib
@@ -50,8 +50,8 @@ mkDrvSh {
     cp -r python "$out/py"
     chmod -R u+w "$out/py"
 
-    # interpreter: pinned loader + DT_RPATH (its own lib for libpython/libtcl,
-    # plus glibc). --force-rpath is transitive, so the stdlib .so's resolve too.
+    # interpreter: pinned loader + DT_RPATH (own lib for libpython/libtcl, plus
+    # glibc). --force-rpath is transitive, so the stdlib .so's resolve too.
     "$formatelf/bin/formatelf" \
       --set-interpreter "$glibc/lib/${sys.loader}" \
       --force-rpath --set-rpath "$out/py/lib:$ldpath" \

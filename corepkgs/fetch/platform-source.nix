@@ -1,16 +1,13 @@
-# Select the prebuilt release artifact for the host platform from a package's
-# hashes.json. Returns both the build `src` and a matching `updater` fragment
-# from the same urlTemplate + platform map, so build and updater never diverge
-# (see scripts/updater/run.py, kind = "platform").
-#
-# nixpkgs-free: takes the nix `system` string directly (no stdenv) and fetches
-# via fetchurlTemplate, which is wired to the builtin:fetchurl fetcher.
+# Select the prebuilt release artifact for the host from a package's hashes.json.
+# Returns both the build `src` and a matching `updater` fragment from the same
+# urlTemplate + platform map, so build and updater never diverge (see
+# scripts/updater/run.py, kind = "platform").
 { system, fetchurlTemplate }:
 
 {
   hashesFile, # { version, hashes.<system> }
-  # nix system -> URL vars. String is shorthand for the {platform} var; an
-  # attrset supplies arbitrary vars (e.g. { os = "linux"; cpu = "x86_64"; }).
+  # nix system -> URL vars. A string is shorthand for {platform}; an attrset
+  # supplies arbitrary vars (e.g. { os = "linux"; cpu = "x86_64"; }).
   platforms,
   urlTemplate,
 }:

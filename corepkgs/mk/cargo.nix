@@ -1,15 +1,13 @@
-# mkCargo: build a Rust package from source, nixpkgs-free, with the rust
-# toolchain + `zig cc` as the linker + crates vendored by vendor/cargo.nix.
+# mkCargo: build a Rust package from source, nixpkgs-free. rust toolchain +
+# `zig cc` as linker + crates vendored by vendor/cargo.nix.
 #
-# zig cc can't be handed --dynamic-linker (it re-sub-compiles glibc/compiler_rt
-# inheriting the flag, which they reject), so we link normally and POST-LINK
-# patch each produced executable with the pinned formatelf: store loader + rpath,
-# so build scripts and the final binaries run in the sandbox with no /lib64.
+# zig cc can't take --dynamic-linker (it re-sub-compiles glibc/compiler_rt, which
+# inherit and reject the flag), so link normally and POST-LINK patch each
+# executable with formatelf (store loader + rpath) to run without /lib64.
 #
-# Scope: this handles packages whose Cargo.lock is pure crates.io and that need
-# no external C libraries. C-dep crates (-sys: openssl/sqlite/...) and git
-# dependencies are NOT handled yet - they need C-lib pins + pkg-config, and a
-# git-source vendorer, respectively.
+# Handles pure-crates.io Cargo.lock deps. C-lib pins (buildInputs/openssl) and
+# github-archive gitDeps are supported; -sys crates needing unpinned system libs
+# and workspace-member git deps are not.
 {
   pname,
   version ? null,
@@ -20,16 +18,15 @@
   binaries ? [ pname ], # binaries to install from target/release/
   cargoBuildFlags ? [ ], # e.g. [ "--no-default-features" "--features" "x" "-p" "sub" ]
   buildInputs ? [ ], # extra C-library pins whose /lib joins the link path + runtime rpath (for -sys crates linking a system lib)
-  # git dependencies Cargo.lock pins to a github repo whose ROOT is a single
-  # crate. Each: { crate = "<name>"; source = "<the Cargo.lock source string>";
-  # hash = "<SRI of github archive at the resolved rev>"; }. Workspace-member git
-  # deps (crate in a subdir) are not handled.
+  # git deps Cargo.lock pins to a github repo whose ROOT is a single crate. Each:
+  # { crate; source = "<Cargo.lock source string>"; hash = "<SRI of github archive
+  # at the resolved rev>"; }. Workspace-member git deps (crate in a subdir) aren't
+  # handled.
   gitDeps ? [ ],
   openssl ? false, # convenience: wire the pinned openssl (OPENSSL_NO_VENDOR + LIB/INCLUDE dirs) for openssl-sys / native-tls
-  extraEnv ? { }, # extra build-time env vars (become derivation env, exported to cargo/build.rs): RUSTC_BOOTSTRAP, a pinned data file path a build.rs reads, a version override, ...
+  extraEnv ? { }, # extra build-time env vars reaching cargo/build.rs (RUSTC_BOOTSTRAP, a build.rs data path, a version override, ...)
   mainProgram ? builtins.head binaries,
-  # Package metadata carried onto the bare derivation (like mkPackage), so the
-  # flake's meta-completeness / README / updater machinery treat it normally.
+  # Package metadata carried onto the bare derivation (like mkPackage).
   meta ? { },
   category ? null,
   updater ? null,
@@ -47,8 +44,8 @@ let
   rustGnu = sys.rust.gnu; # cargo [target.<triple>]
 
   fetchurl = import ../fetch/fetchurl.nix;
-  # Parse one git dep's Cargo.lock source string into the pieces the vendorer +
-  # config.toml need. source = "git+<url>[?rev=|?branch=|?tag=<v>]#<resolved-rev>".
+  # Parse a git dep's Cargo.lock source string for the vendorer + config.toml.
+  # source = "git+<url>[?rev=|?branch=|?tag=<v>]#<resolved-rev>".
   parseGit =
     g:
     let

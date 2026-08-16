@@ -1,33 +1,24 @@
-# mkPackage: port a binary-wrapper package onto the mkDrv base, for a given
-# system. The nixpkgs-free equivalent of platformSource + autoPatchelf +
-# makeWrapper: fetch a prebuilt release artifact, unpack, make it runnable, wrap.
+# mkPackage: fetch a prebuilt release artifact, unpack, make it runnable, wrap.
 #
 # kind:
-#   "patchelf" - a normal dynamic ELF: rewrite interpreter/rpath (via formatelf)
-#                to the pinned glibc (+ any extra libs).
-#   "loader"   - a bun --compile binary: its appended JS payload segfaults on any
-#                ELF rewrite, so leave it byte-intact and invoke the pinned
-#                loader through a wrapper instead.
-#
-# installDir: dir-install mode - copy the whole extracted <installDir> tree to
-#   $out (the entrypoint is one file inside it), not just a single binary.
-# runtimeBins: prebuilt binaries bundled onto PATH (e.g. a vendored ripgrep).
-# runtimePkgs: pinned nixpkgs tools whose /bin joins PATH (e.g. pins.ripgrep).
+#   "patchelf" - dynamic ELF: rewrite interpreter/rpath (via formatelf) to the
+#                pinned glibc (+ extra libs).
+#   "loader"   - bun --compile binary: ELF rewrite segfaults its appended JS
+#                payload, so leave it byte-intact and invoke the pinned loader
+#                through a wrapper instead.
 {
   pname,
-  # Source: either a literal src+version, OR reuse the repo's shared source of
-  # truth - hashesFile (packages/<name>/hashes.json: {version, hashes.<system>})
-  # + urlTemplate (interpolated with {version}). The latter means no duplicated
-  # hash/version that drifts when nix-update bumps the real package.
+  # Source: either literal src+version, OR the repo's shared hashesFile
+  # (packages/<name>/hashes.json: {version, hashes.<system>}) + urlTemplate
+  # (interpolated with {version}) so nothing duplicates what nix-update bumps.
   version ? null,
   src ? null,
   hashesFile ? null,
   urlTemplate ? null,
-  # { <system> = "<platform-token>"; } - the multi-platform map (mirrors
-  # fetch/platform-source.nix). urlTemplate's {platform} token is filled per
-  # system, and meta.platforms is its key set so the flake gates unsupported
-  # systems out before src is forced. null = single-platform (urlTemplate has
-  # the platform baked in, available only on `system`).
+  # { <system> = "<platform-token>"; } multi-platform map (mirrors
+  # fetch/platform-source.nix). Fills urlTemplate's {platform} per system; its
+  # key set is meta.platforms, so the flake gates unsupported systems before src
+  # is forced. null = single-platform (platform baked into urlTemplate).
   platforms ? null,
   unpack ? "none", # "none" | "zip" | "tar" | "auto" (infer from the resolved URL extension)
   binary ? pname, # path to the main binary after unpack (single-file mode)
@@ -42,11 +33,11 @@
   setEnv ? { }, # { VAR = "val"; } exported in the wrapper before exec
   extraArgs ? [ ], # flags appended to the wrapped exec, before "$@" (e.g. --no-auto-update)
   aliases ? [ ], # extra $out/bin/<name> wrappers, each exec'd with argv0=<name>
-  # Package-level metadata carried onto the bare derivation so the flake's
+  # Package metadata carried onto the bare derivation so the flake's
   # meta-completeness / README / updater machinery treat it like any package.
   category ? null, # passthru.category
-  updater ? null, # passthru.updater (declarative updater config, already built by mkUpdater)
-  meta ? { }, # merged into output meta (description/homepage/changelog/license/sourceProvenance/maintainers)
+  updater ? null, # passthru.updater (declarative config from mkUpdater)
+  meta ? { }, # merged into output meta
   system,
   pins,
 }:
@@ -56,15 +47,13 @@ let
   sys = (import ../seed/systems.nix).${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
-  # Reuse the repo's shared hashes.json (the same file nix-update bumps) instead
-  # of a duplicated literal hash. url comes from the shared interpolate template.
   fetchurl = import ../fetch/fetchurl.nix;
   interpolate = import ../fetch/interpolate.nix;
   hashData = if hashesFile == null then null else builtins.fromJSON (builtins.readFile hashesFile);
   resolvedVersion = if hashData == null then version else hashData.version;
-  # A platforms entry is either a string (shorthand for the {platform} token) or
-  # an attrset of arbitrary URL vars (e.g. { os = "linux"; cpu = "x86_64"; } for
-  # a "{os}/{cpu}" template) - same contract as fetch/platform-source.nix.
+  # A platforms entry is a string (shorthand for the {platform} token) or an
+  # attrset of arbitrary URL vars (e.g. { os = "linux"; cpu = "x86_64"; } for a
+  # "{os}/{cpu}" template) - same contract as fetch/platform-source.nix.
   platformVars =
     if platforms == null then
       { }
@@ -87,9 +76,9 @@ let
         hash = hashData.hashes.${system} or hashData.${system};
       };
 
-  # unpack = "auto" infers the archive kind from the resolved URL extension, so
-  # one package.nix can serve platforms whose assets differ (darwin .zip vs
-  # linux .tar.gz). Explicit "none"/"tar"/"zip" always win.
+  # unpack = "auto" infers the archive kind from the URL extension, so one
+  # package.nix can serve platforms with differing assets (darwin .zip vs linux
+  # .tar.gz). Explicit "none"/"tar"/"zip" always win.
   inferUnpack =
     u:
     if u != null && builtins.match ".*\\.zip" u != null then
@@ -100,8 +89,8 @@ let
       "none";
   resolvedUnpack = if unpack == "auto" then inferUnpack resolvedUrl else unpack;
 
-  # Darwin Mach-O binaries link the always-present system libSystem via dyld -
-  # no rpath rewriting, no loader, no glibc/formatelf pins. libpath is Linux-only.
+  # Darwin Mach-O links system libSystem via dyld: no rpath rewriting, no loader,
+  # no glibc/formatelf pins. libpath is Linux-only.
   libpath =
     if isDarwin then
       ""
@@ -141,14 +130,14 @@ let
       inherit extraArgs aliases; # wrapper flags + argv0-aliased wrappers
       runtimePath = builtins.concatStringsSep ":" (map (p: "${p}/bin") runtimePkgs);
     };
-    # Nushell builder (see mk-drv.nix): `$attrs` is the JSON attrs record,
-    # `$out` the output path, busybox applets are external `^cmd`s on PATH.
+    # Nushell builder (see drv.nix): `$attrs` = JSON attrs record, `$out` = output
+    # path, busybox applets are external `^cmd`s on PATH.
     script = ''
       mkdir $"($out)/bin" $"($out)/libexec"
 
       let formatelf = $"($attrs.formatelf)/bin/formatelf"
 
-      # patch a binary iff it is dynamic (has an interpreter)
+      # patch only dynamic binaries (those with an interpreter)
       let fixelf = {|f|
         if ((^$formatelf --print-interpreter $f | complete).exit_code == 0) {
           ^$formatelf --set-interpreter $attrs.loader --set-rpath $attrs.libpath $f
@@ -187,10 +176,9 @@ let
       # ELF patching is Linux-only; Mach-O binaries need no rpath rewriting.
       if $attrs.kind == "patchelf" and $attrs.os == "linux" {
         if ($attrs.installDir | is-not-empty) {
-          # dir-install: patch every ELF in the tree - executables get the loader
-          # + rpath, shared libs just get rpath. The rpath includes every dir in
-          # the tree that holds a .so (so intra-tree deps like a JRE's libjli.so
-          # resolve) followed by the pinned libs.
+          # dir-install: patch every ELF - executables get loader + rpath, shared
+          # libs just rpath. rpath = every in-tree dir holding a .so (so intra-tree
+          # deps like a JRE's libjli.so resolve) then the pinned libs.
           let treelibs = (
             ^find $bindir -name '*.so*' -type f
             | lines
@@ -215,12 +203,11 @@ let
       }
 
       # wrapper PATH: bundled bins ($out/libexec + bindir) then pinned tools.
-      # let (not mut): the closure below captures it, and nushell closures
-      # cannot capture mutable variables.
+      # let (not mut): nushell closures can't capture mutable variables.
       let wrapperpath = (if ($attrs.runtimePath | is-not-empty) { $"($out)/libexec:($bindir):($attrs.runtimePath)" } else { $"($out)/libexec:($bindir)" })
 
-      # wrapper interpreter: Linux uses the bundled busybox sh (nixpkgs-free);
-      # darwin uses the system /bin/sh (always present, like libSystem).
+      # wrapper interpreter: Linux uses the bundled busybox sh (nixpkgs-free),
+      # darwin the system /bin/sh (always present, like libSystem).
       let sh = (
         if $attrs.os == "linux" {
           ^ln -s $attrs.busybox $"($out)/libexec/sh"
@@ -234,9 +221,9 @@ let
       # extra flags appended to the wrapped binary before "$@" (e.g. --no-auto-update)
       let flags = ($attrs.extraArgs | each {|a| $'"($a)"' } | str join " ")
 
-      # write one wrapper: a /bin/sh script that sets PATH/env then exec's the
-      # binary. argv0 lets aliases (e.g. `agent`) make the binary see a
-      # different name; `exec -a` is supported by both busybox ash and macOS sh.
+      # one wrapper: a /bin/sh script that sets PATH/env then exec's the binary.
+      # argv0 lets aliases (e.g. `agent`) make the binary see a different name;
+      # `exec -a` works in both busybox ash and macOS sh.
       let mkwrapper = {|wname: string, argv0: string|
         mut lines = [ $"#!($sh)" ]
         $lines = ($lines | append $'export PATH="($wrapperpath)''${PATH:+:$PATH}"')
@@ -263,20 +250,18 @@ let
 in
 drv
 // {
-  # meta so the flake's availableOn gating + checks treat it like a package.
-  # platforms is the full supported set (map keys) so an unsupported current
-  # system filters out before src is forced; single-platform builds report
-  # just [ system ]. Reading .meta never forces the derivation (lazy `//`).
-  # The caller's meta (description/homepage/changelog/license/sourceProvenance/
-  # maintainers) is merged on top; platforms/mainProgram are the defaults.
+  # meta for the flake's availableOn gating + checks. platforms is the full
+  # supported set (map keys) so an unsupported system filters out before src is
+  # forced; single-platform builds report [ system ]. Reading .meta never forces
+  # the derivation (lazy `//`). Caller's meta merges on top of these defaults.
   meta = {
     platforms = if platforms == null then [ system ] else builtins.attrNames platforms;
     inherit mainProgram;
   }
   // meta;
-  # passthru: category (README + meta-completeness) and the declarative updater
-  # config. `updater` is also lifted top-level because the flake's
-  # withUpdateScript keys on `pkg ? updater`.
+  # passthru: category (README + meta-completeness) + declarative updater config.
+  # `updater` is also lifted top-level: the flake's withUpdateScript keys on
+  # `pkg ? updater`.
   passthru =
     (if category == null then { } else { inherit category; })
     // (if updater == null then { } else { inherit updater; });
