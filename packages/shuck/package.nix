@@ -34,5 +34,12 @@ mkCargo {
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ ];
     mainProgram = "shuck";
+    # mkCargo now has a darwin path (zig cc -> Mach-O); claim all four so CI
+    # builds + validates it there. It's the formatter shell tool, wanted on darwin.
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
   };
 }

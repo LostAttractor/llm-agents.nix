@@ -34,6 +34,9 @@ _scope: {
       hash = "sha256-ywrJuXuYXNIXqVL0RDihTS3yqVUE2b2LwB7HPhNRsXk=";
       dir = "nu-0.114.1-aarch64-apple-darwin";
     };
+    # darwin: no gnu/musl split; the single apple-darwin triple is `rust.gnu`.
+    zig.platform = "aarch64-macos";
+    rust.gnu = "aarch64-apple-darwin";
   };
 
   x86_64-darwin = {

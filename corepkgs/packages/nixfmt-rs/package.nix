@@ -27,5 +27,11 @@ mkCargo {
     license = flake.lib.licenses.mpl20;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.mic92 ];
+    # mkCargo has a darwin path now; the Nix formatter is wanted on darwin too.
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
   };
 }

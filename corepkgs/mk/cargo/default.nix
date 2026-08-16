@@ -44,9 +44,11 @@ let
     toolchains
     ;
   sys = systems.${system};
+  isDarwin = builtins.match ".*-darwin" system != null;
   inherit (toolchains) rust zig;
 
-  gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target
+  # zig cc target: <triple>-gnu on linux, the macos token (aarch64-macos) on darwin.
+  gnuTarget = if isDarwin then sys.zig.platform else "${sys.zig.platform}-gnu";
   rustGnu = sys.rust.gnu; # cargo [target.<triple>]
 
   # Parse a git dep's Cargo.lock source string for the vendorer + config.toml.
@@ -97,11 +99,15 @@ let
   };
   # extra C-library pins (buildInputs + openssl) whose /lib joins the link path
   # and the runtime rpath so -sys crates linking a system lib resolve it.
-  extraLibs = buildInputs ++ (if openssl then [ pins.openssl ] else [ ]);
+  # C-lib pins (buildInputs/openssl) are linux-only; darwin dyld-links libSystem.
+  extraLibs = if isDarwin then [ ] else buildInputs ++ (if openssl then [ pins.openssl ] else [ ]);
   extraLibPath = builtins.concatStringsSep ":" (map (p: "${p}/lib") extraLibs);
   # the zcc post-link sets rpath to the pinned glibc + gccLib (+ extra C libs)
   libpath =
-    "${pins.glibc}/lib:${pins.gccLib}/lib" + (if extraLibPath == "" then "" else ":${extraLibPath}");
+    if isDarwin then
+      ""
+    else
+      "${pins.glibc}/lib:${pins.gccLib}/lib" + (if extraLibPath == "" then "" else ":${extraLibPath}");
   drv = mkDrvSh {
     name = if version == null then "${pname}" else "${pname}-${version}";
     env = {
@@ -112,34 +118,44 @@ let
         zig
         rustGnu
         gnuTarget
+        gitConfig # [source."..."] git-dep replacement blocks
         ;
-      inherit gitConfig; # [source."..."] git-dep replacement blocks
       installBins = builtins.concatStringsSep " " binaries;
       patchFiles = builtins.concatStringsSep " " patches;
       buildFlags = builtins.concatStringsSep " " cargoBuildFlags;
       cargoLockFile = cargoLock; # copied over the source's lock so the vendored lock is authoritative
       sourceRoot = if sourceRoot == null then "" else sourceRoot;
-      glibc = pins.glibc;
-      gccLib = pins.gccLib;
-      formatelf = pins.formatelf;
-      loader = sys.loader;
-      inherit extraLibPath;
-      useOpenssl = if openssl then "1" else "";
-      opensslLibDir = if openssl then "${pins.openssl}/lib" else "";
-      opensslIncDir = if openssl then "${pins.opensslDev}/include" else "";
-      pkgConfigBin = "${pins.pkgConfig}/bin";
-      pkgConfigPath = if openssl then "${pins.opensslDev}/lib/pkgconfig" else "";
     }
+    # linux post-link surgery (pinned glibc interpreter/rpath via formatelf) +
+    # C-lib pins; on darwin Mach-O dyld-links libSystem, so none of this applies.
+    // (
+      if isDarwin then
+        { }
+      else
+        {
+          glibc = pins.glibc;
+          gccLib = pins.gccLib;
+          formatelf = pins.formatelf;
+          loader = sys.loader;
+          inherit extraLibPath;
+          useOpenssl = if openssl then "1" else "";
+          opensslLibDir = if openssl then "${pins.openssl}/lib" else "";
+          opensslIncDir = if openssl then "${pins.opensslDev}/include" else "";
+          pkgConfigBin = "${pins.pkgConfig}/bin";
+          pkgConfigPath = if openssl then "${pins.opensslDev}/lib/pkgconfig" else "";
+        }
+    )
     # caller build-time env (RUSTC_BOOTSTRAP, a build.rs data-file path, ...);
     # derivation attrs are the builder's env vars, so these reach cargo/build.rs.
     // extraEnv;
-    script = ./builder.sh;
+    script = if isDarwin then ./builder-darwin.sh else ./builder.sh;
   };
 in
 drv
 // {
-  # rust source builds are linux-only for now (the rust + zig toolchains
-  # are Linux); callers can widen meta.platforms once aarch64 is verified.
+  # Default to x86_64-linux; a package widens meta.platforms (e.g. the formatter
+  # tools shuck/nixfmt-rs run on darwin too). The darwin build path (zig cc ->
+  # Mach-O, no glibc/formatelf) is new and validated on CI, not here.
   meta = {
     platforms = [ "x86_64-linux" ];
     inherit mainProgram;
@@ -149,12 +165,20 @@ drv
     (if category == null then { } else { inherit category; })
     // (if updater == null then { } else { inherit updater; })
     // (if hideFromDocs then { inherit hideFromDocs; } else { });
-  # the produced binaries are patchelf'd to the pinned glibc/gccLib, so the FHS
-  # check treats them like a kind = "patchelf" mkPackage output.
-  fhs = {
-    kind = "patchelf";
-    inherit libpath mainProgram;
-    ignoreMissing = "";
-  };
 }
+# The produced linux binaries are patchelf'd to the pinned glibc/gccLib, so the
+# FHS check treats them like a kind = "patchelf" mkPackage output. Darwin Mach-O
+# has no interpreter/rpath to check, so no fhs (mirrors mkPackage on darwin).
+// (
+  if isDarwin then
+    { }
+  else
+    {
+      fhs = {
+        kind = "patchelf";
+        inherit libpath mainProgram;
+        ignoreMissing = "";
+      };
+    }
+)
 // (if updater == null then { } else { inherit updater; })
