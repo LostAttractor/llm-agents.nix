@@ -82,11 +82,11 @@ let
       done
 
       # build (tsc/vite/... via the package's own script) against the vendored
-      # node_modules. Offline: the deps are already present, no registry access.
-      # Disable package-manager self-management: pnpm 10 otherwise tries to fetch
-      # the exact pnpm named in package.json's "packageManager" field.
-      export npm_config_offline=true
-      export npm_config_manage_package_manager_versions=false
+      # node_modules. Via .npmrc (not env, which nested `pnpm --filter` runs drop):
+      # offline (deps already present) + disable package-manager self-management
+      # (pnpm 10 otherwise fetches the exact pnpm in package.json's
+      # "packageManager" field, which fails offline).
+      printf 'offline=true\nmanage-package-manager-versions=false\n' >> .npmrc
       [ -n "$buildScript" ] && pnpm run "$buildScript"
 
       # install dist + node_modules + package.json under $out/lib/<pname>

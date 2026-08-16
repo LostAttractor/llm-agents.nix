@@ -66,7 +66,12 @@ GNU Mes bootstrap is a provider swap, no constructor changes.
   `pnpmDepsHash`, `--config.node-linker=hoisted`); runs `pnpm run <buildScript>`
   then wraps `node <entry>`. The pnpm toolchain is the pnpm JS bundle on node.
   Copies node_modules with `cp -r` (NOT `-L`) to keep pnpm's relative `.bin`
-  symlinks intact.
+  symlinks intact. **Multi-member pnpm workspaces are NOT supported**: a member's
+  build needs sibling members linked into node_modules, but pnpm links them via
+  `../packages/<member>` symlinks that point outside node_modules and don't
+  survive the self-contained vendor (tsc then fails `Cannot find module @scope/<sibling>`). Single-package workspaces (`packages: ["."]`) are fine.
+  `pnpm prune --prod` / `pnpm deploy` also don't work — they re-resolve against
+  the pnpm store, which the hoisted vendor doesn't keep.
 - `mkPython` — python app from source. `pip install --target` FOD
   (OUR `pythonDepsHash`); wraps `[project.scripts]`. Manylinux-wheel deps OK.
 
