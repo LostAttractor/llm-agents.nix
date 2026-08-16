@@ -1,4 +1,4 @@
-# mkDrv: a nixpkgs-free, stdenv-free derivation. Builder is a static nushell;
+# mkDrvNu: a nixpkgs-free, stdenv-free derivation. Builder is a static nushell;
 # __structuredAttrs exposes the attrs as JSON that nushell `open`s natively, so
 # params pass as real lists/records instead of string-munged env vars.
 # Prelude binds `$attrs` and puts busybox archive tools on PATH (nushell has no

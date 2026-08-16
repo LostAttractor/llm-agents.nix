@@ -1,7 +1,8 @@
-# mkDrvSh: the POSIX-sh bootstrap builder (sandbox /bin/sh + busybox). Used only
-# to extract nushell from its tarball; real build logic uses mkDrv.nix. Boots
-# busybox applets onto PATH via `exec -a busybox` (busybox dispatches on argv[0]),
-# then runs the script.
+# mkDrvSh: a derivation whose builder is the sandbox /bin/sh + busybox, script in
+# POSIX sh. The workhorse for shell-glue builds - the vendorers and every source
+# constructor (cargo/go/npm/bun/pnpm/python) run build tools with plain env vars +
+# loops, natural in sh. (mkDrvNu, nushell, is for data-processing builds like
+# check-fhs.) Boots busybox applets onto PATH via `exec -a busybox`.
 {
   name,
   script,

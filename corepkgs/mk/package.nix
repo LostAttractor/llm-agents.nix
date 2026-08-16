@@ -43,7 +43,7 @@
 }:
 let
   seed = import ../seed { inherit system; };
-  mkDrv = import ./drv.nix;
+  mkDrvNu = import ./drv-nu.nix;
   sys = (import ../seed/systems.nix).${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
@@ -104,7 +104,7 @@ let
           ++ libs
         )
       );
-  drv = mkDrv {
+  drv = mkDrvNu {
     inherit system;
     name = "${pname}-${resolvedVersion}";
     env = {

@@ -9,7 +9,7 @@ sliver, and the from-source builds, on a static busybox + nushell seed.
 
 ## Two tiers: derivations and packages
 
-- **derivations** — the small building blocks: `mkDrv` (nushell +
+- **derivations** — the small building blocks: `mkDrvNu` (nushell +
   `__structuredAttrs`) and `mkDrvSh` (POSIX sh + busybox). Also used for vendor
   FODs, the fhs check, and the seed. Not necessarily installable.
 - **packages** — installable things (a `bin/` + `meta.mainProgram` you can
@@ -48,10 +48,10 @@ The top-level holds only the entry points + docs; everything else is a directory
 default.nix     the importable API: { lib, packages, pins, toolchains, machinery, system }
 flake.nix       standalone flake (ZERO inputs) wrapping default.nix
 mk/             constructors + derivation primitives
-  drv.nix       the ~10-line mkDerivation replacement. Builder = a truly-static
-                nushell; __structuredAttrs exposes derivation attrs as JSON.
-  drv-sh.nix    the tiny /bin/sh + busybox builder (bootstraps nushell, and runs
-                the toolchain + source-package builds)
+  drv-nu.nix    mkDrvNu: nushell builder (__structuredAttrs -> JSON attrs); for
+                data-processing builds (check-fhs, hello)
+  drv-sh.nix    mkDrvSh: /bin/sh + busybox builder; the workhorse for the
+                vendorers + source constructors (shell-glue builds)
   package.nix   mkPackage — prebuilt-binary → package (platformSource + patchelf/
                 loader-wrap + makeWrapper)
   cargo.nix go.nix npm.nix bun.nix pnpm.nix python.nix   from-source constructors

@@ -3,7 +3,7 @@
 # constructor's package.fhs: kind = patchelf (resolve via rpath) or loader
 # (interpreter is meant to be non-store), libpath, ignoreMissing SONAMEs. nushell.
 let
-  mkDrv = import ./drv.nix;
+  mkDrvNu = import ./drv-nu.nix;
 in
 {
   package,
@@ -11,7 +11,7 @@ in
   system,
   pins,
 }:
-mkDrv {
+mkDrvNu {
   inherit system;
   name = "${name}-fhs-check";
   env = {

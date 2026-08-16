@@ -15,7 +15,7 @@ its layout; the consumer owns supplying nixpkgs deps to the functions it exposes
 The surface:
 
 - `core.lib` — the builder API + primitives: `mkPackage`, `mkCargo`, `mkGo`,
-  `mkNpm`, `mkBun`, `mkPnpm`, `mkPython`, `mkDrv`, `mkDrvSh`, `checkFhs`, `coreFetchurl`,
+  `mkNpm`, `mkBun`, `mkPnpm`, `mkPython`, `mkDrvNu`, `mkDrvSh`, `checkFhs`, `coreFetchurl`,
   `interpolate`, `fetchurlTemplate`, `platformSource`, and the meta helpers
   `mkUpdater` / `mkUpdateScript` / `flakeLib` (un-called functions — the consumer
   passes its own `lib`/tools/`inputs`).

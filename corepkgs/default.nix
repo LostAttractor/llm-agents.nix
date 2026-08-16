@@ -19,9 +19,9 @@
   toolchains ? import ./toolchains { inherit system pins; },
 }:
 let
-  mkDrv = import ./mk/drv.nix;
+  mkDrvNu = import ./mk/drv-nu.nix;
   # smoke test: a nixpkgs-free derivation with no toolchain at all.
-  hello = mkDrv {
+  hello = mkDrvNu {
     inherit system;
     name = "hello";
     script = ''
@@ -81,7 +81,7 @@ in
     mkBun = args: import ./mk/bun.nix (args // { inherit system pins toolchains; });
     mkPnpm = args: import ./mk/pnpm.nix (args // { inherit system pins toolchains; });
     mkPython = args: import ./mk/python.nix (args // { inherit system pins toolchains; });
-    mkDrv = args: import ./mk/drv.nix (args // { inherit system; });
+    mkDrvNu = args: import ./mk/drv-nu.nix (args // { inherit system; });
     mkDrvSh = args: import ./mk/drv-sh.nix (args // { inherit system; });
     checkFhs = args: import ./mk/check-fhs.nix (args // { inherit system pins; });
     inherit
