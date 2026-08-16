@@ -57,11 +57,16 @@ let
   # corepkgs' own machinery packages (formatelf, wrapBuddy, buildNpmPackage,
   # versionCheckHomeHook): the by-name package FUNCTIONS, un-called. corepkgs
   # owns their location; a consumer callPackage's them into its own scope, so it
-  # never has to readDir or path-import corepkgs/packages itself.
+  # never has to readDir or path-import corepkgs/packages itself. The `-bin`
+  # toolchain packages (bun-bin, rust-bin, ...) also live in ./packages but are
+  # NOT machinery: they take { system, pins } (built by the toolchains provider),
+  # not the consumer's callPackage scope, so exclude them here.
   machinery =
     let
       entries = builtins.readDir ./packages;
-      dirs = builtins.filter (n: entries.${n} == "directory") (builtins.attrNames entries);
+      dirs = builtins.filter (n: entries.${n} == "directory" && builtins.match ".*-bin" n == null) (
+        builtins.attrNames entries
+      );
     in
     builtins.listToAttrs (
       map (n: {
@@ -112,15 +117,25 @@ in
     flakeLib = import ./lib/maintainers.nix;
   };
 
-  # corepkgs' own machinery packages: the seed + toolchains + formatelf + hello,
-  # plus python on x86_64-linux (its manylinux lib pins are x86_64). These are
-  # the "utils" that live in corepkgs, not agent output. Linux only: the
-  # toolchains (bun/node/rust/zig) fetch per-arch from systems.nix, which today
-  # carries only Linux rows (darwin has just the nushell seed). Darwin agent
-  # packages still build fine — they pull the darwin seed directly.
+  # corepkgs' own buildable outputs: the seed + the -bin toolchains + hello (the
+  # toolchain packages carry the -bin suffix, being prebuilt binaries; the
+  # provider maps them to logical names for the constructors). python on
+  # x86_64-linux only (its manylinux lib pins are x86_64). Linux only: the
+  # toolchains fetch per-arch from systems.nix, which carries only Linux rows
+  # (darwin has just the nushell seed; darwin agent packages pull it directly).
   packages =
     if system == "x86_64-linux" || system == "aarch64-linux" then
-      toolchains // { inherit hello; }
+      {
+        inherit (toolchains) seed;
+        bun-bin = toolchains.bun;
+        node-bin = toolchains.node;
+        zig-bin = toolchains.zig;
+        go-bin = toolchains.go;
+        rust-bin = toolchains.rust;
+        pnpm-bin = toolchains.pnpm;
+        inherit hello;
+      }
+      // (if system == "x86_64-linux" then { python-bin = toolchains.python; } else { })
     else
       { };
 }

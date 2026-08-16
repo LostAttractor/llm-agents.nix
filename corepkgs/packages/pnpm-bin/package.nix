@@ -1,17 +1,19 @@
-# pnpm toolchain: the pnpm npm package (a self-contained JS bundle) run on the
-# naked node toolchain - no separate binary to patchelf. `pnpm` is a wrapper that
-# execs `node dist/pnpm.cjs`, so it inherits node's pinned-glibc runtime.
+# pnpm-bin: the pnpm npm package (a self-contained JS bundle) run on the naked
+# node toolchain - no separate binary to patchelf. version + hash (arch-
+# independent) from ./hashes.json. `pnpm` execs `node dist/pnpm.cjs`, inheriting
+# node's pinned-glibc runtime.
 {
   system,
   node,
 }:
 let
-  fetchurl = import ../fetch/fetchurl.nix;
-  mkNaked = import ../mk/naked-sh.nix;
-  version = "10.18.2";
+  fetchurl = import ../../fetch/fetchurl.nix;
+  mkNaked = import ../../mk/naked-sh.nix;
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+  inherit (data) version;
   tgz = fetchurl {
     url = "https://registry.npmjs.org/pnpm/-/pnpm-${version}.tgz";
-    hash = "sha256-k0IQIv4BVtfL32me3D1+qzllSYbqwU+SfQK4Xw2sbWE=";
+    inherit (data) hash;
     name = "pnpm-${version}.tgz";
   };
 in

@@ -18,20 +18,12 @@
       dir = "nu-0.114.1-x86_64-unknown-linux-musl";
     };
     bun.platform = "linux-x64";
-    bun.hash = "sha256-lR7iruhV8IWVruxiJSJqKY0/6oOj3NZGXAnLzN9+hI8=";
     node.platform = "linux-x64";
-    node.hash = "sha256-nZQpMlNZiAkQNNyUzF9CttyHhNY2bfOjbEycyzmW8MI=";
     zig.platform = "x86_64-linux";
-    zig.hash = "sha256-cOSWZKdDdLSLUebz/fv0N/Y5XUJQkFBYi9SavlK6PQA=";
     go.platform = "linux-amd64";
-    go.hash = "sha256-cI7/t3S+gjdXDQrdFjIlq7369PyiiyYR3xZ766T+74k=";
     rust = {
       gnu = "x86_64-unknown-linux-gnu";
       musl = "x86_64-unknown-linux-musl";
-      rustc = "sha256-HEQeQwwcyknf9UqNWcQQOL9vefe4dWWWyy82URoBXro=";
-      cargo = "sha256-kMvrit/oyg/L4BoYvZuZ0+Xpj9KcADAygo6/P/ug5O0=";
-      std = "sha256-Rbkn7Pd2uWRcou1bKH/GgUgkoHPDDHxdXArUQlKV7O4=";
-      muslStd = "sha256-0WDfyB0h/cclNIWfriSf7ParcGQDdfZPxOdwBaSMGNA=";
     };
   };
 
@@ -69,20 +61,12 @@
       dir = "nu-0.114.1-aarch64-unknown-linux-musl";
     };
     bun.platform = "linux-aarch64";
-    bun.hash = "sha256-on/7Y6gxA3WDbg1vZorhf6jY0YuIw3yCHGUzGXOhmjs=";
     node.platform = "linux-arm64";
-    node.hash = "sha256-jPMP9yUPlGO1PBj4nGxgbf2nA3ghWyyQXQqaiwi9ReA=";
     zig.platform = "aarch64-linux";
-    zig.hash = "sha256-6ksJv7IuxvbGzqxXq2PvtrRuF6sI0h9p86SLOOFTTxc=";
     go.platform = "linux-arm64";
-    go.hash = "sha256-0FB+np1/4BKq5XAQjL12wV3oeeFxMKuMuQ1NdEXLHy4=";
     rust = {
       gnu = "aarch64-unknown-linux-gnu";
       musl = "aarch64-unknown-linux-musl";
-      rustc = "sha256-jZ8wlaMQjjgjLxI2ReKgNovKZ8l1+LkQiABPj/2abTk=";
-      cargo = "sha256-yv3iQ1GLAW+CXROl8spP/X2A9ZZt++w1Oc0JLHxPmHE=";
-      std = "sha256-zv+kKP5XNQdBiFjVmt00KzUXMHJfNvdnmyUei2gQPew=";
-      muslStd = "sha256-mWWX9m7CLNBAHh8XFUXNhyZ9LvtVGdgRm3R0ZwU/Q4w=";
     };
   };
 }

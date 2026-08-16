@@ -1,25 +1,23 @@
-# python toolchain from the upstream relocatable prebuilt CPython
-# (astral python-build-standalone), no nixpkgs, no stdenv. Patchelf the
-# interpreter to the pinned glibc; the wrapper sets LD_LIBRARY_PATH to the
-# manylinux external-library set so wheels' compiled extensions resolve their
-# deps (libstdc++/libz/libffi/...) at runtime, with no /usr/lib.
-#
-# x86_64-linux only for now (the manylinux lib pins are x86_64).
+# python-bin: the upstream relocatable prebuilt CPython (astral
+# python-build-standalone), no nixpkgs, no stdenv. version + release tag + hash
+# from ./hashes.json. Patchelf the interpreter to the pinned glibc; the wrapper
+# sets LD_LIBRARY_PATH to the manylinux external-library set. x86_64-linux only
+# (the manylinux lib pins are x86_64).
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetch/fetchurl.nix;
-  mkNaked = import ../mk/naked-sh.nix;
-  seed = import ../seed.nix { inherit system; };
-  sys = (import ../systems.nix).${system};
+  fetchurl = import ../../fetch/fetchurl.nix;
+  mkNaked = import ../../mk/naked-sh.nix;
+  seed = import ../../seed.nix { inherit system; };
+  sys = (import ../../systems.nix).${system};
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
-  version = "3.12.14";
-  tag = "20260814";
+  inherit (data) version tag;
   tarball = fetchurl {
     url = "https://github.com/astral-sh/python-build-standalone/releases/download/${tag}/cpython-${version}%2B${tag}-x86_64-unknown-linux-gnu-install_only.tar.gz";
-    hash = "sha256-MpdpGuNPdf7YGsQk4EAUX8ywuv6OWBzVytvd+hwHZsA=";
+    inherit (data) hash;
     name = "cpython-${version}.tar.gz";
   };
 

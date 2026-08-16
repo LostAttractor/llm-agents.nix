@@ -1,21 +1,21 @@
-# go toolchain from the upstream prebuilt tarball (go.dev/dl), no nixpkgs, no
-# stdenv. go's own binaries (go, gofmt, and the pkg/tool/* compile/link/asm/...)
-# are dynamic ELFs, so patchelf every one to the pinned glibc. Note: this only
-# makes the TOOLCHAIN run; a CGO_ENABLED=0 `go build` output is fully static and
-# needs no patching at all (see mk/go.nix).
+# go-bin: the upstream prebuilt go tarball (go.dev/dl), no nixpkgs, no stdenv.
+# version + per-system hash from ./hashes.json; per-arch platform token from
+# systems.nix. go's own binaries are dynamic ELFs, so patchelf every one to the
+# pinned glibc (a CGO_ENABLED=0 build output is static and needs no patching).
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetch/fetchurl.nix;
-  mkNaked = import ../mk/naked-sh.nix;
-  sys = (import ../systems.nix).${system};
+  fetchurl = import ../../fetch/fetchurl.nix;
+  mkNaked = import ../../mk/naked-sh.nix;
+  sys = (import ../../systems.nix).${system};
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
-  version = "1.26.6";
+  inherit (data) version;
   tarball = fetchurl {
     url = "https://go.dev/dl/go${version}.${sys.go.platform}.tar.gz";
-    hash = sys.go.hash;
+    hash = data.hashes.${system};
   };
 in
 mkNaked {

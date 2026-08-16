@@ -1,22 +1,23 @@
-# zig toolchain from the upstream prebuilt tarball, no nixpkgs, no stdenv, and -
+# zig-bin: the upstream prebuilt zig tarball, no nixpkgs, no stdenv, and -
 # uniquely - no glibc pin: the zig binary is truly static, and `zig cc` is a
-# complete self-contained C/C++ compiler + linker + libc that emits fully
-# static musl binaries. The missing "last mile" C toolchain, zero nixpkgs.
+# complete self-contained C/C++ compiler + linker + libc. version + per-system
+# hash from ./hashes.json; per-arch platform token from systems.nix.
 {
   system,
 }:
 let
-  fetchurl = import ../fetch/fetchurl.nix;
-  mkNaked = import ../mk/naked-sh.nix;
-  seed = import ../seed.nix { inherit system; };
-  sys = (import ../systems.nix).${system};
+  fetchurl = import ../../fetch/fetchurl.nix;
+  mkNaked = import ../../mk/naked-sh.nix;
+  seed = import ../../seed.nix { inherit system; };
+  sys = (import ../../systems.nix).${system};
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
-  version = "0.16.0";
+  inherit (data) version;
   plat = sys.zig.platform; # e.g. x86_64-linux / aarch64-linux
   muslTarget = "${plat}-musl"; # zig cc target: x86_64-linux-musl / aarch64-linux-musl
   tarball = fetchurl {
     url = "https://ziglang.org/download/${version}/zig-${plat}-${version}.tar.xz";
-    hash = sys.zig.hash;
+    hash = data.hashes.${system};
   };
 in
 mkNaked {

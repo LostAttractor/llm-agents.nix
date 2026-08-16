@@ -9,19 +9,22 @@
 # direction) - without touching a single constructor. See [[corepkgs-bootstrap-direction]].
 { system, pins }:
 let
-  node = import ./node.nix { inherit system pins; };
+  node = import ../packages/node-bin/package.nix { inherit system pins; };
 in
 {
   seed = import ../seed.nix { inherit system; };
-  zig = import ./zig.nix { inherit system; };
-  bun = import ./bun.nix { inherit system pins; };
+  zig = import ../packages/zig-bin/package.nix { inherit system; };
+  bun = import ../packages/bun-bin/package.nix { inherit system pins; };
   inherit node;
   # pnpm runs on the node toolchain (a JS bundle), so share the one instance
-  pnpm = import ./pnpm.nix { inherit system node; };
-  rust = import ./rust.nix { inherit system pins; };
-  go = import ./go.nix { inherit system pins; };
+  pnpm = import ../packages/pnpm-bin/package.nix { inherit system node; };
+  rust = import ../packages/rust-bin/package.nix { inherit system pins; };
+  go = import ../packages/go-bin/package.nix { inherit system pins; };
 }
 // (
   # python's manylinux external-lib pins are x86_64-only, so it ships there only.
-  if system == "x86_64-linux" then { python = import ./python.nix { inherit system pins; }; } else { }
+  if system == "x86_64-linux" then
+    { python = import ../packages/python-bin/package.nix { inherit system pins; }; }
+  else
+    { }
 )

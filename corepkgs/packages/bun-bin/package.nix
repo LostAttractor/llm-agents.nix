@@ -1,4 +1,7 @@
-# bun toolchain from the upstream prebuilt binary, no nixpkgs, no stdenv.
+# bun-bin: the upstream prebuilt bun binary, no nixpkgs, no stdenv. Prebuilt, so
+# it lives by-name with the -bin suffix; version + per-system hash come from
+# ./hashes.json (the file nix-update bumps), the per-arch platform token from
+# systems.nix.
 #
 # bun must NOT be patchelf'd: it appends its JS runtime to the ELF tail and
 # recomputes that offset from the on-disk file, so any rewrite segfaults it.
@@ -8,16 +11,17 @@
   pins,
 }:
 let
-  fetchurl = import ../fetch/fetchurl.nix;
-  mkNaked = import ../mk/naked-sh.nix;
-  seed = import ../seed.nix { inherit system; };
-  sys = (import ../systems.nix).${system};
+  fetchurl = import ../../fetch/fetchurl.nix;
+  mkNaked = import ../../mk/naked-sh.nix;
+  seed = import ../../seed.nix { inherit system; };
+  sys = (import ../../systems.nix).${system};
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
-  version = "1.3.14";
+  inherit (data) version;
   plat = sys.bun.platform;
   zip = fetchurl {
     url = "https://github.com/oven-sh/bun/releases/download/bun-v${version}/bun-${plat}.zip";
-    hash = sys.bun.hash;
+    hash = data.hashes.${system};
   };
 in
 mkNaked {

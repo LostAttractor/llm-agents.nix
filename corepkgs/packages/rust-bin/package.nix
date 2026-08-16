@@ -1,18 +1,21 @@
-# rust toolchain from upstream prebuilt components, no nixpkgs, no stdenv.
-# Merge rustc + cargo + rust-std (gnu + musl) into one prefix, then formatelf
-# every ELF: exes get the pinned glibc interpreter + a DT_RPATH (via
-# --force-rpath, searched transitively so it also resolves librustc_driver/
-# libLLVM/libstd deps), and the .so's just get their stale DT_RUNPATH stripped.
+# rust-bin: upstream prebuilt rust components (rustc + cargo + rust-std gnu +
+# musl), no nixpkgs, no stdenv. version + per-system component hashes from
+# ./hashes.json; the target triples (gnu/musl, used by mkCargo too) stay in
+# systems.nix. Merge into one prefix, then formatelf every ELF: exes get the
+# pinned glibc interpreter + a transitive DT_RPATH, .so's get their stale
+# DT_RUNPATH stripped.
 {
   system,
   pins,
 }:
 let
-  fetchurl = import ../fetch/fetchurl.nix;
-  mkNaked = import ../mk/naked-sh.nix;
-  sys = (import ../systems.nix).${system};
+  fetchurl = import ../../fetch/fetchurl.nix;
+  mkNaked = import ../../mk/naked-sh.nix;
+  sys = (import ../../systems.nix).${system};
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+  h = data.hashes.${system};
 
-  version = "1.97.1";
+  inherit (data) version;
   gnu = sys.rust.gnu;
   musl = sys.rust.musl;
   comp =
@@ -23,16 +26,16 @@ let
     };
   muslStd = fetchurl {
     url = "https://static.rust-lang.org/dist/rust-std-${version}-${musl}.tar.gz";
-    hash = sys.rust.muslStd;
+    hash = h.muslStd;
   };
 in
 mkNaked {
   inherit system;
   name = "rust-${version}";
   env = {
-    rustc = comp "rustc" sys.rust.rustc;
-    cargo = comp "cargo" sys.rust.cargo;
-    ruststd = comp "rust-std" sys.rust.std;
+    rustc = comp "rustc" h.rustc;
+    cargo = comp "cargo" h.cargo;
+    ruststd = comp "rust-std" h.std;
     inherit muslStd;
     glibc = pins.glibc;
     formatelf = pins.formatelf;
