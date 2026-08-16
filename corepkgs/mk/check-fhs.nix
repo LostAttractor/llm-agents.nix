@@ -50,7 +50,11 @@ mkNaked {
       let magic = ((^head -c4 $f | ^od -An -tx1) | str replace --all --regex '[^0-9a-f]' "")
       if $magic != "7f454c46" { continue }
 
-      let rpath = (do { ^$fe --print-rpath $f } | complete | get stdout | str trim)
+      # $ORIGIN expands to the ELF's own directory (a store path here), so a
+      # manylinux wheel's $ORIGIN-relative RPATH into its bundled *.libs/ sibling
+      # dir is store-only and self-contained - expand it before the store check.
+      let origin = ($f | path dirname)
+      let rpath = (do { ^$fe --print-rpath $f } | complete | get stdout | str trim | str replace --all '$ORIGIN' $origin)
       let search = ((if ($libpath | is-empty) { $rpath } else { $"($rpath):($libpath)" }) | split row ":" | where {|x| $x != "" })
 
       let interp = (do { ^$fe --print-interpreter $f } | complete | get stdout | str trim)
