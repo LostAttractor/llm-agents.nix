@@ -3,6 +3,7 @@
   inputs,
   pkgs,
   nixfmt-rs,
+  shuck,
 }:
 # treefmt with config
 let
@@ -12,6 +13,8 @@ let
     # dogfood: format Nix with corepkgs' own from-source build of nixfmt-rs (the
     # Rust port of nixfmt), byte-identical to nixpkgs' nixfmt.
     programs.nixfmt.package = nixfmt-rs;
+    # trial: shuck (Rust) as the shell linter+formatter, replacing shellcheck+shfmt.
+    _module.args.shuck = shuck;
   };
 
   check =
