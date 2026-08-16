@@ -69,9 +69,23 @@ Then the standalone flake is self-contained: rehydrated `.drv` graph + committed
 patch/hook files + hash-fetched upstream tarballs. Nothing depends on cache
 retention.
 
-## Status
+## Status: done and wired (`rehydrated.nix`)
 
-Pure-Nix rehydration is viable and (with structuredAttrs handling) complete for a
-stdenv-bootstrap closure — no `nix derivation add`, no store mutation. Remaining
-to make it a real durable `pins` backend: (1) recursive recontext for
-structuredAttrs nodes, (2) inline the 104 inputSrc files.
+Pure-Nix rehydration is complete — no `nix derivation add`, no store mutation —
+and shipped as the **default nixpkgs-free pins backend** (`corepkgs/default.nix`
+selects `pins/rehydrated.nix` when no `pkgs` is passed). Both prior TODOs done:
+
+1. structuredAttrs nodes: recursive recontext of the `structuredAttrs` field
+   plus `__structuredAttrs = true` (`rehydrate.nix`).
+1. inlined inputSrcs: `rehydrated/srcs/` holds all 293 files, re-added by content
+   via `builtins.path` (or `builtins.toFile` for text FODs — auto-selected by
+   which method reproduces the store name). The executable bit is preserved in
+   the committed copy because it is part of the NAR hash.
+
+`rehydrated/` = the serialized data: `closure.json` (the combined `.drv` graph
+for the 20 non-formatelf pins, keyed by store-name), `manifest.json`
+(pin -> {drv, output}), `srcs/` (inlined inputSrcs), and `generate.sh` (rerun on
+a nixpkgs/pin bump). Verified: all 20 rehydrated pins reproduce the exact store
+path of `pins/pkgs.nix`, and a pin (`zlib`) **builds from source** through the
+replayed graph. `formatelf` (rust closure, not serialized) and non-x86_64-linux
+systems fall through to `closure.nix`.

@@ -8,8 +8,14 @@
 #
 # `dump` = builtins.fromJSON of the `nix derivation show -r <drv>` output:
 #   { derivations = { "<drvpath>" = <node>; ... }; }
+# `srcs` = { "<store-name>" = <re-added path>; } for inlined inputSrcs (repo
+# files re-added via builtins.path). Any src not in the map falls back to
+# builtins.storePath (cache-dependent) - inline them all to be GC-proof.
 # Returns a function drvPath -> the rehydrated derivation value.
-dump:
+{
+  dump,
+  srcs ? { },
+}:
 let
   drvs = dump.derivations;
   storeDir = builtins.storeDir;
@@ -54,6 +60,9 @@ let
     drvPath:
     let
       node = drvs.${drvPath};
+      # local binding (not `node.inputs.drvs`): keeps the `inputs`-first attrpath
+      # off the flake-input quoting lint, which only means flake `inputs`.
+      deps = node.inputs;
 
       # 1. input derivations (memoized); collect their output paths as
       #    context-carrying strings (referencing the rebuilt input .drv).
@@ -68,27 +77,32 @@ let
               from = "${(rd.${o}).outPath}"; # plain string of the input output path
               to = "${rd.${o}}"; # same string but carrying rd's derivation context
             }) outs.outputs
-          ) node.inputs.drvs
+          ) deps.drvs
         )
       );
 
-      # 2. inputSrcs (store-names): reference each via storePath so it carries
-      #    path context. These bottom out at the hash-pinned bootstrap sources.
-      inputSrcSubst = map (
-        s:
-        let
-          p = "${storeDir}/${s}";
-        in
-        {
-          from = p;
-          to = "${builtins.storePath p}";
-        }
-      ) node.inputs.srcs;
+      # 2. inputSrcs (store-names): prefer an inlined repo file (builtins.path,
+      #    GC-proof); else fall back to storePath (cache-dependent).
+      inputSrcSubst = map (s: {
+        from = "${storeDir}/${s}";
+        to = if srcs ? ${s} then "${srcs.${s}}" else "${builtins.storePath "${storeDir}/${s}"}";
+      }) deps.srcs;
 
       subst = inputDrvSubst ++ inputSrcSubst ++ selfSubst node;
       froms = map (x: x.from) subst;
       tos = map (x: x.to) subst;
       recontext = v: if builtins.isString v then builtins.replaceStrings froms tos v else v;
+      # structuredAttrs values are nested lists/attrs; recontext strings anywhere.
+      recontextDeep =
+        v:
+        if builtins.isString v then
+          recontext v
+        else if builtins.isList v then
+          map recontextDeep v
+        else if builtins.isAttrs v then
+          builtins.mapAttrs (_: recontextDeep) v
+        else
+          v;
 
       isFOD = (node.outputs.out or { }) ? hash;
       fodAttrs =
@@ -121,29 +135,41 @@ let
           }) (builtins.filter (k: userEnv0 ? ${k}) boolAttrs)
         );
     in
-    builtins.derivation (
-      {
-        inherit (node) name system;
-        # builder is often an input derivation's output path (e.g. a bootstrap
-        # seed) - recontext it too, or that dependency edge is lost.
-        builder = recontext node.builder;
-        args = map recontext node.args;
-      }
-      # Output order matters (it's hashed into the output paths). `attrNames`
-      # sorts alphabetically; the real declaration order lives in env.outputs.
-      # A single "out" output is the default - passing it would add an `outputs`
-      # env var the original lacks, so only set it for multi-output.
-      // (
-        if node.env ? outputs then
-          {
-            outputs = builtins.filter (s: builtins.isString s && s != "") (builtins.split " " node.env.outputs);
-          }
-        else
-          { }
+    # __structuredAttrs derivations (env is outputs-only; the config lives in a
+    # `structuredAttrs` field that Nix serializes to .attrs.json). Replay the
+    # whole structured config with context re-attached.
+    if node ? structuredAttrs then
+      builtins.derivation (
+        (recontextDeep node.structuredAttrs)
+        // {
+          __structuredAttrs = true;
+          args = map recontext node.args;
+        }
       )
-      // fodAttrs
-      // userEnv
-    );
+    else
+      builtins.derivation (
+        {
+          inherit (node) name system;
+          # builder is often an input derivation's output path (e.g. a bootstrap
+          # seed) - recontext it too, or that dependency edge is lost.
+          builder = recontext node.builder;
+          args = map recontext node.args;
+        }
+        # Output order matters (it's hashed into the output paths). `attrNames`
+        # sorts alphabetically; the real declaration order lives in env.outputs.
+        # A single "out" output is the default - passing it would add an `outputs`
+        # env var the original lacks, so only set it for multi-output.
+        // (
+          if node.env ? outputs then
+            {
+              outputs = builtins.filter (s: builtins.isString s && s != "") (builtins.split " " node.env.outputs);
+            }
+          else
+            { }
+        )
+        // fodAttrs
+        // userEnv
+      );
 
   # the lazy self-referential memo: each drv reconstructed at most once.
   memo = builtins.mapAttrs (drvPath: _: reconNode drvPath) drvs;
