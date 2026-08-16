@@ -14,14 +14,14 @@ drvPath** for, in order of the bugs found and fixed:
 
 1. no-input derivations — but only if you DON'T pass `outputs=["out"]` (that adds
    an `outputs` env var the default single-output derivation lacks).
-2. multi-node closures with inter-dependencies (context via `replaceStrings`).
-3. self-references (`$out` in args/env) — reverse the resolved output path back
+1. multi-node closures with inter-dependencies (context via `replaceStrings`).
+1. self-references (`$out` in args/env) — reverse the resolved output path back
    to `builtins.placeholder`.
-4. FOD-with-inputs (`hex0`, the stage0 seed) — but the **`builder`** field must
+1. FOD-with-inputs (`hex0`, the stage0 seed) — but the **`builder`** field must
    be recontexted too, or the seed dependency edge is dropped.
-5. multi-output order — the real order is `env.outputs` ("out bin"), not
+1. multi-output order — the real order is `env.outputs` ("out bin"), not
    `attrNames` (sorted).
-6. `preferLocalBuild`/`allowSubstitutes`/`__structuredAttrs` serialize as "1"/""
+1. `preferLocalBuild`/`allowSubstitutes`/`__structuredAttrs` serialize as "1"/""
    strings but `builtins.derivation` wants bools.
 
 Performance: **must memoize** — the closure is a DAG with heavy sharing
@@ -31,31 +31,47 @@ with a lazy fixpoint memo).
 Result on `glibc-2.42-67` (400-node closure): **395 / 400 nodes reproduce the
 exact drvPath.**
 
-## The wall: 5 "minimal-env" bootstrap derivations
+## The "minimal-env" nodes: it's `__structuredAttrs` (handleable)
 
-`libunistring`, `which`, `xgcc`, `gmp`, `mpfr` (and similar gcc-bootstrap nodes)
-have a `.drv` whose `env` contains **only the output paths** — no
-`name`/`system`/`builder`/`outputs`. Their build config lives entirely in the
-stdenv default-builder + structural fields.
+5/400 nodes (`libunistring`, `libxcrypt`, `python3-minimal`, `which`, `xgcc`)
+have a `.drv` whose `env` is **only the output paths**. First read as a wall,
+but the v4 JSON has a top-level `structuredAttrs` field carrying the full config
+(src/stdenv/buildInputs/…): these packages set `__structuredAttrs = true` in
+their nixpkgs `package.nix` (stdenv defaults it off:
+`structuredAttrsByDefault = config.structuredAttrsByDefault or false`). For
+structuredAttrs, Nix passes attrs via a generated `.attrs.json`, so the env is
+minimal *by design*. Early adopters of nixpkgs' migration; the count grows over
+time.
 
-`builtins.derivation` AND `builtins.derivationStrict` both **always inject**
-`name`/`system`/`builder` (and `outputs` for multi-output) into the env. So a
-pure-Nix eval cannot produce an outputs-only env — these 5 nodes always come out
-with a different drvPath, which cascades to every dependent.
+`builtins.derivation { __structuredAttrs = true; … }` reproduces that shape
+(verified — minimal env, `structuredAttrs` set). So the fix is: for a
+structuredAttrs node, recontext its `structuredAttrs` field recursively (strings
+in nested lists/attrs get input/self context) and pass it plus
+`__structuredAttrs = true`. Then pure-Nix rehydration is **complete (400/400)** —
+TODO in `rehydrate.nix` (currently handles the 395 classic-env nodes).
 
-There is no public pure-Nix builtin that writes an arbitrary `.drv` verbatim.
+## Source files: what has to be inlined to be GC-proof
 
-## Recommendation
+The closure's leaves are two kinds:
 
-Pure-Nix rehydration is ~99% there but **not complete** for a stdenv-bootstrap
-closure. Options:
+- **FOD tarballs (114 nodes):** upstream source (glibc/gcc/…), fetched **by
+  hash**. Already durable — refetchable from anywhere.
+- **inputSrcs (104 files, ~824 KB):** the `"${./patch}"` / `builtins.path`
+  interpolations — glibc patches, CVE fixes, setup hooks (`add-flags.sh`,
+  `audit-tmpdir.sh`, `default-builder.sh`), `.m4` macros. These are nixpkgs
+  source-tree files, NOT fetchable by URL.
 
-- **Hybrid (recommended):** pure-Nix `builtins.derivation` for the reproducible
-  majority; `nix derivation add` (a one-time bootstrap step, store mutation) for
-  the handful of minimal-env nodes. Small, bounded escape hatch.
-- **Full `nix derivation add`:** replays the whole closure verbatim, handles
-  every node, but is entirely a store-mutation step (not eval).
-- **appendContext the 5 outputs:** keeps eval pure but those 5 stay
-  cache-dependent (no source rebuild) — a smaller version of today's problem.
+`rehydrate.nix` currently references the 104 via `builtins.storePath` — which
+still requires them present/substitutable, i.e. the same cache-GC exposure moved
+onto small files. To be truly GC-proof, **inline the 104 files into the repo**
+(commit ~824 KB, re-add via `builtins.path` → identical store path by content).
+Then the standalone flake is self-contained: rehydrated `.drv` graph + committed
+patch/hook files + hash-fetched upstream tarballs. Nothing depends on cache
+retention.
 
-`rehydrate.nix` is the pure-Nix engine for the first path.
+## Status
+
+Pure-Nix rehydration is viable and (with structuredAttrs handling) complete for a
+stdenv-bootstrap closure — no `nix derivation add`, no store mutation. Remaining
+to make it a real durable `pins` backend: (1) recursive recontext for
+structuredAttrs nodes, (2) inline the 104 inputSrc files.
