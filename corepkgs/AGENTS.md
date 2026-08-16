@@ -15,7 +15,7 @@ its layout; the consumer owns supplying nixpkgs deps to the functions it exposes
 The surface:
 
 - `core.lib` — the builder API + primitives: `mkBinary`, `mkCargo`, `mkGo`,
-  `mkNpm`, `mkPython`, `mkNaked`, `mkNakedSh`, `checkFhs`, `coreFetchurl`,
+  `mkNpm`, `mkBun`, `mkPython`, `mkNaked`, `mkNakedSh`, `checkFhs`, `coreFetchurl`,
   `interpolate`, `fetchurlTemplate`, `platformSource`, and the meta helpers
   `mkUpdater` / `mkUpdateScript` / `flakeLib` (un-called functions — the consumer
   passes its own `lib`/tools/`inputs`).
@@ -57,6 +57,11 @@ GNU Mes bootstrap is a provider swap, no constructor changes.
 - `mkNpm` — npm from source. `node_modules` FOD (OUR `npmDepsHash`). Knobs:
   `packageLock` (inject a committed lock), `binWrappers`, `nativeAddons`
   (patchelf bundled `.node`), `omitOptional`.
+- `mkBun` — bun from source. `node_modules` FOD (OUR `bunDepsHash`); installs
+  app + node_modules and wraps `bun run <entry>`. NOT `bun build --compile` (the
+  naked bun runs via the glibc loader, so process.execPath is the loader and
+  --compile fails BunSectionNotFound; bun can't be patchelf'd either). Optional
+  `buildScript` for a pre-run asset/dist build.
 - `mkPython` — python app from source. `pip install --target` FOD
   (OUR `pythonDepsHash`); wraps `[project.scripts]`. Manylinux-wheel deps OK.
 
