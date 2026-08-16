@@ -15,6 +15,7 @@
   version ? null,
   src, # fetched source archive (a .tar.gz with a single top-level dir)
   cargoLock, # path to the package's Cargo.lock
+  patches ? [ ], # patch files applied (patch -p1) in the source before the build
   sourceRoot ? null, # subdir of the source tree holding the workspace/crate (relative to the tarball's top dir), e.g. "rust" / "src-tauri"
   binaries ? [ pname ], # binaries to install from target/release/
   cargoBuildFlags ? [ ], # e.g. [ "--no-default-features" "--features" "x" "-p" "sub" ]
@@ -112,6 +113,7 @@ let
         gnuTarget
         ;
       installBins = builtins.concatStringsSep " " binaries;
+      patchFiles = builtins.concatStringsSep " " patches;
       buildFlags = builtins.concatStringsSep " " cargoBuildFlags;
       cargoLockFile = cargoLock; # copied over the source's lock so the vendored lock is authoritative
       sourceRoot = if sourceRoot == null then "" else sourceRoot;
@@ -207,6 +209,11 @@ let
       tar -xzf "$src"
       cd "$(tar -tzf "$src" | head -1 | cut -d/ -f1)"
       [ -n "$sourceRoot" ] && cd "$sourceRoot"
+
+      # apply source patches (patch -p1), before the lock copy + build
+      for p in $patchFiles; do
+        patch -p1 < "$p"
+      done
 
       # Make the vendored lock authoritative: copy our Cargo.lock over the
       # source's (they are usually identical; this also fixes tarballs whose

@@ -1,7 +1,7 @@
 # Pin provider for the flake: the same tools, but sourced from the flake's
 # `pkgs` instead of builtins.storePath. PURE, so the naked layer can be a flake
 # output that nixbot builds on the real per-arch builders. Eval now touches
-# nixpkgs (unlike pins-store.nix), which is fine for a CI build check.
+# nixpkgs (unlike pins/store.nix), which is fine for a CI build check.
 #
 # formatelf is Mic92's patchelf replacement (the repo's own auto-patchelf tool),
 # rebuilt from the same rev the repo pins.

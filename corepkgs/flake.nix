@@ -4,7 +4,7 @@
 # keeps eval fast and avoids a locked path input. This flake is purely for using
 # corepkgs by itself.
 #
-# corepkgs has NO nixpkgs input: pins come from pins-closure.nix (fetchClosure of
+# corepkgs has NO nixpkgs input: pins come from pins/closure.nix (appendContext of
 # stock cache.nixos.org / cache.numtide.com paths - pure + nixpkgs-free), and
 # every toolchain/package fetches its upstream artifact via coreFetchurl. So this
 # flake needs no inputs at all.

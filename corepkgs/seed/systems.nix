@@ -1,7 +1,7 @@
 # Per-system table for the naked layer (PURE - no storePath, so it is usable
 # from a flake). Adding a system = adding a row. Arch-specific *pins* (glibc,
 # formatelf, ...) are NOT here; they come from a pins provider threaded in
-# (pins-store.nix for fast standalone eval, pins-pkgs.nix for the flake).
+# (pins/store.nix for fast standalone eval, pins/pkgs.nix for the flake).
 #
 # Toolchain *versions* stay in the toolchain files (shared across arches); only
 # the per-arch platform token + hash live here.

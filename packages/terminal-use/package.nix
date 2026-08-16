@@ -18,6 +18,9 @@ mkCargo {
     inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
+  # `tu self update` rewrites its own binary / shells out to cargo install, which
+  # is wrong for a read-only Nix store; the patch makes it refuse.
+  patches = [ ./disable-self-update.patch ];
   binaries = [ "tu" ];
 
   category = "Utilities";
