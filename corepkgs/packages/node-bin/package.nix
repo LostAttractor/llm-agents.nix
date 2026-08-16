@@ -2,14 +2,16 @@
 # ./hashes.json, platform token from systems.nix.
 # node is a plain dynamic executable (no appended payload), so patchelf is safe:
 # set the pinned glibc interpreter + rpath.
-{
-  system,
-  pins,
-}:
+scope:
 let
-  fetchurl = import ../../fetch/fetchurl.nix;
-  mkDrvSh = import ../../mk/drv-sh.nix;
-  sys = (import ../../seed/systems.nix).${system};
+  inherit (scope)
+    fetchurl
+    mkDrvSh
+    systems
+    system
+    pins
+    ;
+  sys = systems.${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
   inherit (data) version;
@@ -21,7 +23,6 @@ let
   };
 in
 mkDrvSh {
-  inherit system;
   name = "nodejs-${version}";
   env = {
     inherit tarball;

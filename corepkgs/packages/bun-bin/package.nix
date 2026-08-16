@@ -4,15 +4,17 @@
 # bun must NOT be patchelf'd: it appends its JS runtime to the ELF tail and
 # recomputes that offset from the on-disk file, so any rewrite segfaults it.
 # Leave it byte-intact; invoke the pinned glibc loader via a wrapper.
-{
-  system,
-  pins,
-}:
+scope:
 let
-  fetchurl = import ../../fetch/fetchurl.nix;
-  mkDrvSh = import ../../mk/drv-sh.nix;
-  seed = import ../../seed { inherit system; };
-  sys = (import ../../seed/systems.nix).${system};
+  inherit (scope)
+    fetchurl
+    mkDrvSh
+    seed
+    systems
+    system
+    pins
+    ;
+  sys = systems.${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
   inherit (data) version;
@@ -23,7 +25,6 @@ let
   };
 in
 mkDrvSh {
-  inherit system;
   name = "bun-${version}";
   env = {
     inherit zip;

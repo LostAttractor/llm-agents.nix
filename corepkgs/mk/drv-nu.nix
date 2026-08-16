@@ -3,14 +3,14 @@
 # params pass as real lists/records instead of string-munged env vars.
 # Prelude binds `$attrs` and puts busybox archive tools on PATH (nushell has no
 # built-in tar/unzip/xz).
+scope:
 {
   name,
   script, # inline nushell string, OR a path to a .nu file (readFile'd)
   env ? { },
-  system,
 }:
 let
-  seed = import ../seed { inherit system; };
+  inherit (scope) system seed;
   scriptText = if builtins.isPath script then builtins.readFile script else script;
   isDarwin = builtins.match ".*-darwin" system != null;
   # Darwin has no static busybox; use the sandbox's system tools (/usr/bin, /bin)

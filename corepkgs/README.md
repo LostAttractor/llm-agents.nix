@@ -47,6 +47,8 @@ The top-level holds only the entry points + docs; everything else is a directory
 ```
 default.nix     the importable API: { lib, packages, pins, toolchains, machinery, system }
 flake.nix       standalone flake (ZERO inputs) wrapping default.nix
+registry.nix    name -> path for every module: the ONE file that knows the layout
+scope.nix       the memoized module tree (fixed point) built from the registry
 mk/             constructors + derivation primitives
   drv-nu.nix    mkDrvNu: nushell builder (__structuredAttrs -> JSON attrs); for
                 data-processing builds (check-fhs, hello)
@@ -64,8 +66,8 @@ vendor/         dependency vendorers, same {default.nix, builder.sh} per dir
                 (cargo, go, npm, bun, pnpm, python); each a FOD via mkDrvSh
 toolchains/     default.nix — the provider; maps logical keys (rust, go, …) to the
                 -bin toolchain packages, threaded through the constructor scope
-fetch/          fetch primitives (fetchurl · builtin-fetchurl · interpolate ·
-                fetchurl-template · platform-source) — all builtin:fetchurl
+fetch/          fetch primitives (fetchurl · interpolate · fetchurl-template ·
+                platform-source) — all on builtin:fetchurl
 lib/            meta helpers (mk-updater, mk-update-script, maintainers)
 pins/           the pin providers: pkgs.nix (from nixpkgs) · store.nix (storePath)
                 · closure.nix (appendContext — pure, nixpkgs-free, offline eval)
@@ -75,6 +77,16 @@ packages/       corepkgs' OWN by-name packages: the machinery helpers (formatelf
                 wrapBuddy, buildNpmPackage, versionCheckHomeHook) + the -bin
                 toolchains (bun-bin, node-bin, rust-bin, …), each with a hashes.json
 ```
+
+## Internal wiring: one registry, one memoized tree
+
+No module path-imports a sibling. `registry.nix` maps every module name to its
+file; `scope.nix` builds a nixpkgs-free fixed point from it, and each module is
+`scope: X` that names its deps with `inherit (scope) mkDrvSh fetchurl …`. The
+tree is memoized (each module evaluates once, callers just select attrs), so it
+is not a per-call callPackage. Move a file → edit one line in `registry.nix`;
+no other file changes. `system`/`pins`/`toolchains` are ambient scalars in the
+scope, so constructors no longer thread them by hand.
 
 ## Two swappable seed layers
 

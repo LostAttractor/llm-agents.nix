@@ -3,13 +3,15 @@
 #   nu      - nushell (truly-static musl), the build-script runtime. The tiny sh
 #             bootstrap (mk/drv-sh) untars it, since nu can't extract itself.
 # Trusted prebuilt static binaries. Keep small + swappable (future: GNU Mes seed).
-{
-  system,
-}:
+scope:
 let
-  fetchurl = import ../fetch/fetchurl.nix;
-  mkDrvSh = import ../mk/drv-sh.nix;
-  sys = (import ./systems.nix).${system};
+  inherit (scope)
+    system
+    fetchurl
+    mkDrvSh
+    systems
+    ;
+  sys = systems.${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
   # Darwin has no static busybox; it uses the system toolchain in the sandbox.
@@ -23,7 +25,6 @@ let
       };
   nuTar = fetchurl { inherit (sys.nu) url hash; };
   nushell = mkDrvSh {
-    inherit system;
     name = "nushell";
     env = { inherit nuTar; };
     script = ''

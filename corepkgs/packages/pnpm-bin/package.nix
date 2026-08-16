@@ -2,13 +2,10 @@
 # toolchain - no separate binary to patchelf. version + hash (arch-independent)
 # from ./hashes.json. `pnpm` execs `node dist/pnpm.cjs`, inheriting node's
 # pinned-glibc runtime.
-{
-  system,
-  node,
-}:
+scope:
 let
-  fetchurl = import ../../fetch/fetchurl.nix;
-  mkDrvSh = import ../../mk/drv-sh.nix;
+  inherit (scope) fetchurl mkDrvSh;
+  node = scope.nodeBin;
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
   inherit (data) version;
   tgz = fetchurl {
@@ -18,7 +15,6 @@ let
   };
 in
 mkDrvSh {
-  inherit system;
   name = "pnpm-${version}";
   env = { inherit tgz node; };
   script = ''

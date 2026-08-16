@@ -7,19 +7,18 @@
 # Determinism: --no-compile (no timestamped .pyc), and strip install bookkeeping
 # that embeds the build path (RECORD, direct_url.json) or timestamps
 # (__pycache__). Sdist-only C-compile deps are out of scope (wheels are compiler-free).
+scope:
 {
   src,
   pythonDepsHash,
   sourceRoot ? null,
   postPatch ? "",
-  system,
   python, # the python toolchain, threaded from the constructor scope
 }:
 let
-  mkDrvSh = import ../../mk/drv-sh.nix;
+  inherit (scope) mkDrvSh;
 in
 mkDrvSh {
-  inherit system;
   name = "python-vendor";
   outputHash = pythonDepsHash;
   env = {

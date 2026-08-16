@@ -2,6 +2,7 @@
 # vendor/pnpm (a flat hoisted node_modules FOD, our own pnpmDepsHash). Runs
 # the build script via pnpm, installs dist + node_modules under $out/lib/<pname>,
 # and wraps `node <entry>`.
+scope:
 {
   pname,
   version,
@@ -15,27 +16,27 @@
   meta ? { },
   category ? null,
   updater ? null,
-  system,
-  pins,
-  toolchains,
 }:
 let
-  mkDrvSh = import ../drv-sh.nix;
+  inherit (scope)
+    mkDrvSh
+    pnpmVendor
+    pins
+    toolchains
+    ;
   inherit (toolchains) node pnpm;
-  vendor = import ../../vendor/pnpm {
+  vendor = pnpmVendor {
     inherit
       src
       pnpmDepsHash
       sourceRoot
       postPatch
-      system
       pnpm
       node
       ;
   };
   libpath = "${pins.glibc}/lib:${pins.gccLib}/lib";
   drv = mkDrvSh {
-    inherit system;
     name = "${pname}-${version}";
     env = {
       inherit

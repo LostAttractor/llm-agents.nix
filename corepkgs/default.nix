@@ -4,10 +4,11 @@
 #   core.lib.mkPackage { ... }   # the builder API
 #   core.packages               # own buildable outputs (-bin toolchains + hello)
 #
-# Two seed layers are threaded through the scope as swappable providers (pins,
-# toolchains); swap either for a from-source bootstrap without touching a
-# constructor. `system` defaults to currentSystem so `nix build -f corepkgs
-# --impure packages.hello` works.
+# Internally every module is wired through one memoized tree (scope.nix +
+# registry.nix): a module names its deps with `inherit (scope) ...` instead of
+# path-importing a sibling. This file is a thin view over that scope. `pins` and
+# `toolchains` are the two swappable providers (the bootstrap seam); swap either
+# for a from-source bootstrap without touching a constructor.
 {
   system ? builtins.currentSystem,
   pkgs ? null,
@@ -15,14 +16,15 @@
   # nixpkgs-free provider that makes corepkgs a standalone no-input flake.
   # (pins/store.nix is the explicit impure fast-eval path.)
   pins ? if pkgs != null then import ./pins/pkgs.nix pkgs else import ./pins/closure.nix system,
-  # The toolchain set, threaded through the scope like `pins`.
-  toolchains ? import ./toolchains { inherit system pins; },
+  # null => the registry's toolchain provider (derived from the -bin packages);
+  # pass one to override (bootstrap seam).
+  toolchains ? null,
 }:
 let
-  mkDrvNu = import ./mk/drv-nu.nix;
+  scope = import ./scope.nix { inherit system pins toolchains; };
+
   # smoke test: a nixpkgs-free derivation with no toolchain at all.
-  hello = mkDrvNu {
-    inherit system;
+  hello = scope.mkDrvNu {
     name = "hello";
     script = ''
       mkdir $"($out)/bin"
@@ -31,24 +33,11 @@ let
     '';
   };
 
-  # Fetcher machinery (./fetch), nixpkgs-free: every fetch goes through
-  # builtin:fetchurl and platformSource takes `system` directly (no stdenv), so
-  # these work even on the standalone (pkgs = null) path.
-  interpolate = import ./fetch/interpolate.nix;
-  coreFetchurl = import ./fetch/fetchurl.nix;
-  fetchurlTemplate = import ./fetch/fetchurl-template.nix {
-    fetchurl = coreFetchurl;
-    inherit interpolate;
-  };
-  platformSource = import ./fetch/platform-source.nix {
-    inherit system fetchurlTemplate;
-  };
-
   # Machinery packages (formatelf, wrapBuddy, buildNpmPackage,
-  # versionCheckHomeHook): by-name package FUNCTIONS, un-called - the consumer
-  # callPackage's them into its own scope. Exclude the `-bin` toolchain packages:
-  # they take { system, pins } from the toolchains provider, not a callPackage
-  # scope.
+  # versionCheckHomeHook, nixfmt-rs): by-name package FUNCTIONS, un-called - the
+  # consumer callPackage's them into its OWN scope. Exclude the `-bin` toolchain
+  # packages: they are scope modules mapped by the toolchains provider, not a
+  # consumer callPackage scope.
   machinery =
     let
       entries = builtins.readDir ./packages;
@@ -64,44 +53,38 @@ let
     );
 in
 {
-  inherit
-    system
-    pins
-    toolchains
-    machinery
-    ;
+  inherit system machinery;
+  inherit (scope) pins toolchains;
 
-  # The builder API: constructors + owned primitives, with system/pins pre-bound
-  # so a consumer's package.nix stays terse (just `mkPackage { ... }`).
+  # The builder API: constructors + owned primitives. Each is already bound to
+  # the scope (system/pins/toolchains inside), so a consumer's package.nix stays
+  # terse - just `mkPackage { ... }`.
   lib = {
-    mkPackage = args: import ./mk/package.nix (args // { inherit system pins; });
-    mkCargo = args: import ./mk/cargo (args // { inherit system pins toolchains; });
-    mkGo = args: import ./mk/go (args // { inherit system pins toolchains; });
-    mkNpm = args: import ./mk/npm (args // { inherit system pins toolchains; });
-    mkBun = args: import ./mk/bun (args // { inherit system pins toolchains; });
-    mkPnpm = args: import ./mk/pnpm (args // { inherit system pins toolchains; });
-    mkPython = args: import ./mk/python (args // { inherit system pins toolchains; });
-    mkDrvNu = args: import ./mk/drv-nu.nix (args // { inherit system; });
-    mkDrvSh = args: import ./mk/drv-sh.nix (args // { inherit system; });
-    checkFhs = args: import ./mk/check-fhs.nix (args // { inherit system pins; });
-    inherit
-      coreFetchurl
+    inherit (scope)
+      mkPackage
+      mkCargo
+      mkGo
+      mkNpm
+      mkBun
+      mkPnpm
+      mkPython
+      mkDrvNu
+      mkDrvSh
+      checkFhs
       interpolate
       fetchurlTemplate
       platformSource
+      seed
+      systems
+      pins
+      system
+      # Meta helpers, un-called so the consumer supplies its own nixpkgs deps but
+      # never path-imports a corepkgs file.
+      mkUpdater
+      mkUpdateScript
+      flakeLib
       ;
-    seed = import ./seed { inherit system; };
-    systems = import ./seed/systems.nix;
-    inherit pins system;
-
-    # Meta helpers, un-called so the consumer supplies its own nixpkgs deps but
-    # never path-imports a corepkgs file. mkUpdater { lib } validates a
-    # passthru.updater config; mkUpdateScript { lib, writeShellApplication, ... }
-    # builds its updateScript; flakeLib { inputs } is the extended nixpkgs lib
-    # (custom maintainers/licenses).
-    mkUpdater = import ./lib/mk-updater.nix;
-    mkUpdateScript = import ./lib/mk-update-script.nix;
-    flakeLib = import ./lib/maintainers.nix;
+    coreFetchurl = scope.fetchurl;
   };
 
   # Own buildable outputs: seed + -bin toolchains + hello (the -bin suffix marks
@@ -111,16 +94,16 @@ in
   packages =
     if system == "x86_64-linux" || system == "aarch64-linux" then
       {
-        inherit (toolchains) seed;
-        bun-bin = toolchains.bun;
-        node-bin = toolchains.node;
-        zig-bin = toolchains.zig;
-        go-bin = toolchains.go;
-        rust-bin = toolchains.rust;
-        pnpm-bin = toolchains.pnpm;
+        inherit (scope.toolchains) seed;
+        bun-bin = scope.toolchains.bun;
+        node-bin = scope.toolchains.node;
+        zig-bin = scope.toolchains.zig;
+        go-bin = scope.toolchains.go;
+        rust-bin = scope.toolchains.rust;
+        pnpm-bin = scope.toolchains.pnpm;
         inherit hello;
       }
-      // (if system == "x86_64-linux" then { python-bin = toolchains.python; } else { })
+      // (if system == "x86_64-linux" then { python-bin = scope.toolchains.python; } else { })
     else
       { };
 }

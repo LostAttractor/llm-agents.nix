@@ -6,6 +6,7 @@
 #   "loader"   - bun --compile binary: ELF rewrite segfaults its appended JS
 #                payload, so leave it byte-intact and invoke the pinned loader
 #                through a wrapper instead.
+scope:
 {
   pname,
   # Source: either literal src+version, OR the repo's shared hashesFile
@@ -38,17 +39,20 @@
   category ? null, # passthru.category
   updater ? null, # passthru.updater (declarative config from mkUpdater)
   meta ? { }, # merged into output meta
-  system,
-  pins,
 }:
 let
-  seed = import ../seed { inherit system; };
-  mkDrvNu = import ./drv-nu.nix;
-  sys = (import ../seed/systems.nix).${system};
+  inherit (scope)
+    seed
+    mkDrvNu
+    systems
+    fetchurl
+    interpolate
+    system
+    pins
+    ;
+  sys = systems.${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
-  fetchurl = import ../fetch/fetchurl.nix;
-  interpolate = import ../fetch/interpolate.nix;
   hashData = if hashesFile == null then null else builtins.fromJSON (builtins.readFile hashesFile);
   resolvedVersion = if hashData == null then version else hashData.version;
   # A platforms entry is a string (shorthand for the {platform} token) or an
@@ -105,7 +109,6 @@ let
         )
       );
   drv = mkDrvNu {
-    inherit system;
     name = "${pname}-${resolvedVersion}";
     env = {
       src = resolvedSrc;

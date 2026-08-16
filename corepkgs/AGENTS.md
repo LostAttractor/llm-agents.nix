@@ -12,6 +12,22 @@ through the entry point** — `core = import ./corepkgs { ... }` — and then us
 `import ./corepkgs/lib/foo.nix`, no `readDir ./corepkgs/packages`). corepkgs owns
 its layout; the consumer owns supplying nixpkgs deps to the functions it exposes.
 
+## Internal wiring: registry + memoized scope
+
+Inside corepkgs, **no module path-imports a sibling either.** `registry.nix`
+maps every module name to its file (the ONE place that knows the layout).
+`scope.nix` builds a nixpkgs-free fixed point over it: each module is
+`scope: X`, and it names its deps with `inherit (scope) mkDrvSh fetchurl systems system pins toolchains …` instead of `import ../foo.nix`. The tree is **memoized**
+(a fixed-point attr value evaluates once; callers just select attrs) — deliberately
+NOT a per-call `callPackage`/`intersectAttrs`, which would re-derive deps on every
+`mkCargo {…}`/`fetchurl {…}`. Leaves that need nothing from the tree take `_scope:`
+(`fetch/interpolate.nix`, `seed/systems.nix`, `lib/*`). `system`/`pins`/`toolchains`
+are ambient scalars in the scope; `default.nix` is a thin view selecting scope
+members into `lib`/`packages`. **Adding/moving a module = edit `registry.nix` +
+give the file a `scope:` head; nothing else changes.** Constructors expose their
+user args as the second layer (`scope: { pname, … }: drv`), so `core.lib.mkCargo`
+is the already-scoped `{ pname, … }: drv` — the consumer API is unchanged.
+
 The surface:
 
 - `core.lib` — the builder API + primitives: `mkPackage`, `mkCargo`, `mkGo`,
@@ -134,7 +150,8 @@ bundles (keytar/sharp/torch-CUDA), sdist-C-compile (python), exotic build tools
 
 ## Layout
 
-The top-level holds only the entry points (`default.nix`, `flake.nix`) + docs;
+The top-level holds only the entry points (`default.nix`, `flake.nix`), the
+wiring (`registry.nix` = name->path, `scope.nix` = the memoized tree) + docs;
 everything else is a directory:
 
 `mk/` constructors (drv-nu.nix, drv-sh.nix, package.nix, check-fhs.nix +

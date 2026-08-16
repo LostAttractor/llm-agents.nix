@@ -3,6 +3,7 @@
 # $out/lib/node_modules/<pname>, wraps each package.json "bin". Knobs: binWrappers
 # override auto launchers; nativeAddons patchelf bundled *.node/*.bare to pinned glibc.
 # node-gyp building an addon from source is out of scope.
+scope:
 {
   pname,
   version,
@@ -23,21 +24,22 @@
   meta ? { },
   category ? null,
   updater ? null,
-  system,
-  pins,
-  toolchains,
 }:
 let
-  mkDrvSh = import ../drv-sh.nix;
+  inherit (scope)
+    mkDrvSh
+    npmVendor
+    pins
+    toolchains
+    ;
   inherit (toolchains) node;
-  npmVendor = import ../../vendor/npm {
+  vendor = npmVendor {
     inherit
       src
       npmDepsHash
       sourceRoot
       packageLock
       omitOptional
-      system
       node
       ;
   };
@@ -82,11 +84,14 @@ let
       );
 
   drv = mkDrvSh {
-    inherit system;
     name = "${pname}-${version}";
     env = {
-      inherit src node pname;
-      vendor = npmVendor;
+      inherit
+        src
+        node
+        pname
+        vendor
+        ;
       sourceRoot = if sourceRoot == null then "" else sourceRoot;
       inherit buildScript;
       customBins = if binWrappers == null then "" else "1";

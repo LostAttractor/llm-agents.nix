@@ -2,7 +2,7 @@
 # Arch-specific pins (glibc, formatelf) come from a pins provider, not here.
 # Toolchain versions stay in the toolchain files (shared across arches); only the
 # per-arch platform token + hash live here.
-{
+_scope: {
   x86_64-linux = {
     loader = "ld-linux-x86-64.so.2";
     busybox = {

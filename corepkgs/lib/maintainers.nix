@@ -1,4 +1,5 @@
 # Custom license overrides + in-repo maintainers not yet in nixpkgs.
+_scope:
 { inputs, ... }:
 inputs."nixpkgs".lib.extend (
   _final: prev: {

@@ -8,6 +8,7 @@
 # Handles pure-crates.io Cargo.lock deps. C-lib pins (buildInputs/openssl) and
 # github-archive gitDeps are supported; -sys crates needing unpinned system libs
 # and workspace-member git deps are not.
+scope:
 {
   pname,
   version ? null,
@@ -31,20 +32,23 @@
   category ? null,
   updater ? null,
   hideFromDocs ? false, # build tools / helpers, not agent packages: skip the README + meta-completeness category
-  system,
-  pins,
-  toolchains,
 }:
 let
-  mkDrvSh = import ../drv-sh.nix;
-  cargoVendor = import ../../vendor/cargo;
-  sys = (import ../../seed/systems.nix).${system};
+  inherit (scope)
+    mkDrvSh
+    cargoVendor
+    fetchurl
+    systems
+    system
+    pins
+    toolchains
+    ;
+  sys = systems.${system};
   inherit (toolchains) rust zig;
 
   gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target
   rustGnu = sys.rust.gnu; # cargo [target.<triple>]
 
-  fetchurl = import ../../fetch/fetchurl.nix;
   # Parse a git dep's Cargo.lock source string for the vendorer + config.toml.
   # source = "git+<url>[?rev=|?branch=|?tag=<v>]#<resolved-rev>".
   parseGit =
@@ -88,7 +92,7 @@ let
     ) gits
   );
   vendor = cargoVendor {
-    inherit cargoLock system;
+    inherit cargoLock;
     gitDeps = map (g: { inherit (g) crate archive; }) gits;
   };
   # extra C-library pins (buildInputs + openssl) whose /lib joins the link path
@@ -99,7 +103,6 @@ let
   libpath =
     "${pins.glibc}/lib:${pins.gccLib}/lib" + (if extraLibPath == "" then "" else ":${extraLibPath}");
   drv = mkDrvSh {
-    inherit system;
     name = if version == null then "${pname}" else "${pname}-${version}";
     env = {
       inherit

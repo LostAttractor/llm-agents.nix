@@ -1,6 +1,7 @@
 # Generate a nixpkgs-standard `passthru.updateScript` from a validated
 # `passthru.updater` config. Carries its own tools so nothing about the update
 # lives in CI; just runs scripts/updater/run.py against the config.
+_scope:
 {
   lib,
   writeShellApplication,

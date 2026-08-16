@@ -3,15 +3,17 @@
 # Patchelf the interpreter to the pinned glibc; the wrapper sets LD_LIBRARY_PATH
 # to the manylinux external-library set. x86_64-linux only (the manylinux lib
 # pins are x86_64).
-{
-  system,
-  pins,
-}:
+scope:
 let
-  fetchurl = import ../../fetch/fetchurl.nix;
-  mkDrvSh = import ../../mk/drv-sh.nix;
-  seed = import ../../seed { inherit system; };
-  sys = (import ../../seed/systems.nix).${system};
+  inherit (scope)
+    fetchurl
+    mkDrvSh
+    seed
+    systems
+    system
+    pins
+    ;
+  sys = systems.${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
   inherit (data) version tag;
@@ -36,7 +38,6 @@ let
   ldpath = builtins.concatStringsSep ":" (map (p: "${p}/lib") manylinux);
 in
 mkDrvSh {
-  inherit system;
   name = "python-${version}";
   env = {
     inherit tarball ldpath;

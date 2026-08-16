@@ -3,6 +3,7 @@
 # hash). Installs the site tree under $out/lib/pysite and wraps each console entry
 # point as a launcher running the toolchain python with that tree on PYTHONPATH.
 # Pure-python + manylinux-wheel deps only; sdist-compiled C deps out of scope.
+scope:
 {
   pname,
   version,
@@ -15,20 +16,21 @@
   meta ? { },
   category ? null,
   updater ? null,
-  system,
-  pins,
-  toolchains,
 }:
 let
-  mkDrvSh = import ../drv-sh.nix;
+  inherit (scope)
+    mkDrvSh
+    pythonVendor
+    pins
+    toolchains
+    ;
   inherit (toolchains) python;
-  vendor = import ../../vendor/python {
+  vendor = pythonVendor {
     inherit
       src
       pythonDepsHash
       sourceRoot
       postPatch
-      system
       python
       ;
   };
@@ -68,7 +70,6 @@ let
   );
 
   drv = mkDrvSh {
-    inherit system;
     name = "${pname}-${version}";
     env = {
       inherit vendor python;

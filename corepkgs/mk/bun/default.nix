@@ -7,6 +7,7 @@
 # --compile fails BunSectionNotFound - and bun can't be patchelf'd (its tail-
 # appended runtime breaks on any ELF rewrite). Such packages stay on nixpkgs.
 # Bundled prebuilt *.node addons are patchelf'd to the pinned glibc.
+scope:
 {
   pname,
   version,
@@ -19,26 +20,26 @@
   meta ? { },
   category ? null,
   updater ? null,
-  system,
-  pins,
-  toolchains,
 }:
 let
-  mkDrvSh = import ../drv-sh.nix;
+  inherit (scope)
+    mkDrvSh
+    bunVendor
+    pins
+    toolchains
+    ;
   inherit (toolchains) bun;
-  vendor = import ../../vendor/bun {
+  vendor = bunVendor {
     inherit
       src
       bunDepsHash
       sourceRoot
-      system
       bun
       ;
   };
   # native addon rpath: pinned glibc + gccLib (libstdc++/libgcc_s for *.node)
   libpath = "${pins.glibc}/lib:${pins.gccLib}/lib";
   drv = mkDrvSh {
-    inherit system;
     name = "${pname}-${version}";
     env = {
       inherit

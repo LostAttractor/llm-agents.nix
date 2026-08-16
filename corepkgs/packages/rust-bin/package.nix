@@ -3,14 +3,16 @@
 # (gnu/musl, shared with mkCargo) in systems.nix.
 # Merge into one prefix, then formatelf every ELF: exes get the pinned glibc
 # interpreter + a transitive DT_RPATH, .so's get their stale DT_RUNPATH stripped.
-{
-  system,
-  pins,
-}:
+scope:
 let
-  fetchurl = import ../../fetch/fetchurl.nix;
-  mkDrvSh = import ../../mk/drv-sh.nix;
-  sys = (import ../../seed/systems.nix).${system};
+  inherit (scope)
+    fetchurl
+    mkDrvSh
+    systems
+    system
+    pins
+    ;
+  sys = systems.${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
   h = data.hashes.${system};
 
@@ -29,7 +31,6 @@ let
   };
 in
 mkDrvSh {
-  inherit system;
   name = "rust-${version}";
   env = {
     rustc = comp "rustc" h.rustc;

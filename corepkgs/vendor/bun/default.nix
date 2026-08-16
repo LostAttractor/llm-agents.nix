@@ -3,18 +3,17 @@
 # integrity hashes aren't a single fetchurl input, so it's one committed-hash
 # FOD. --ignore-scripts keeps it deterministic + compiler-free (native deps ship
 # prebuilt binaries bun fetches without a build step).
+scope:
 {
   src,
   bunDepsHash,
   sourceRoot ? null,
-  system,
   bun, # the bun toolchain, threaded from the constructor scope
 }:
 let
-  mkDrvSh = import ../../mk/drv-sh.nix;
+  inherit (scope) mkDrvSh;
 in
 mkDrvSh {
-  inherit system;
   name = "bun-vendor";
   outputHash = bunDepsHash;
   env = {

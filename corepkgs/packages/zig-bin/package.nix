@@ -1,14 +1,16 @@
 # zig-bin: upstream prebuilt zig tarball. No glibc pin (uniquely): the zig binary
 # is truly static and `zig cc` is a self-contained C/C++ compiler + linker + libc.
 # version + per-system hash from ./hashes.json, platform token from systems.nix.
-{
-  system,
-}:
+scope:
 let
-  fetchurl = import ../../fetch/fetchurl.nix;
-  mkDrvSh = import ../../mk/drv-sh.nix;
-  seed = import ../../seed { inherit system; };
-  sys = (import ../../seed/systems.nix).${system};
+  inherit (scope)
+    fetchurl
+    mkDrvSh
+    seed
+    systems
+    system
+    ;
+  sys = systems.${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
   inherit (data) version;
@@ -20,7 +22,6 @@ let
   };
 in
 mkDrvSh {
-  inherit system;
   name = "zig-${version}";
   env = {
     inherit tarball;

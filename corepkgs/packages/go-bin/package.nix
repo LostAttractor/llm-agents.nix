@@ -2,14 +2,16 @@
 # from ./hashes.json, platform token from systems.nix.
 # go's own binaries are dynamic ELFs, so patchelf every one to the pinned glibc
 # (a CGO_ENABLED=0 build output is static and needs no patching).
-{
-  system,
-  pins,
-}:
+scope:
 let
-  fetchurl = import ../../fetch/fetchurl.nix;
-  mkDrvSh = import ../../mk/drv-sh.nix;
-  sys = (import ../../seed/systems.nix).${system};
+  inherit (scope)
+    fetchurl
+    mkDrvSh
+    systems
+    system
+    pins
+    ;
+  sys = systems.${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
   inherit (data) version;
@@ -19,7 +21,6 @@ let
   };
 in
 mkDrvSh {
-  inherit system;
   name = "go-${version}";
   env = {
     inherit tarball;

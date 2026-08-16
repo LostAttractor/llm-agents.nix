@@ -2,6 +2,7 @@
 # binary, no patchelf needed. Modules vendored by vendor/go (one vendorHash
 # FOD; go.sum hashes aren't fetchurl-compatible). cgo = true compiles cgo C via
 # zig cc -> dynamic output patchelf'd to the pinned glibc; buildInputs adds C-lib pins.
+scope:
 {
   pname,
   version ? null,
@@ -18,14 +19,18 @@
   meta ? { },
   category ? null,
   updater ? null,
-  system,
-  pins,
-  toolchains,
 }:
 let
-  mkDrvSh = import ../drv-sh.nix;
+  inherit (scope)
+    mkDrvSh
+    goVendor
+    systems
+    system
+    pins
+    toolchains
+    ;
   inherit (toolchains) go zig;
-  sys = (import ../../seed/systems.nix).${system};
+  sys = systems.${system};
   gnuTarget = "${sys.zig.platform}-gnu";
   extraLibPath = builtins.concatStringsSep ":" (map (p: "${p}/lib") buildInputs);
   pkgConfigPath = builtins.concatStringsSep ":" (map (p: "${p}/lib/pkgconfig") buildInputs);
@@ -38,12 +43,11 @@ let
     if vendorHash == null then
       null
     else
-      import ../../vendor/go {
+      goVendor {
         inherit
           src
           vendorHash
           sourceRoot
-          system
           go
           ;
       };
@@ -54,7 +58,6 @@ let
     )
   );
   drv = mkDrvSh {
-    inherit system;
     name = if version == null then "${pname}" else "${pname}-${version}";
     env = {
       inherit src go pairs;

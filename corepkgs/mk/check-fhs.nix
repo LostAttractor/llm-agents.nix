@@ -2,17 +2,15 @@
 # libs resolve inside /nix/store, nothing left on a host loader. Reads the
 # constructor's package.fhs: kind = patchelf (resolve via rpath) or loader
 # (interpreter is meant to be non-store), libpath, ignoreMissing SONAMEs. nushell.
-let
-  mkDrvNu = import ./drv-nu.nix;
-in
+scope:
 {
   package,
   name,
-  system,
-  pins,
 }:
+let
+  inherit (scope) mkDrvNu pins;
+in
 mkDrvNu {
-  inherit system;
   name = "${name}-fhs-check";
   env = {
     inherit package;

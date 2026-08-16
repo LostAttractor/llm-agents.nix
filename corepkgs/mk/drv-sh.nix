@@ -3,19 +3,19 @@
 # constructor (cargo/go/npm/bun/pnpm/python) run build tools with plain env vars +
 # loops, natural in sh. (mkDrvNu, nushell, is for data-processing builds like
 # check-fhs.) Boots busybox applets onto PATH via `exec -a busybox`.
+scope:
 {
   name,
   script, # inline sh string, OR a path to a .sh file (readFile'd) so the builder
   # lives in its own syntax-highlighted, shellcheck'd, shfmt'd file
   env ? { },
-  system,
   # FOD knob: set outputHash to make this a fixed-output derivation (the deps
   # vendorers need network + a committed hash). null = a normal build.
   outputHash ? null,
   outputHashMode ? "recursive",
 }:
 let
-  fetchurl = import ../fetch/fetchurl.nix;
+  inherit (scope) system fetchurl systems;
   scriptText = if builtins.isPath script then builtins.readFile script else script;
   isDarwin = builtins.match ".*-darwin" system != null;
   # Linux bundles a static busybox; Darwin has none, so use the sandbox's system
@@ -25,7 +25,7 @@ let
       null
     else
       fetchurl {
-        inherit ((import ../seed/systems.nix).${system}.busybox) url hash;
+        inherit (systems.${system}.busybox) url hash;
         executable = true;
       };
   prelude =

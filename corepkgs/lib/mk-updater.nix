@@ -1,6 +1,7 @@
 # Validate a declarative `passthru.updater` config, so a malformed one fails
 # `nix flake check` instead of the next weekly update run. Consumed as data
 # (nix eval --json) by scripts/updater/run.py.
+_scope:
 { lib }:
 let
   requiredByKind = {

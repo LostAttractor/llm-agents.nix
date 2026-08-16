@@ -1,8 +1,9 @@
 # Vendor a Cargo.lock's crates.io deps: each .crate is one builtin:fetchurl FOD
 # keyed by the sha256 straight from Cargo.lock. Assemble the cargo vendor dir
 # with a .cargo-checksum.json per crate.
+scope:
 let
-  mkDrvSh = import ../../mk/drv-sh.nix;
+  inherit (scope) mkDrvSh;
 
   fetchCrate =
     {
@@ -29,7 +30,6 @@ let
 in
 {
   cargoLock,
-  system,
   # git deps: [{ crate = "<name>"; archive = <fetched github archive tarball>; }].
   # cargo vendors a git dep under a plain <crate>/ dir with a null-package
   # checksum; source-replacement wiring lives in mk/cargo's builder.sh config.toml.
@@ -50,7 +50,6 @@ let
   gitManifest = builtins.concatStringsSep "\n" (map (g: "${g.crate} ${g.archive}") gitDeps);
 in
 mkDrvSh {
-  inherit system;
   name = "cargo-vendor";
   env = { inherit manifest gitManifest; };
   script = ./builder.sh;
