@@ -32,6 +32,8 @@ in
     ncurses = fake "/nix/store/zlvs6miv8wfki399pmxri7x0sjd3429c-ncurses-6.6";
     openssl = fake "/nix/store/1mf3lj0mldr8732yvzjc12fig2407b3d-openssl-3.6.3";
     opensslDev = fake "/nix/store/jvnhc1z9c04n4a7b2z2hzbajsa5i6ygd-openssl-3.6.3-dev";
+    sqlite = fake "/nix/store/fqkp26idpnpqk5l2cjfb51jdn6nj5bam-sqlite-3.53.3";
+    sqliteDev = fake "/nix/store/3jcwbrr7fg5jmyiw8xw02i3lw978mgq1-sqlite-3.53.3-dev";
     pkgConfig = fake "/nix/store/0v0raqk1qw5g2a21km4xa1hwhaq4s976-pkg-config-wrapper-0.29.2";
     icu = fake "/nix/store/nv8jd3fvfv8p1d6dxflk1snfxzwabbm7-icu4c-78.3";
     icuDev = fake "/nix/store/ahpzhy9kw4w3wnva40n8bi6qlhn9frsy-icu4c-78.3-dev";

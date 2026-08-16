@@ -30,6 +30,8 @@ in
   ncurses = pkgs.ncurses;
   openssl = pkgs.openssl.out;
   opensslDev = pkgs.openssl.dev;
+  sqlite = pkgs.sqlite.out;
+  sqliteDev = pkgs.sqlite.dev;
   pkgConfig = pkgs.pkg-config;
   icu = pkgs.icu.out;
   icuDev = pkgs.icu.dev;

@@ -18,6 +18,8 @@ system:
     ncurses = builtins.storePath /nix/store/zlvs6miv8wfki399pmxri7x0sjd3429c-ncurses-6.6;
     openssl = builtins.storePath /nix/store/1mf3lj0mldr8732yvzjc12fig2407b3d-openssl-3.6.3;
     opensslDev = builtins.storePath /nix/store/jvnhc1z9c04n4a7b2z2hzbajsa5i6ygd-openssl-3.6.3-dev;
+    sqlite = builtins.storePath /nix/store/fqkp26idpnpqk5l2cjfb51jdn6nj5bam-sqlite-3.53.3;
+    sqliteDev = builtins.storePath /nix/store/3jcwbrr7fg5jmyiw8xw02i3lw978mgq1-sqlite-3.53.3-dev;
     pkgConfig = builtins.storePath /nix/store/0v0raqk1qw5g2a21km4xa1hwhaq4s976-pkg-config-wrapper-0.29.2;
     icu = builtins.storePath /nix/store/nv8jd3fvfv8p1d6dxflk1snfxzwabbm7-icu4c-78.3;
     icuDev = builtins.storePath /nix/store/ahpzhy9kw4w3wnva40n8bi6qlhn9frsy-icu4c-78.3-dev;
