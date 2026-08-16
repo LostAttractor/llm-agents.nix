@@ -44,19 +44,16 @@
         inherit inputs;
       };
 
+      # corepkgs' system-independent API, for the meta helpers (flakeLib, ...).
+      # The system arg is a formality these functions never force; the
+      # per-system builder API is bound as `core` inside each system below.
+      coreApi = (import ./corepkgs { system = builtins.head systems; }).lib;
+
       # Call a function with only the arguments it declares.
       callWith = args: fn: fn (builtins.intersectAttrs (builtins.functionArgs fn) args);
 
       packageNames = builtins.attrNames (
         lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./packages)
-      );
-
-      # corepkgs' own machinery packages (formatelf, wrapBuddy, buildNpmPackage,
-      # versionCheckHomeHook) - build helpers, not agents. Auto-discovered from
-      # corepkgs/packages and callPackage'd into the same scope so consuming
-      # nixpkgs packages resolve them by argument name, exactly as before.
-      coreHelperNames = builtins.attrNames (
-        lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./corepkgs/packages)
       );
 
       checkNames = lib.mapAttrsToList (name: _type: lib.removeSuffix ".nix" name) (
@@ -125,7 +122,7 @@
                 ;
               # Validate a declarative passthru.updater config (see
               # scripts/updater/run.py); packages opt out of update.py with it.
-              mkUpdater = import ./corepkgs/lib/mk-updater.nix { inherit (pkgs) lib; };
+              mkUpdater = core.lib.mkUpdater { inherit (pkgs) lib; };
               # `bun build --compile` copies the running bun binary into the
               # executable it produces, so bun ends up inside our outputs
               # rather than being a build tool we can leave to the consumer.
@@ -147,14 +144,16 @@
               allPackages = packages;
             }
             // lib.genAttrs packageNames (name: self.callPackage (./packages + "/${name}/package.nix") { })
-            // lib.genAttrs coreHelperNames (
-              name: self.callPackage (./corepkgs/packages + "/${name}/package.nix") { }
-            )
+            # corepkgs' own machinery packages (formatelf, wrapBuddy,
+            # buildNpmPackage, versionCheckHomeHook), callPackage'd into the same
+            # scope so consuming nixpkgs packages resolve them by argument name.
+            # corepkgs owns their location; we just call the functions it exposes.
+            // lib.mapAttrs (_name: fn: self.callPackage fn { }) core.machinery
           );
 
           # Generate a standard passthru.updateScript from a package's
           # declarative passthru.updater config (see lib/mk-update-script.nix).
-          mkUpdateScript = import ./corepkgs/lib/mk-update-script.nix {
+          mkUpdateScript = core.lib.mkUpdateScript {
             inherit (pkgs)
               lib
               writeShellApplication
@@ -224,7 +223,7 @@
       });
     in
     {
-      lib = import ./corepkgs/lib/maintainers.nix { inherit inputs; };
+      lib = coreApi.flakeLib { inherit inputs; };
 
       inherit packages devShells;
 
@@ -263,6 +262,7 @@
           callWith {
             pkgs = pkgsFor.${system};
             inherit flake inputs system;
+            inherit (core.lib) interpolate;
           } (import (./checks + "/${name}.nix"))
         )
         // {

@@ -53,9 +53,30 @@ let
   platformSource = import ./fetch/platform-source.nix {
     inherit system fetchurlTemplate;
   };
+
+  # corepkgs' own machinery packages (formatelf, wrapBuddy, buildNpmPackage,
+  # versionCheckHomeHook): the by-name package FUNCTIONS, un-called. corepkgs
+  # owns their location; a consumer callPackage's them into its own scope, so it
+  # never has to readDir or path-import corepkgs/packages itself.
+  machinery =
+    let
+      entries = builtins.readDir ./packages;
+      dirs = builtins.filter (n: entries.${n} == "directory") (builtins.attrNames entries);
+    in
+    builtins.listToAttrs (
+      map (n: {
+        name = n;
+        value = import (./packages + "/${n}/package.nix");
+      }) dirs
+    );
 in
 {
-  inherit system pins toolchains;
+  inherit
+    system
+    pins
+    toolchains
+    machinery
+    ;
 
   # The builder API: constructors + owned primitives, with system/pins pre-bound
   # so a consumer's package.nix stays terse (just `mkBinary { ... }`).
@@ -78,6 +99,15 @@ in
     seed = import ./seed.nix { inherit system; };
     systems = import ./systems.nix;
     inherit pins system;
+
+    # Meta helpers, exposed as un-called functions so the consumer supplies its
+    # own nixpkgs deps (lib, updater tools, flake inputs) but never path-imports
+    # a corepkgs file. mkUpdater { lib } validates a passthru.updater config;
+    # mkUpdateScript { lib, writeShellApplication, ... } builds its updateScript;
+    # flakeLib { inputs } is the extended nixpkgs lib (custom maintainers/licenses).
+    mkUpdater = import ./lib/mk-updater.nix;
+    mkUpdateScript = import ./lib/mk-update-script.nix;
+    flakeLib = import ./lib/maintainers.nix;
   };
 
   # corepkgs' own machinery packages: the seed + toolchains + formatelf + hello,
