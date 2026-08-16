@@ -12,7 +12,11 @@
 {
   system ? builtins.currentSystem,
   pkgs ? null,
-  pins ? if pkgs != null then import ./pins-pkgs.nix pkgs else import ./pins-store.nix system,
+  # Pins: from `pkgs` when given (pins-pkgs.nix, so the root flake reuses its own
+  # nixpkgs). Otherwise the pure, nixpkgs-free fetchClosure provider - which is
+  # what makes corepkgs a standalone flake with no nixpkgs input. (pins-store.nix
+  # remains for an explicit impure fast-eval path: `import ./pins-store.nix`.)
+  pins ? if pkgs != null then import ./pins-pkgs.nix pkgs else import ./pins-closure.nix system,
 }:
 let
   build = import ./build.nix;

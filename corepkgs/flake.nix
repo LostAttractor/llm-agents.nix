@@ -3,27 +3,32 @@
 # NOT consume this; it imports ./default.nix directly (core.lib.mkBinary), which
 # keeps eval fast and avoids a locked path input. This flake is purely for using
 # corepkgs by itself.
+#
+# corepkgs has NO nixpkgs input: pins come from pins-closure.nix (fetchClosure of
+# stock cache.nixos.org / cache.numtide.com paths - pure + nixpkgs-free), and
+# every toolchain/package fetches its upstream artifact via coreFetchurl. So this
+# flake needs no inputs at all.
 {
   description = "corepkgs — a nixpkgs-free packaging system (static seed + nushell builder)";
 
-  inputs."nixpkgs".url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-
-  # `...` accepts the `self` Nix always passes without deadnix stripping it.
   outputs =
-    { nixpkgs, ... }:
+    { ... }:
     let
       systems = [
         "x86_64-linux"
         "aarch64-linux"
-        "aarch64-darwin"
       ];
-      eachSystem = nixpkgs.lib.genAttrs systems;
-      coreFor =
-        system:
-        import ./. {
-          inherit system;
-          pkgs = nixpkgs.legacyPackages.${system};
-        };
+      # local genAttrs so we need no nixpkgs.lib
+      eachSystem =
+        f:
+        builtins.listToAttrs (
+          map (s: {
+            name = s;
+            value = f s;
+          }) systems
+        );
+      # pkgs omitted -> default.nix uses the nixpkgs-free fetchClosure pins
+      coreFor = system: import ./. { inherit system; };
     in
     {
       lib = eachSystem (system: (coreFor system).lib);
