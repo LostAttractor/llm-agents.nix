@@ -118,6 +118,7 @@
                 mkCargo
                 mkGo
                 mkNpm
+                mkPython
                 mkNaked
                 checkFhs
                 coreFetchurl

@@ -50,6 +50,7 @@ in
     mkCargo = args: import ./mk/cargo.nix (args // { inherit system pins; });
     mkGo = args: import ./mk/go.nix (args // { inherit system pins; });
     mkNpm = args: import ./mk/npm.nix (args // { inherit system pins; });
+    mkPython = args: import ./mk/python.nix (args // { inherit system pins; });
     mkNaked = args: import ./mk/naked.nix (args // { inherit system; });
     mkNakedSh = args: import ./mk/naked-sh.nix (args // { inherit system; });
     checkFhs = args: import ./mk/check-fhs.nix (args // { inherit system pins; });
