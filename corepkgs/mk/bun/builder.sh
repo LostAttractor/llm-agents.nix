@@ -32,6 +32,13 @@ dest="$out/lib/$pname"
 mkdir -p "$dest" "$out/bin"
 cp -r . "$dest/"
 
+# bun vendors its own platform binaries (@oven/bun-<platform>) as optional deps.
+# We run on the toolchain bun, so these are never invoked - and they are FHS-
+# linked musl/glibc ELFs that fail the store-only check. Drop them.
+for d in "$dest"/node_modules/.bun/@oven+bun-* "$dest"/node_modules/@oven/bun-*; do
+  [ -e "$d" ] && rm -rf "$d"
+done
+
 # patchelf bundled prebuilt native addons (*.node) to the pinned glibc so
 # they resolve inside the store instead of the host FHS.
 find "$dest" -name '*.node' -type f | while read -r so; do
