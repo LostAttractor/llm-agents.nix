@@ -10,11 +10,10 @@
   packageLock ? null, # inject a committed package-lock.json (for registry tarballs that ship none, like nixpkgs' runCommand-injected lock)
   omitOptional ? false, # `npm ci --omit=optional`: drop optionalDependencies (cross-platform prebuilds a package ships but does not need). NOT the default: many packages get their one platform-correct native binding via an optionalDependency.
   system,
-  pins,
+  node, # the node toolchain, threaded from the constructor scope
 }:
 let
   fetchurl = import ../fetch/fetchurl.nix;
-  node = import ../toolchains/node.nix { inherit system pins; };
   sys = (import ../systems.nix).${system};
   busybox = fetchurl {
     inherit (sys.busybox) url hash;

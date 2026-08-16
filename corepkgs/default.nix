@@ -1,14 +1,18 @@
 # corepkgs — the nixpkgs-free packaging system, as an importable API.
 #
-#   core = import ./corepkgs { inherit system; pkgs = <nixpkgs for system>; };
+#   core = import ./corepkgs { inherit system; }          # nixpkgs-free
 #   core.lib.mkBinary { ... }      # the builder API
-#   core.packages                  # corepkgs' own machinery (toolchains, formatelf, hello)
+#   core.packages                  # corepkgs' own machinery (toolchains + hello)
 #
-# Pins come from `pkgs` (pure, pins-pkgs.nix) when it is given, else from
-# storePath pins (pins-store.nix; fast standalone eval, but impure). The root
-# flake passes `pkgs` so its outputs stay pure; corepkgs/flake.nix (a real,
-# standalone flake) does the same. `system` defaults to the current system so
-# `nix build -f corepkgs --impure packages.hello` still works.
+# The two seed layers are threaded through the scope as swappable providers:
+#   pins       — prebuilt C libraries + tools (glibc, openssl, formatelf, ...).
+#                Default: the nixpkgs-free fetchClosure provider (pins-closure);
+#                when `pkgs` is passed (root flake), pins-pkgs.nix reuses it.
+#   toolchains — the compilers/runtimes we build WITH (rust, go, node, ...).
+#                Default: fetched prebuilt (toolchains/default.nix).
+# Swap either provider (e.g. a from-source bootstrap) without touching a
+# constructor. `system` defaults to the current system so `nix build -f corepkgs
+# --impure packages.hello` still works.
 {
   system ? builtins.currentSystem,
   pkgs ? null,
@@ -17,9 +21,23 @@
   # what makes corepkgs a standalone flake with no nixpkgs input. (pins-store.nix
   # remains for an explicit impure fast-eval path: `import ./pins-store.nix`.)
   pins ? if pkgs != null then import ./pins-pkgs.nix pkgs else import ./pins-closure.nix system,
+  # The toolchain set (seed, zig, bun, node, rust, go, python), threaded through
+  # the constructor scope like `pins`. Swap this provider to change the bootstrap
+  # (fetched-prebuilt -> from-source) without touching any constructor.
+  toolchains ? import ./toolchains { inherit system pins; },
 }:
 let
-  build = import ./build.nix;
+  mkNaked = import ./mk/naked.nix;
+  # smoke-test package: a nixpkgs-free derivation with no toolchain at all.
+  hello = mkNaked {
+    inherit system;
+    name = "naked-hello";
+    script = ''
+      mkdir $"($out)/bin"
+      "#!/bin/sh\necho hello from a nixpkgs-free derivation\n" | save --raw $"($out)/bin/hello"
+      ^chmod +x $"($out)/bin/hello"
+    '';
+  };
 
   # All fetcher machinery lives together in ./fetch and is nixpkgs-free: every
   # fetch goes through the naked builtin:fetchurl fetcher, and platformSource
@@ -37,16 +55,16 @@ let
   };
 in
 {
-  inherit system pins;
+  inherit system pins toolchains;
 
   # The builder API: constructors + owned primitives, with system/pins pre-bound
   # so a consumer's package.nix stays terse (just `mkBinary { ... }`).
   lib = {
     mkBinary = args: import ./mk/binary.nix (args // { inherit system pins; });
-    mkCargo = args: import ./mk/cargo.nix (args // { inherit system pins; });
-    mkGo = args: import ./mk/go.nix (args // { inherit system pins; });
-    mkNpm = args: import ./mk/npm.nix (args // { inherit system pins; });
-    mkPython = args: import ./mk/python.nix (args // { inherit system pins; });
+    mkCargo = args: import ./mk/cargo.nix (args // { inherit system pins toolchains; });
+    mkGo = args: import ./mk/go.nix (args // { inherit system pins toolchains; });
+    mkNpm = args: import ./mk/npm.nix (args // { inherit system pins toolchains; });
+    mkPython = args: import ./mk/python.nix (args // { inherit system pins toolchains; });
     mkNaked = args: import ./mk/naked.nix (args // { inherit system; });
     mkNakedSh = args: import ./mk/naked-sh.nix (args // { inherit system; });
     checkFhs = args: import ./mk/check-fhs.nix (args // { inherit system pins; });
@@ -69,10 +87,8 @@ in
   # carries only Linux rows (darwin has just the nushell seed). Darwin agent
   # packages still build fine — they pull the darwin seed directly.
   packages =
-    if system == "x86_64-linux" then
-      build.toolchains { inherit system pins; } // { python = build.python pins; }
-    else if system == "aarch64-linux" then
-      build.toolchains { inherit system pins; }
+    if system == "x86_64-linux" || system == "aarch64-linux" then
+      toolchains // { inherit hello; }
     else
       { };
 }

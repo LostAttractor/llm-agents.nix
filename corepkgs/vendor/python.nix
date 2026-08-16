@@ -14,11 +14,10 @@
   sourceRoot ? null,
   postPatch ? "",
   system,
-  pins,
+  python, # the python toolchain, threaded from the constructor scope
 }:
 let
   fetchurl = import ../fetch/fetchurl.nix;
-  python = import ../toolchains/python.nix { inherit system pins; };
   sys = (import ../systems.nix).${system};
   busybox = fetchurl {
     inherit (sys.busybox) url hash;

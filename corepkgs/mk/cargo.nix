@@ -34,13 +34,13 @@
   updater ? null,
   system,
   pins,
+  toolchains,
 }:
 let
   mkNaked = import ./naked-sh.nix;
   cargoVendor = import ../vendor/cargo.nix;
   sys = (import ../systems.nix).${system};
-  rust = import ../toolchains/rust.nix { inherit system pins; };
-  zig = import ../toolchains/zig.nix { inherit system; };
+  inherit (toolchains) rust zig;
 
   gnuTarget = "${sys.zig.platform}-gnu"; # zig cc target
   rustGnu = sys.rust.gnu; # cargo [target.<triple>]

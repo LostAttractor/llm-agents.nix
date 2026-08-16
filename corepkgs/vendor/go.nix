@@ -8,11 +8,10 @@
   vendorHash,
   sourceRoot ? null,
   system,
-  pins,
+  go, # the go toolchain, threaded from the constructor scope
 }:
 let
   fetchurl = import ../fetch/fetchurl.nix;
-  go = import ../toolchains/go.nix { inherit system pins; };
   sys = (import ../systems.nix).${system};
   busybox = fetchurl {
     inherit (sys.busybox) url hash;

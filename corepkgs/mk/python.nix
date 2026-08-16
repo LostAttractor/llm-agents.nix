@@ -20,10 +20,11 @@
   updater ? null,
   system,
   pins,
+  toolchains,
 }:
 let
   mkNaked = import ./naked-sh.nix;
-  python = import ../toolchains/python.nix { inherit system pins; };
+  inherit (toolchains) python;
   vendor = import ../vendor/python.nix {
     inherit
       src
@@ -31,7 +32,7 @@ let
       sourceRoot
       postPatch
       system
-      pins
+      python
       ;
   };
   # the manylinux external libs wheels may link (mirrors toolchains/python.nix);

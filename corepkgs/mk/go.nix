@@ -22,11 +22,11 @@
   updater ? null,
   system,
   pins,
+  toolchains,
 }:
 let
   mkNaked = import ./naked-sh.nix;
-  go = import ../toolchains/go.nix { inherit system pins; };
-  zig = import ../toolchains/zig.nix { inherit system; };
+  inherit (toolchains) go zig;
   sys = (import ../systems.nix).${system};
   gnuTarget = "${sys.zig.platform}-gnu";
   extraLibPath = builtins.concatStringsSep ":" (map (p: "${p}/lib") buildInputs);
@@ -46,7 +46,7 @@ let
           vendorHash
           sourceRoot
           system
-          pins
+          go
           ;
       };
   # subPackages and binaries are parallel; join into "pkg:bin" pairs.

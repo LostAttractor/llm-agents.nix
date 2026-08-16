@@ -34,10 +34,11 @@
   updater ? null,
   system,
   pins,
+  toolchains,
 }:
 let
   mkNaked = import ./naked-sh.nix;
-  node = import ../toolchains/node.nix { inherit system pins; };
+  inherit (toolchains) node;
   npmVendor = import ../vendor/npm.nix {
     inherit
       src
@@ -46,7 +47,7 @@ let
       packageLock
       omitOptional
       system
-      pins
+      node
       ;
   };
 
