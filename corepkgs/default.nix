@@ -21,28 +21,20 @@
 let
   build = import ./build.nix;
 
-  # All fetcher machinery lives together in ./fetch. fetchurlTemplate +
-  # platformSource need pkgs (fetchurl/stdenv), so they are null in the
-  # standalone (pkgs = null) path, which does not build nixpkgs packages.
+  # All fetcher machinery lives together in ./fetch and is nixpkgs-free: every
+  # fetch goes through the naked builtin:fetchurl fetcher, and platformSource
+  # takes the `system` string directly (no stdenv). So these are always
+  # available, even on the standalone (pkgs = null) path.
   interpolate = import ./fetch/interpolate.nix;
   coreFetchurl = import ./fetch/fetchurl.nix;
   nakedFetchurl = import ./fetch/naked-fetchurl.nix;
-  fetchurlTemplate =
-    if pkgs == null then
-      null
-    else
-      import ./fetch/fetchurl-template.nix {
-        inherit (pkgs) fetchurl;
-        inherit interpolate;
-      };
-  platformSource =
-    if pkgs == null then
-      null
-    else
-      import ./fetch/platform-source.nix {
-        inherit (pkgs) stdenv;
-        inherit fetchurlTemplate;
-      };
+  fetchurlTemplate = import ./fetch/fetchurl-template.nix {
+    fetchurl = nakedFetchurl;
+    inherit interpolate;
+  };
+  platformSource = import ./fetch/platform-source.nix {
+    inherit system fetchurlTemplate;
+  };
 in
 {
   inherit system pins;

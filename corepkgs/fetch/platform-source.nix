@@ -2,7 +2,10 @@
 # hashes.json. Returns both the build `src` and a matching `updater` fragment
 # from the same urlTemplate + platform map, so build and updater never diverge
 # (see scripts/updater/run.py, kind = "platform").
-{ stdenv, fetchurlTemplate }:
+#
+# nixpkgs-free: takes the nix `system` string directly (no stdenv) and fetches
+# via fetchurlTemplate, which is wired to the naked builtin:fetchurl fetcher.
+{ system, fetchurlTemplate }:
 
 {
   hashesFile, # { version, hashes.<system> }
@@ -15,7 +18,6 @@
 let
   versionData = builtins.fromJSON (builtins.readFile hashesFile);
   inherit (versionData) version;
-  system = stdenv.hostPlatform.system;
   entry = platforms.${system} or (throw "Unsupported system: ${system}");
   platformVars = if builtins.isAttrs entry then entry else { platform = entry; };
 in
