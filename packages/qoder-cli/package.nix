@@ -5,23 +5,24 @@
 # qodercli is a bun --compile single-file binary, so kind = "loader" leaves it
 # byte-intact and invokes the pinned glibc loader through the wrapper.
 #
-# NOTE: qoder's ./hashes.json nests each platform's url+hash under `platforms`,
-# a shape mkPackage's shared-hashes reader cannot consume, so the source is
-# pinned inline (single-platform, mirroring the current hashes.json). The
-# declarative updater below still tracks all upstream platforms.
+# version + each platform's url+hash live in ./hashes.json under `platforms`; the
+# nested shape can't feed mkPackage's shared reader, so we read the x86_64 entry
+# in a let-block. The declarative updater tracks all upstream platforms.
 {
   mkPackage,
   mkUpdater,
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPackage {
   pname = "qoder-cli";
-  version = "1.1.22";
+  inherit (data) version;
   mainProgram = "qodercli";
   src = coreFetchurl {
-    url = "https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/releases/1.1.22/qodercli-linux-x64.tar.gz";
-    hash = "sha256-nrlsdKG9E4v82F6Yyz9KP5/EUQ/tMotrE/JZDnQZ5LE=";
+    inherit (data.platforms.x86_64-linux) url hash;
   };
   unpack = "tar";
   binary = "qodercli";
@@ -57,8 +58,6 @@ mkPackage {
 
   meta = {
     description = "Qoder AI CLI tool - Terminal-based AI assistant for code development";
-    # Inline-pinned x86_64 binary only (mkPackage cannot yet read this
-    # package's nested per-platform hashes.json); gate accordingly.
     platforms = [ "x86_64-linux" ];
     homepage = "https://qoder.com";
     changelog = "https://qoder.com/changelog";

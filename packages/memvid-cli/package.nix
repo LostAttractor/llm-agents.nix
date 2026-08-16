@@ -14,13 +14,16 @@
   flake,
   corePins,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPackage {
   pname = "memvid-cli";
-  version = "2.0.160";
+  inherit (data) version;
   mainProgram = "memvid";
   src = coreFetchurl {
-    url = "https://registry.npmjs.org/@memvid/cli-linux-x64/-/cli-linux-x64-2.0.160.tgz";
-    hash = "sha256-d0Yy+m9HOqGYftoSSIRMCIjayxoyCritn2zQL5Je3lw=";
+    url = "https://registry.npmjs.org/@memvid/cli-linux-x64/-/cli-linux-x64-${data.version}.tgz";
+    inherit (data) hash;
   };
   unpack = "tar";
   installDir = "package";

@@ -23,7 +23,7 @@ mkCargo {
     {
       crate = "crossterm";
       source = "git+https://github.com/raine/crossterm#f99eeae405e28fa8cb353a6c6e36c493e72891bd";
-      hash = "sha256-2hn4NpzVU8ASCRDgdbpOmVVVGQLxEewvU4Vp4aVUGHU=";
+      hash = data.crosstermHash;
     }
   ];
 

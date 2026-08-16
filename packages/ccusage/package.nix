@@ -11,8 +11,8 @@ let
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
   # litellm rev pinned by the tag's flake.lock (nodes.litellm.locked.rev).
   litellm-pricing = coreFetchurl {
-    url = "https://raw.githubusercontent.com/BerriAI/litellm/34561482ed092d78c296cab7999486022af5a938/model_prices_and_context_window.json";
-    hash = "sha256-jV/bRDNx+DNMKMsP9kvw82rRNexvdm7sdnzGLTt/gJI=";
+    url = "https://raw.githubusercontent.com/BerriAI/litellm/${data.litellmRev}/model_prices_and_context_window.json";
+    hash = data.litellmHash;
   };
 in
 mkCargo {

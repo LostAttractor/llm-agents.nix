@@ -12,13 +12,13 @@
 }:
 
 let
-  version = "1.0.0";
+  # version + rev + src hash live in ./hashes.json
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
   src = fetchFromGitHub {
     owner = "Mic92";
     repo = "wrap-buddy";
-    rev = "ba5ab56ddc572482c26b2cf08414befc5f66ad40";
-    hash = "sha256-NlBlJbQsFKDgUtawzAEGF0iIO/xON2LXGw/axFOU4g8=";
+    inherit (data) rev hash;
   };
 
   # from stdenv attrs to avoid IFD
@@ -34,7 +34,8 @@ let
   # the wrap-buddy C++ patcher with embedded stubs.
   wrapBuddy = stdenv.mkDerivation {
     pname = "wrap-buddy";
-    inherit version src;
+    inherit src;
+    inherit (data) version;
 
     # runs on BUILD, compiles for BUILD
     depsBuildBuild = [

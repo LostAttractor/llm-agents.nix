@@ -6,20 +6,23 @@
 # appended JS payload), so leave it byte-intact and invoke the pinned glibc
 # loader through the wrapper. rg is fetched separately and bundled onto PATH.
 #
-# NOTE: droid's ./hashes.json nests its hashes under `droid`/`ripgrep` per
-# platform, a shape mkPackage's shared-hashes reader cannot consume, so the
-# source is pinned inline (single-platform, mirroring the current hashes.json).
+# version + the droid/ripgrep per-platform hashes live in ./hashes.json (nested
+# per binary, so mkPackage's shared-hashes reader can't consume it; we read it in
+# a let-block instead). x86_64 only for now.
 {
   mkPackage,
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPackage {
   pname = "droid";
-  version = "0.196.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://downloads.factory.ai/factory-cli/releases/0.196.0/linux/x64/droid";
-    hash = "sha256-4Gof9XPv3B2PLDrqdAhX0hzX/ylEIJ9q594VX7v2zfw=";
+    url = "https://downloads.factory.ai/factory-cli/releases/${data.version}/linux/x64/droid";
+    hash = data.droid.x86_64-linux;
   };
   unpack = "none";
   kind = "loader";
@@ -28,7 +31,7 @@ mkPackage {
       name = "rg";
       src = coreFetchurl {
         url = "https://downloads.factory.ai/ripgrep/linux/x64/rg";
-        hash = "sha256-viR2yXY0K5IWYRtKhMG8LsZIjsXHkeoBmhMnJ2RO8Zw=";
+        hash = data.ripgrep.x86_64-linux;
       };
     }
   ];
@@ -37,8 +40,6 @@ mkPackage {
 
   meta = {
     description = "Factory AI's Droid - AI-powered development agent for your terminal";
-    # Inline-pinned x86_64 binary only (mkPackage cannot yet read this
-    # package's nested per-platform hashes.json); gate accordingly.
     platforms = [ "x86_64-linux" ];
     homepage = "https://factory.ai";
     changelog = "https://docs.factory.ai/changelog/cli-updates";
