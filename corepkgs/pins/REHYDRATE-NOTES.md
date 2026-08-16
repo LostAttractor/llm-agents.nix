@@ -23,13 +23,19 @@ drvPath** for, in order of the bugs found and fixed:
    `attrNames` (sorted).
 1. `preferLocalBuild`/`allowSubstitutes`/`__structuredAttrs` serialize as "1"/""
    strings but `builtins.derivation` wants bools.
+1. FOD `outputHashAlgo` — the output hash is SRI (`sha256-…`, self-describing),
+   so `outputHashAlgo` must be **omitted**. Passing `""` injects a spurious
+   field into the `.drv` for `method = "nar"` FODs (cargo `-vendor-staging`),
+   diverging the drvPath. `method` maps straight to `outputHashMode`.
 
 Performance: **must memoize** — the closure is a DAG with heavy sharing
 (bootstrap-tools/gcc/stdenv), so naive recursion is exponential (9 min → 0.4 s
 with a lazy fixpoint memo).
 
-Result on `glibc-2.42-67` (400-node closure): **395 / 400 nodes reproduce the
-exact drvPath.**
+Result: the **entire pin closure — all 1206 nodes — reproduces the exact
+nixpkgs drvPath** (byte-identical `.drv`, not just matching pin outputs). So the
+rehydrated backend is 100% compatible with nixpkgs at the derivation level, and
+every one of the 20 pins lands the identical output store path.
 
 ## The "minimal-env" nodes: it's `__structuredAttrs` (handleable)
 

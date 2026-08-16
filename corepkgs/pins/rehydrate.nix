@@ -112,8 +112,12 @@ let
       fodAttrs =
         if isFOD then
           {
-            outputHash = node.outputs.out.hash; # SRI, self-describing algo
-            outputHashAlgo = "";
+            # SRI hash carries its own algo, so OMIT outputHashAlgo entirely.
+            # Passing "" injects a spurious `outputHashAlgo` field into the .drv
+            # for nar-method FODs (e.g. cargo -vendor-staging), diverging the
+            # drvPath from nixpkgs. `method` ("nar"/"flat") is the exact
+            # outputHashMode nixpkgs serializes, so pass it through verbatim.
+            outputHash = node.outputs.out.hash;
             outputHashMode = node.outputs.out.method or "recursive";
           }
         else
