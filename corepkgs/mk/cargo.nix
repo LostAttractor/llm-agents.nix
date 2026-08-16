@@ -30,6 +30,7 @@
   meta ? { },
   category ? null,
   updater ? null,
+  hideFromDocs ? false, # build tools / helpers, not agent packages: skip the README + meta-completeness category
   system,
   pins,
   toolchains,
@@ -250,7 +251,8 @@ drv
   // meta;
   passthru =
     (if category == null then { } else { inherit category; })
-    // (if updater == null then { } else { inherit updater; });
+    // (if updater == null then { } else { inherit updater; })
+    // (if hideFromDocs then { inherit hideFromDocs; } else { });
   # the produced binaries are patchelf'd to the pinned glibc/gccLib, so the FHS
   # check treats them like a kind = "patchelf" mkPackage output.
   fhs = {

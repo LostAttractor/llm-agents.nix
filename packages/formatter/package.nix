@@ -2,12 +2,16 @@
   flake,
   inputs,
   pkgs,
+  nixfmt-rs,
 }:
 # treefmt with config
 let
   formatter = inputs."treefmt-nix".lib.mkWrapper pkgs {
     _file = __curPos.file;
     imports = [ ./treefmt.nix ];
+    # dogfood: format Nix with corepkgs' own from-source build of nixfmt-rs (the
+    # Rust port of nixfmt), byte-identical to nixpkgs' nixfmt.
+    programs.nixfmt.package = nixfmt-rs;
   };
 
   check =
