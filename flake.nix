@@ -71,6 +71,7 @@
           # no-ghc.nix is the tripwire that forbids Haskell from creeping back.
           overlays = [
             (import ./overlays/no-shellcheck-wrappers.nix)
+            (import ./overlays/no-pandoc.nix)
             (import ./overlays/no-ghc.nix)
           ];
         }
