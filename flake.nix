@@ -68,7 +68,11 @@
           inherit system;
           # keep GHC out of eval: writeShellApplication's build-time shellcheck
           # lint drags in the whole Haskell closure; we lint shell with shuck.
-          overlays = [ (import ./overlays/no-shellcheck-wrappers.nix) ];
+          # no-ghc.nix is the tripwire that forbids Haskell from creeping back.
+          overlays = [
+            (import ./overlays/no-shellcheck-wrappers.nix)
+            (import ./overlays/no-ghc.nix)
+          ];
         }
       );
 
