@@ -106,7 +106,7 @@ buildNpmPackage {
 
     upstream_electron_manifest=$(node -p "require('./apps/desktop/package.json').devDependencies.electron")
     upstream_electron_builder=$(node -p "require('./apps/desktop/package.json').build.electronVersion")
-    upstream_electron_lock=$(node -p "require('./package-lock.json').packages['node_modules/electron'].version")
+    upstream_electron_lock=$(node -p "(p => (p['apps/desktop/node_modules/electron'] ?? p['node_modules/electron']).version)(require('./package-lock.json').packages)")
     if [[ "$upstream_electron_manifest" != 40.10.2 || "$upstream_electron_builder" != 40.10.2 || "$upstream_electron_lock" != 40.10.2 ]]; then
       echo "error: upstream Electron pins changed from the reviewed 40.10.2" >&2
       echo "manifest=$upstream_electron_manifest builder=$upstream_electron_builder lock=$upstream_electron_lock" >&2

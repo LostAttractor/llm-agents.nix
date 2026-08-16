@@ -1,0 +1,2 @@
+# kandev-desktop asserts at build time that its version matches kandev.
+kandev-desktop

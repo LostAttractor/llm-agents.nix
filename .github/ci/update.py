@@ -102,6 +102,22 @@ def run_update_command(cmd: list[str], error_label: str) -> None:
         sys.exit(1)
 
 
+def load_companions(name: str) -> list[str]:
+    """Load companion package names from packages/<name>/update-companions.
+
+    Companions must be bumped in the same commit as the primary package,
+    e.g. because they assert matching versions at build time.
+    """
+    companions_file = Path(f"packages/{name}/update-companions")
+    if not companions_file.exists():
+        return []
+    return [
+        stripped
+        for line in companions_file.read_text().splitlines()
+        if (stripped := line.strip()) and not stripped.startswith("#")
+    ]
+
+
 def has_declarative_updater(name: str) -> bool:
     """Whether the package carries a declarative passthru.updater config.
 
@@ -135,8 +151,8 @@ def load_nix_update_args(name: str) -> list[str]:
     ]
 
 
-def update_package(name: str) -> None:
-    """Update a single package using its update script or nix-update."""
+def run_package_updater(name: str) -> None:
+    """Run one package's updater: update script, updateScript, or nix-update."""
     log.info("Updating package %s...", name)
 
     update_script = Path(f"packages/{name}/update.py")
@@ -160,6 +176,13 @@ def update_package(name: str) -> None:
             ),
             f"nix-update failed for package {name}",
         )
+
+
+def update_package(name: str) -> None:
+    """Update a package and its companions."""
+    run_package_updater(name)
+    for companion in load_companions(name):
+        run_package_updater(companion)
 
     if not git_has_changes():
         log.info("No changes detected")

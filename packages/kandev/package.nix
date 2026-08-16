@@ -24,13 +24,13 @@
 
 let
   pname = "kandev";
-  version = "0.87.1";
+  version = "0.88.0";
 
   src = fetchFromGitHub {
     owner = "kdlbs";
     repo = "kandev";
     tag = "v${version}";
-    hash = "sha256-StFmh8pa9X7dllbpxbVFYraucsvrTJNtwQBNWElgCiU=";
+    hash = "sha256-YLJ6shH/CCh7I8412Fw6tVuma4bCiBFheH9BDM49T1k=";
   };
 
   pnpm = pnpm_10.overrideAttrs (_: {
@@ -56,7 +56,7 @@ let
         ;
       inherit pnpm;
       fetcherVersion = 4;
-      hash = "sha256-EQ07LBl6WIoeHZwbo6HaZC+ZHullTJO2aCh20/5WDQ0=";
+      hash = "sha256-5GBYP7Ryr7RkIzxTsc15y1squza74KwgyS39rtfJPq0=";
     };
 
     nativeBuildInputs = [

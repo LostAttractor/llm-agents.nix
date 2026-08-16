@@ -57,13 +57,15 @@ buildGoModule rec {
 1. Running `nix run nixpkgs#nix-update -- --flake <package>`
 1. Confirming version and hashes are updated correctly
 
-**Only use custom `update.py` scripts when nix-update cannot handle the package**, such as:
+**When nix-update cannot handle the package**, prefer a declarative
+`passthru.updater` config (validated by `lib/mk-updater.nix`, executed by
+`scripts/updater/run.py`). Kinds: `github-source`, `npm`, `bun-github`,
+`platform`, `manifest`, `manifest-checksums`. See migrated packages such as
+`packages/claude-code/package.nix` for examples.
 
-- Packages with complex version schemes nix-update cannot parse
-- Sources not supported by nix-update (non-GitHub, custom APIs)
-- Packages requiring special hash calculation logic
-
-Custom updaters should use the `scripts/updater/` library. See existing `update.py` files for examples.
+Only fall back to a custom `update.py` script when no declarative kind fits
+(special hash calculation, unusual upstream APIs). Custom updaters should use
+the `scripts/updater/` library.
 
 ### Package Metadata Requirements
 

@@ -25,9 +25,7 @@ def fetch_github_latest_release(owner: str, repo: str) -> str:
         msg = f"Expected dict from GitHub API, got {type(data)}"
         raise TypeError(msg)
     tag = cast("str", data["tag_name"])
-
-    # Strip 'v' prefix if present (also handled in parse_version for defensive comparison)
-    return tag.lstrip("v")
+    return _strip_v_prefix(tag)
 
 
 def fetch_npm_version(package: str, *, tag: str = "latest") -> str:
@@ -57,14 +55,15 @@ def fetch_npm_version(package: str, *, tag: str = "latest") -> str:
         return cast("str", data["version"])
 
 
-# Parse versions into numeric components for proper comparison
-# Handle versions like "1.0.105", "0.61.0", "2025.11.06-8fe8a63", "v1.0.0"
-def parse_version(v: str) -> tuple[list[int], str]:
-    """Parse version into numeric parts and suffix."""
-    # Strip 'v' prefix if present
-    v = v.lstrip("v")
+def _strip_v_prefix(v: str) -> str:
+    """Strip a leading "v" version prefix, but only ahead of a digit."""
+    return re.sub(r"^v(?=\d)", "", v)
 
-    # Split on common separators (-, +, etc) to separate numeric from suffix
+
+def parse_version(v: str) -> tuple[list[int], str]:
+    """Parse a version like "v1.0.105" or "2025.11.06-8fe8a63" into numeric parts and suffix."""
+    v = _strip_v_prefix(v)
+
     parts = v.replace("+", "-").split("-", 1)
     numeric_str = parts[0]
     suffix = parts[1] if len(parts) > 1 else ""

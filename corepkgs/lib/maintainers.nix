@@ -215,6 +215,11 @@ inputs."nixpkgs".lib.extend (
         githubId = 20773762;
         name = "JachinShen";
       };
+      whazor = {
+        github = "whazor";
+        githubId = 184182;
+        name = "Nanne";
+      };
     };
   }
 )

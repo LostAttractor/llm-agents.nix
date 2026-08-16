@@ -1,7 +1,6 @@
-# Run treefmt over the tree and fail on any diff. `nix fmt` was only a
-# convention until now: the flake checks never ran the formatter, so
-# formatting drift and ast-grep rule violations sailed through CI and
-# surfaced on the next contributor's `nix fmt`.
+# Run treefmt over the tree and fail on any diff, so formatting drift and
+# ast-grep rule violations are caught in CI instead of on the next
+# contributor's `nix fmt`.
 {
   pkgs,
   flake,

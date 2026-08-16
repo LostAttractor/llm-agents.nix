@@ -161,7 +161,6 @@ def extract_or_generate_lockfile(
         package_lock_src = package_dir / "package-lock.json"
         shrinkwrap_src = package_dir / "npm-shrinkwrap.json"
 
-        # Check if lockfile exists in tarball
         if package_lock_src.exists():
             output_path.write_text(package_lock_src.read_text())
             print("Updated package-lock.json from tarball")
@@ -175,7 +174,6 @@ def extract_or_generate_lockfile(
             print("Updated package-lock.json from npm-shrinkwrap.json in tarball")
             return True
 
-        # Generate if not in tarball
         print("No npm lockfile in tarball, generating package-lock.json...")
         package_json = package_dir / "package.json"
         if not package_json.exists():

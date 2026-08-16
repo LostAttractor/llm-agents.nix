@@ -56,6 +56,22 @@ class MatrixItem:
         }
 
 
+def companion_packages() -> set[str]:
+    """Return packages listed in any update-companions file.
+
+    Companions are updated together with their primary package, so they
+    get no matrix entry of their own.
+    """
+    companions: set[str] = set()
+    for companions_file in Path("packages").glob("*/update-companions"):
+        companions.update(
+            stripped
+            for line in companions_file.read_text().splitlines()
+            if (stripped := line.strip()) and not stripped.startswith("#")
+        )
+    return companions
+
+
 def discover_packages(
     packages_filter: list[str] | None, system: str
 ) -> list[MatrixItem]:
@@ -75,16 +91,20 @@ def discover_packages(
         return []
 
     versions: dict[str, str | None] = json.loads(result.stdout)
+    # An explicit filter overrides companion handling.
+    companions = companion_packages() if packages_filter is None else set()
     items = [
         MatrixItem(type="package", name=name, current_version=version)
         for name, version in sorted(versions.items())
-        if version is not None
+        if version is not None and name not in companions
     ]
 
     if packages_filter is None:
         for name, version in sorted(versions.items()):
             if version is None:
                 log.info("Skipping %s (no version attribute)", name)
+            elif name in companions:
+                log.info("Skipping %s (updated as a companion package)", name)
     else:
         found = set(versions.keys())
         for pkg in packages_filter:

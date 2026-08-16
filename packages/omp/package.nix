@@ -241,11 +241,6 @@ stdenv.mkDerivation {
     echo "Generating embedded HTML-export tool-views..."
     bun --cwd packages/collab-web scripts/build-tool-views.ts
 
-    # Since v16.4.6 mupdf's wasm blob must be embedded via a generated helper.
-    # --external mupdf no longer works in the compiled bunfs.
-    echo "Embedding mupdf wasm..."
-    bun packages/coding-agent/scripts/embed-mupdf-wasm.ts --generate
-
     # compile-standalone.ts drives upstream's compile-binary.ts helper because
     # `bun build --compile` cannot load the required virtual-module plugin.
     echo "Compiling standalone binary..."

@@ -164,10 +164,8 @@ def nix_prefetch_url(url: str, *, unpack: bool = False) -> str:
     args.append(url)
 
     result = run_command(args)
-    # nix-prefetch-url returns base32-encoded hash, convert to SRI
+    # nix-prefetch-url emits base32; convert to SRI for hashes.json.
     hash_b32 = result.stdout.strip()
-
-    # Convert to SRI format by using nix hash convert
     convert_args = ["hash", "convert", "--hash-algo", "sha256", hash_b32]
     convert_result = nix_command(convert_args)
     return convert_result.stdout.strip()

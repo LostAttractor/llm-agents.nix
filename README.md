@@ -39,6 +39,16 @@ Nix packages for AI coding agents and development tools. Automatically updated d
 
 </details>
 <details>
+<summary><strong>chatgpt</strong> - Desktop application for ChatGPT and Codex</summary>
+
+- **Source**: binary
+- **License**: unfree
+- **Homepage**: https://developers.openai.com/codex/app
+- **Usage**: `nix run github:numtide/llm-agents.nix#chatgpt -- --help`
+- **Nix**: [packages/chatgpt/package.nix](packages/chatgpt/package.nix)
+
+</details>
+<details>
 <summary><strong>claude-code</strong> - Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster</summary>
 
 - **Source**: binary

@@ -19,7 +19,7 @@ if (!externalList) {
 const externals = [...externalList[1].matchAll(/["']([^"']+)["']/g)]
   .map(match => match[1])
   .sort()
-const expected = ["electron", "fs", "node-pty"]
+const expected = ["electron", "fs", "get-windows", "node-pty"]
 if (JSON.stringify(externals) !== JSON.stringify(expected)) {
   throw new Error(
     `review Electron bundle externals before pruning dependencies: ${JSON.stringify(externals)}`
@@ -34,6 +34,11 @@ const releaseDir = path.join(stagedNodePty, "build/Release")
 const nativePayloads = fs.readdirSync(releaseDir).filter(name => name.endsWith(".node"))
 if (nativePayloads.length === 0) {
   throw new Error("staged node-pty native payload is missing")
+}
+
+const stagedGetWindows = at("dist/node_modules/get-windows")
+if (!fs.existsSync(path.join(stagedGetWindows, "package.json"))) {
+  throw new Error("staged get-windows package.json is missing")
 }
 
 const manifestPath = at("package.json")
