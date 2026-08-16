@@ -1,5 +1,5 @@
 # cursor-agent (Cursor's terminal coding agent) - built on corepkgs, the repo's
-# nixpkgs-free packaging system. `mkBinary` fetches the prebuilt release artifact
+# nixpkgs-free packaging system. `mkPackage` fetches the prebuilt release artifact
 # and wraps it; version + per-platform hashes come from the shared ./hashes.json
 # (the same file nix-update bumps), so nothing drifts.
 #
@@ -7,7 +7,7 @@
 # dir-install the extracted tree and patchelf every ELF inside it. The bundled
 # file_service.*.node needs libz, and the agent shells out to coreutils.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
   corePins,
@@ -21,7 +21,7 @@ let
   };
   urlTemplate = "https://downloads.cursor.com/lab/{version}/{platform}/agent-cli-package.tar.gz";
 in
-mkBinary {
+mkPackage {
   pname = "cursor-agent";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

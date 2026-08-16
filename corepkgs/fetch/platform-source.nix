@@ -4,7 +4,7 @@
 # (see scripts/updater/run.py, kind = "platform").
 #
 # nixpkgs-free: takes the nix `system` string directly (no stdenv) and fetches
-# via fetchurlTemplate, which is wired to the naked builtin:fetchurl fetcher.
+# via fetchurlTemplate, which is wired to the builtin:fetchurl fetcher.
 { system, fetchurlTemplate }:
 
 {

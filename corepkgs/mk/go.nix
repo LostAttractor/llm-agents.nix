@@ -1,4 +1,4 @@
-# mkGo: build a Go package from source, nixpkgs-free, with the naked go
+# mkGo: build a Go package from source, nixpkgs-free, with the go
 # toolchain. CGO_ENABLED=0 so the output is a fully STATIC binary - no glibc, no
 # patchelf, no formatelf, nothing to wrap; it just runs. Modules are vendored by
 # go-vendor.nix (a single vendorHash FOD, since go.sum hashes are not
@@ -25,7 +25,7 @@
   toolchains,
 }:
 let
-  mkNaked = import ./naked-sh.nix;
+  mkDrvSh = import ./drv-sh.nix;
   inherit (toolchains) go zig;
   sys = (import ../seed/systems.nix).${system};
   gnuTarget = "${sys.zig.platform}-gnu";
@@ -55,9 +55,9 @@ let
       builtins.length subPackages
     )
   );
-  drv = mkNaked {
+  drv = mkDrvSh {
     inherit system;
-    name = if version == null then "${pname}-naked" else "${pname}-${version}";
+    name = if version == null then "${pname}" else "${pname}-${version}";
     env = {
       inherit src go pairs;
       vendor = if vendor == null then "" else vendor;
@@ -138,7 +138,7 @@ let
 in
 drv
 // {
-  # go source builds are linux-only for now (the naked go toolchain is Linux).
+  # go source builds are linux-only for now (the go toolchain is Linux).
   # CGO_ENABLED=0 output is static (trivial FHS); a cgo output is a dynamic ELF
   # patchelf'd to the pinned glibc (+ any C-lib buildInputs).
   meta = {

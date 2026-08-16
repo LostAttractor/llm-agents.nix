@@ -1,5 +1,5 @@
 # kilocode-cli (`kilocode`) - built on corepkgs, the repo's nixpkgs-free
-# packaging system. `mkBinary` (from the flake scope) fetches the prebuilt npm
+# packaging system. `mkPackage` (from the flake scope) fetches the prebuilt npm
 # tarball and wraps it; version + per-platform hashes come from the shared
 # ./hashes.json (the same file nix-update bumps), so nothing drifts.
 #
@@ -7,7 +7,7 @@
 # its appended JS payload segfaults on any ELF rewrite, so kind = "loader" leaves
 # it byte-intact and invokes the pinned glibc loader through the wrapper.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
 }:
@@ -20,7 +20,7 @@ let
   };
   urlTemplate = "https://registry.npmjs.org/@kilocode/cli-{platform}/-/cli-{platform}-{version}.tgz";
 in
-mkBinary {
+mkPackage {
   pname = "kilocode-cli";
   mainProgram = "kilocode";
   hashesFile = ./hashes.json;

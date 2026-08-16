@@ -1,12 +1,12 @@
 # eca (Editor Code Assistant) - built on corepkgs, the repo's nixpkgs-free
-# packaging system. `mkBinary` (from the flake scope) fetches the prebuilt
+# packaging system. `mkPackage` (from the flake scope) fetches the prebuilt
 # native GraalVM artifact and wraps it; version + per-platform hashes come from
 # the shared ./hashes.json (the same file nix-update bumps), so nothing drifts.
 #
 # eca ships a normal dynamic ELF (kind = "patchelf"): the interpreter/rpath are
 # rewritten to the pinned glibc plus zlib, which the native image links.
 {
-  mkBinary,
+  mkPackage,
   corePins,
   flake,
 }:
@@ -19,7 +19,7 @@ let
   };
   urlTemplate = "https://github.com/editor-code-assistant/eca/releases/download/{version}/eca-native-{platform}.zip";
 in
-mkBinary {
+mkPackage {
   pname = "eca";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

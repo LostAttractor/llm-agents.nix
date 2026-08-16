@@ -1,5 +1,5 @@
 # cline (Cline autonomous coding agent CLI) - built on corepkgs, the repo's
-# nixpkgs-free packaging system. `mkBinary` fetches the @cline/cli-<platform> npm
+# nixpkgs-free packaging system. `mkPackage` fetches the @cline/cli-<platform> npm
 # tarball and wraps its bundled binary (package/bin/cline); version +
 # per-platform hashes come from the shared ./hashes.json (the same file
 # nix-update bumps), so nothing drifts.
@@ -9,7 +9,7 @@
 # kind = "loader" runs it byte-intact through the pinned glibc loader on Linux;
 # darwin links libSystem.
 {
-  mkBinary,
+  mkPackage,
   flake,
 }:
 let
@@ -21,7 +21,7 @@ let
   };
   urlTemplate = "https://registry.npmjs.org/@cline/cli-{platform}/-/cli-{platform}-{version}.tgz";
 in
-mkBinary {
+mkPackage {
   pname = "cline";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

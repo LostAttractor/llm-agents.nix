@@ -1,4 +1,4 @@
-# mkBinary: port a binary-wrapper package onto the naked base, for a given
+# mkPackage: port a binary-wrapper package onto the mkDrv base, for a given
 # system. The nixpkgs-free equivalent of platformSource + autoPatchelf +
 # makeWrapper: fetch a prebuilt release artifact, unpack, make it runnable, wrap.
 #
@@ -42,7 +42,7 @@
   setEnv ? { }, # { VAR = "val"; } exported in the wrapper before exec
   extraArgs ? [ ], # flags appended to the wrapped exec, before "$@" (e.g. --no-auto-update)
   aliases ? [ ], # extra $out/bin/<name> wrappers, each exec'd with argv0=<name>
-  # Package-level metadata carried onto the naked derivation so the flake's
+  # Package-level metadata carried onto the bare derivation so the flake's
   # meta-completeness / README / updater machinery treat it like any package.
   category ? null, # passthru.category
   updater ? null, # passthru.updater (declarative updater config, already built by mkUpdater)
@@ -52,7 +52,7 @@
 }:
 let
   seed = import ../seed { inherit system; };
-  mkNaked = import ./naked.nix;
+  mkDrv = import ./drv.nix;
   sys = (import ../seed/systems.nix).${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
@@ -115,7 +115,7 @@ let
           ++ libs
         )
       );
-  drv = mkNaked {
+  drv = mkDrv {
     inherit system;
     name = "${pname}-${resolvedVersion}";
     env = {
@@ -141,7 +141,7 @@ let
       inherit extraArgs aliases; # wrapper flags + argv0-aliased wrappers
       runtimePath = builtins.concatStringsSep ":" (map (p: "${p}/bin") runtimePkgs);
     };
-    # Nushell builder (see mk-naked.nix): `$attrs` is the JSON attrs record,
+    # Nushell builder (see mk-drv.nix): `$attrs` is the JSON attrs record,
     # `$out` the output path, busybox applets are external `^cmd`s on PATH.
     script = ''
       mkdir $"($out)/bin" $"($out)/libexec"

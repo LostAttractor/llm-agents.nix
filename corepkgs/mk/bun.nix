@@ -1,11 +1,11 @@
-# mkBun: build a bun project from source, nixpkgs-free, with the naked bun
+# mkBun: build a bun project from source, nixpkgs-free, with the bun
 # toolchain. Deps are vendored by vendor/bun.nix (a node_modules FOD, our own
 # bunDepsHash). We install the app + node_modules under $out/lib/<pname> and wrap
 # `bun run <entry>` as $out/bin/<mainProgram> - the same shape nixpkgs uses for
 # bun CLIs (makeWrapper bun --add-flags <entry>).
 #
 # NOT `bun build --compile`: that reads process.execPath to find its base binary,
-# but the naked bun toolchain runs via the pinned glibc loader (execPath = the
+# but the bun toolchain runs via the pinned glibc loader (execPath = the
 # loader), so --compile fails with BunSectionNotFound - and bun can't be
 # patchelf'd (its tail-appended runtime breaks on any ELF rewrite). Packages that
 # truly need the single compiled binary (e.g. one that walks execPath for bundled
@@ -28,7 +28,7 @@
   toolchains,
 }:
 let
-  mkNaked = import ./naked-sh.nix;
+  mkDrvSh = import ./drv-sh.nix;
   inherit (toolchains) bun;
   vendor = import ../vendor/bun.nix {
     inherit
@@ -41,7 +41,7 @@ let
   };
   # native addon rpath: pinned glibc + gccLib (libstdc++/libgcc_s for *.node)
   libpath = "${pins.glibc}/lib:${pins.gccLib}/lib";
-  drv = mkNaked {
+  drv = mkDrvSh {
     inherit system;
     name = "${pname}-${version}";
     env = {

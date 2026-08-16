@@ -1,5 +1,5 @@
 # claude-code (Anthropic's agentic coding CLI) - built on corepkgs, the repo's
-# nixpkgs-free packaging system. `mkBinary` fetches the prebuilt release artifact
+# nixpkgs-free packaging system. `mkPackage` fetches the prebuilt release artifact
 # and wraps it; version + per-platform hashes come from the shared ./hashes.json
 # (the same file nix-update bumps), so nothing drifts.
 #
@@ -8,7 +8,7 @@
 # and invokes the pinned glibc loader through the wrapper; on darwin it links the
 # system libSystem and just runs. bubblewrap + socat back the sandbox.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
   corePins,
@@ -24,7 +24,7 @@ let
   };
   urlTemplate = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/{version}/{platform}/claude";
 in
-mkBinary {
+mkPackage {
   pname = "claude-code";
   mainProgram = "claude";
   hashesFile = ./hashes.json;

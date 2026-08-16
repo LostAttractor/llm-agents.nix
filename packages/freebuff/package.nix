@@ -1,5 +1,5 @@
 # freebuff (Codebuff's free coding agent) - built on corepkgs, the repo's
-# nixpkgs-free packaging system. `mkBinary` (from the flake scope) fetches the
+# nixpkgs-free packaging system. `mkPackage` (from the flake scope) fetches the
 # prebuilt release tarball and wraps it; version + per-platform hashes come from
 # the shared ./hashes.json (the same file nix-update bumps), so nothing drifts.
 #
@@ -8,7 +8,7 @@
 # byte-intact and invokes the pinned glibc loader through the wrapper. It shells
 # out to ripgrep, so the pinned rg joins the wrapper PATH.
 {
-  mkBinary,
+  mkPackage,
   flake,
   corePins,
 }:
@@ -21,7 +21,7 @@ let
   };
   urlTemplate = "https://github.com/CodebuffAI/codebuff-community/releases/download/freebuff-v{version}/freebuff-{platform}.tar.gz";
 in
-mkBinary {
+mkPackage {
   pname = "freebuff";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

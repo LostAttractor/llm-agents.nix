@@ -1,4 +1,4 @@
-# mkPnpm: build a pnpm project from source, nixpkgs-free, with the naked node +
+# mkPnpm: build a pnpm project from source, nixpkgs-free, with the node +
 # pnpm toolchains. Deps are vendored by vendor/pnpm.nix (a flat hoisted
 # node_modules FOD, our own pnpmDepsHash). Runs the package's build script via
 # pnpm, installs dist + node_modules under $out/lib/<pname>, and wraps
@@ -21,7 +21,7 @@
   toolchains,
 }:
 let
-  mkNaked = import ./naked-sh.nix;
+  mkDrvSh = import ./drv-sh.nix;
   inherit (toolchains) node pnpm;
   vendor = import ../vendor/pnpm.nix {
     inherit
@@ -35,7 +35,7 @@ let
       ;
   };
   libpath = "${pins.glibc}/lib:${pins.gccLib}/lib";
-  drv = mkNaked {
+  drv = mkDrvSh {
     inherit system;
     name = "${pname}-${version}";
     env = {

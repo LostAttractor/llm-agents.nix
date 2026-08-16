@@ -7,14 +7,14 @@
 # loader through the wrapper. rg is fetched separately and bundled onto PATH.
 #
 # NOTE: droid's ./hashes.json nests its hashes under `droid`/`ripgrep` per
-# platform, a shape mkBinary's shared-hashes reader cannot consume, so the
+# platform, a shape mkPackage's shared-hashes reader cannot consume, so the
 # source is pinned inline (single-platform, mirroring the current hashes.json).
 {
-  mkBinary,
+  mkPackage,
   coreFetchurl,
   flake,
 }:
-mkBinary {
+mkPackage {
   pname = "droid";
   version = "0.196.0";
   src = coreFetchurl {
@@ -37,7 +37,7 @@ mkBinary {
 
   meta = {
     description = "Factory AI's Droid - AI-powered development agent for your terminal";
-    # Inline-pinned x86_64 binary only (mkBinary cannot yet read this
+    # Inline-pinned x86_64 binary only (mkPackage cannot yet read this
     # package's nested per-platform hashes.json); gate accordingly.
     platforms = [ "x86_64-linux" ];
     homepage = "https://factory.ai";

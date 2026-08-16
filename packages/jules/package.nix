@@ -1,12 +1,12 @@
 # jules (Google's asynchronous coding agent CLI) - built on corepkgs, the repo's
-# nixpkgs-free packaging system. `mkBinary` fetches the prebuilt release tarball
+# nixpkgs-free packaging system. `mkPackage` fetches the prebuilt release tarball
 # and wraps it; version + per-platform hashes come from the shared ./hashes.json
 # (the same file nix-update bumps), so nothing drifts.
 #
 # The artifact is a normal dynamic Go ELF, so kind = "patchelf" rewrites its
 # interpreter/rpath to the pinned glibc on Linux; darwin links libSystem.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
 }:
@@ -19,7 +19,7 @@ let
   };
   urlTemplate = "https://storage.googleapis.com/jules-cli/v{version}/jules_external_v{version}_{platform}.tar.gz";
 in
-mkBinary {
+mkPackage {
   pname = "jules";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

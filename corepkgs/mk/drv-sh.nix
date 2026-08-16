@@ -1,5 +1,5 @@
-# mkNakedSh: the POSIX-sh bootstrap builder (sandbox /bin/sh + busybox). Used
-# only to extract nushell from its tarball; the real build logic uses mk-naked.nix
+# mkDrvSh: the POSIX-sh bootstrap builder (sandbox /bin/sh + busybox). Used
+# only to extract nushell from its tarball; the real build logic uses mkDrv.nix
 # (nushell + __structuredAttrs). Kept minimal.
 # The builder is the sandbox's /bin/sh (Nix guarantees it); it boots busybox's
 # applets into PATH via `exec -a busybox` (busybox dispatches on argv[0], which

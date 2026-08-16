@@ -84,11 +84,11 @@
           interpolate = core.lib.interpolate;
           fetchurlTemplate = core.lib.fetchurlTemplate;
 
-          # Route bun2nix's per-dep fetches through naked-fetchurl: ~3.4s (~15%)
+          # Route bun2nix's per-dep fetches through core-fetchurl: ~3.4s (~15%)
           # off eval, all in the bun packages. Output paths unchanged (FODs),
           # only bun-cache .drv inputs differ, so it is a one-time cache rebuild.
           pkgsBun = pkgs // {
-            fetchurl = core.lib.nakedFetchurl;
+            fetchurl = core.lib.coreFetchurl;
           };
 
           scope = lib.makeScope pkgs.newScope (
@@ -103,7 +103,7 @@
                 ;
               platformSource = core.lib.platformSource;
               # corepkgs: the nixpkgs-free packaging system (corepkgs/). A
-              # package.nix that declares `mkBinary` is a corepkgs build —
+              # package.nix that declares `mkPackage` is a corepkgs build —
               # callPackage resolves it from the scope, so no routing is needed.
               # The builders come from core.lib (system/pins pre-bound), so
               # package.nix stays terse; `coreFetchurl` is corepkgs' builtin
@@ -111,14 +111,14 @@
               # shadowing pkgs.fetchurl for the nixpkgs packages).
               corePins = core.pins;
               inherit (core.lib)
-                mkBinary
+                mkPackage
                 mkCargo
                 mkGo
                 mkNpm
                 mkBun
                 mkPnpm
                 mkPython
-                mkNaked
+                mkDrv
                 checkFhs
                 coreFetchurl
                 ;
@@ -272,8 +272,8 @@
         }
         // fhsChecks
         # corepkgs' own machinery (seed + toolchains + formatelf + hello),
-        # exposed as checks.<system>.naked-* so nixbot builds it.
-        // lib.mapAttrs' (name: v: lib.nameValuePair "naked-${name}" v) core.packages
+        # exposed as checks.<system>.core-* so nixbot builds it.
+        // lib.mapAttrs' (name: v: lib.nameValuePair "core-${name}" v) core.packages
       );
     };
 }

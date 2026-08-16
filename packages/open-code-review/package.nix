@@ -1,12 +1,12 @@
 # open-code-review (`ocr`, Alibaba's AI code-review CLI) - built on corepkgs, the
-# repo's nixpkgs-free packaging system. `mkBinary` fetches the prebuilt release
+# repo's nixpkgs-free packaging system. `mkPackage` fetches the prebuilt release
 # artifact and wraps it; version + per-platform hashes come from the shared
 # ./hashes.json (the same file nix-update bumps), so nothing drifts.
 #
 # Upstream ships a single dynamic Go binary per platform, so patchelf its
 # interpreter/rpath to the pinned glibc and expose it as `ocr`.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
 }:
@@ -19,7 +19,7 @@ let
   };
   urlTemplate = "https://github.com/alibaba/open-code-review/releases/download/v{version}/opencodereview-{platform}";
 in
-mkBinary {
+mkPackage {
   pname = "open-code-review";
   mainProgram = "ocr";
   hashesFile = ./hashes.json;

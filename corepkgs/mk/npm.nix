@@ -1,4 +1,4 @@
-# mkNpm: build an npm package from source, nixpkgs-free, with the naked node
+# mkNpm: build an npm package from source, nixpkgs-free, with the node
 # toolchain. Deps are vendored by vendor/npm.nix (a node_modules FOD with a
 # committed npmDepsHash - our own, not nixpkgs', since we vendor node_modules
 # rather than the npm cache). Runs the build script, installs the package under
@@ -37,7 +37,7 @@
   toolchains,
 }:
 let
-  mkNaked = import ./naked-sh.nix;
+  mkDrvSh = import ./drv-sh.nix;
   inherit (toolchains) node;
   npmVendor = import ../vendor/npm.nix {
     inherit
@@ -91,7 +91,7 @@ let
         map (n: renderWrapper n (builtins.getAttr n binWrappers)) (builtins.attrNames binWrappers)
       );
 
-  drv = mkNaked {
+  drv = mkDrvSh {
     inherit system;
     name = "${pname}-${version}";
     env = {

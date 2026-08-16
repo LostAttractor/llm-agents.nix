@@ -1,4 +1,4 @@
-# mkNaked: build a derivation with no nixpkgs and no stdenv, for a given system.
+# mkDrv: build a derivation with no nixpkgs and no stdenv, for a given system.
 # The builder is a truly-static nushell; __structuredAttrs exposes the
 # derivation attrs (params + outputs) as JSON, which nushell `open`s natively -
 # so params pass as real lists/records, not string-munged env vars, and the

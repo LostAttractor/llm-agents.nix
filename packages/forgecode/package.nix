@@ -1,5 +1,5 @@
 # forgecode (`forge`, an AI-enhanced terminal dev environment) - built on
-# corepkgs, the repo's nixpkgs-free packaging system. `mkBinary` (from the flake
+# corepkgs, the repo's nixpkgs-free packaging system. `mkPackage` (from the flake
 # scope) fetches the prebuilt release artifact and wraps it; version +
 # per-platform hashes come from the shared ./hashes.json (the same file
 # nix-update bumps), so nothing drifts.
@@ -8,7 +8,7 @@
 # and rpath to the pinned glibc (+ gccLib, already in the default libpath, which
 # supplies libgcc_s).
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
 }:
@@ -21,7 +21,7 @@ let
   };
   urlTemplate = "https://github.com/tailcallhq/forgecode/releases/download/v{version}/forge-{platform}";
 in
-mkBinary {
+mkPackage {
   pname = "forgecode";
   mainProgram = "forge";
   hashesFile = ./hashes.json;

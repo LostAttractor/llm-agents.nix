@@ -5,7 +5,17 @@ and no `stdenv`** at build time. For the prebuilt-binary CLIs that make up most
 of this repo, a "build" is really just *fetch a release artifact → make it run
 on NixOS (patch the ELF interpreter/rpath, or loader-wrap a `bun --compile`
 binary) → wrap it* — a tiny sliver of what `stdenv` does. corepkgs does that
-sliver on a static busybox + nushell seed.
+sliver, and the from-source builds, on a static busybox + nushell seed.
+
+## Two tiers: derivations and packages
+
+- **derivations** — the small building blocks: `mkDrv` (nushell +
+  `__structuredAttrs`) and `mkDrvSh` (POSIX sh + busybox). Also used for vendor
+  FODs, the fhs check, and the seed. Not necessarily installable.
+- **packages** — installable things (a `bin/` + `meta.mainProgram` you can
+  `nix profile install`): `mkPackage` (prebuilt binary → package) plus the
+  from-source constructors `mkCargo` · `mkGo` · `mkNpm` · `mkBun` · `mkPnpm` ·
+  `mkPython`.
 
 ## Using it
 
@@ -14,116 +24,108 @@ corepkgs is both an importable library and a standalone flake:
 ```nix
 # from the root flake (how packages/<name>/package.nix are built):
 core = import ./corepkgs { inherit system; pkgs = <nixpkgs for system>; };
-core.lib.mkBinary { pname = "grok"; hashesFile = ./hashes.json; ... };
+core.lib.mkPackage { pname = "grok"; hashesFile = ./hashes.json; ... };
 ```
 
 ```console
-# standalone (pins from storePath, zero nixpkgs — impure, fast eval):
-$ nix eval -f corepkgs --impure packages.hello.drvPath
-# or as a real flake (pins from nixpkgs):
-$ nix build ./corepkgs#packages.x86_64-linux.formatelf
+# standalone — zero nixpkgs input, pure + offline eval (appendContext pins):
+$ nix eval ./corepkgs#packages.x86_64-linux.hello.drvPath
+$ nix build ./corepkgs#packages.x86_64-linux.rust-bin
 ```
 
-A `packages/<name>/package.nix` that declares `mkBinary` *is* a corepkgs build;
-`callPackage` resolves it from the flake scope. It carries `meta` +
-`passthru.category` + `passthru.updater`, so meta-completeness, the README
-generator, and the declarative updater treat it like any other package.
+A `packages/<name>/package.nix` that declares a constructor (`mkPackage`,
+`mkCargo`, …) *is* a corepkgs build; `callPackage` resolves it from the flake
+scope. It carries `meta` + `passthru.category` + `passthru.updater`, and its
+version + hashes live in a sibling `hashes.json` (the file nix-update bumps), so
+meta-completeness, the README generator, and the updater treat it like any other
+package.
 
 ## Layout
 
+The top-level holds only the entry points + docs; everything else is a directory.
+
 ```
-default.nix       the importable API: { lib, packages, pins }
-flake.nix         standalone flake wrapping default.nix
-systems.nix       per-system table (loader, seed/toolchain URLs+hashes)
-seed.nix          the bootstrap seed (static busybox + static nushell), zero nixpkgs
-pins-pkgs.nix     THE nixpkgs boundary: glibc/gccLib/formatelf/openssl/... from pkgs (pure, for the flake)
-pins-store.nix    the same pins as storePath (impure, ~instant eval, for standalone use)
-fetch/            all fetcher machinery, together
-  fetchurl.nix · naked-fetchurl.nix · interpolate.nix · fetchurl-template.nix · platform-source.nix
-mk/               the constructors
-  naked.nix       the ~10-line mkDerivation replacement. Builder = a truly-static
-                  nushell; __structuredAttrs exposes derivation attrs as JSON the
-                  script `open`s natively (real records, no string-munged env).
-  naked-sh.nix    the tiny /bin/sh bootstrap that extracts nushell from its tarball
-                  (chicken-and-egg) and builds the toolchains + source packages
-  binary.nix      mkBinary — nixpkgs-free platformSource + autoPatchelf + makeWrapper
-  cargo.nix       mkCargo — build a Rust package from source (rust + zig cc + vendored crates)
-  go.nix          mkGo    — build a Go package from source, fully static (CGO_ENABLED=0)
-  check-fhs.nix   assert an output is store-only (no ELF left on a host loader)
-lib/              build helpers (mk-updater, mk-update-script, rusty-v8, maintainers, ...)
-toolchains/       bun, node, rust, zig, go, python from upstream prebuilt binaries
-vendor/           dependency vendorers
-  cargo.nix       vendor a Cargo.lock as naked builtin:fetchurl FODs (per-crate, by sha256)
-  go.nix          vendor go modules as one vendorHash FOD (go.sum h1: hashes aren't fetchurl-able)
-packages/         corepkgs' OWN packages, by-name (formatelf, wrapBuddy, buildNpmPackage, ...)
+default.nix     the importable API: { lib, packages, pins, toolchains, machinery, system }
+flake.nix       standalone flake (ZERO inputs) wrapping default.nix
+mk/             constructors + derivation primitives
+  drv.nix       the ~10-line mkDerivation replacement. Builder = a truly-static
+                nushell; __structuredAttrs exposes derivation attrs as JSON.
+  drv-sh.nix    the tiny /bin/sh + busybox builder (bootstraps nushell, and runs
+                the toolchain + source-package builds)
+  package.nix   mkPackage — prebuilt-binary → package (platformSource + patchelf/
+                loader-wrap + makeWrapper)
+  cargo.nix go.nix npm.nix bun.nix pnpm.nix python.nix   from-source constructors
+  check-fhs.nix assert an output is store-only (no ELF left on a host loader)
+vendor/         dependency vendorers (cargo/go/npm/bun/pnpm/python)
+toolchains/     default.nix — the provider; maps logical keys (rust, go, …) to the
+                -bin toolchain packages, threaded through the constructor scope
+fetch/          fetch primitives (fetchurl · builtin-fetchurl · interpolate ·
+                fetchurl-template · platform-source) — all builtin:fetchurl
+lib/            meta helpers (mk-updater, mk-update-script, maintainers)
+pins/           the pin providers: pkgs.nix (from nixpkgs) · store.nix (storePath)
+                · closure.nix (appendContext — pure, nixpkgs-free, offline eval)
+seed/           default.nix = the busybox+nushell seed · systems.nix = per-arch
+                platform tokens + rust triples
+packages/       corepkgs' OWN by-name packages: the machinery helpers (formatelf,
+                wrapBuddy, buildNpmPackage, versionCheckHomeHook) + the -bin
+                toolchains (bun-bin, node-bin, rust-bin, …), each with a hashes.json
 ```
 
-## mkBinary knobs
+## Two swappable seed layers
 
-`mk/binary.nix` covers every shape the repo's prebuilt-binary packages take:
+corepkgs' only external dependency is threaded in as two attrsets, each a default
+arg you can override without touching a constructor — the **bootstrap seam**:
 
-- **Source**: `hashesFile` + `urlTemplate` (reuse the shared `hashes.json`, no
-  drift) with a `platforms` map (string `{platform}` token, or an attrset of
-  arbitrary URL vars); or a literal `src` + `version`.
-- **`unpack`**: `none` / `tar` / `zip` / `auto` (infer from the URL extension, so
-  one package can serve platforms whose assets differ — darwin `.zip` vs linux
-  `.tar.gz`). `binary` (nested path), `installDir` (copy a whole tree),
-  `entrypoint` (a nested launcher distinct from the wrapper name).
-- **`kind`**: `patchelf` (rewrite ELF interpreter/rpath via [formatelf](https://github.com/Mic92/formatelf))
-  or `loader` (leave a bun-compiled / SEA binary byte-intact and invoke the
-  pinned loader through the wrapper — patchelf corrupts their appended payload).
-  Darwin needs neither: Mach-O CLIs link the always-present system `libSystem`.
-- **Runtime**: `libs`, `runtimeBins` (bundled binaries on PATH), `runtimePkgs`
-  (pinned tools on PATH), `setEnv`, `extraArgs` (wrapper flags), `aliases`
-  (argv0-dispatched extra wrappers), `ignoreMissing` (SONAME allowlist for a
-  bundled JRE's optional AWT/X11 libs).
-- **Metadata**: `meta`, `category`, `updater` — carried onto the naked
-  derivation so the flake's package machinery treats it normally.
+- **`pins`** — prebuilt C libs/tools (glibc, gccLib, openssl, formatelf, …).
+  Default `pins/closure.nix` references the exact store paths via
+  `builtins.appendContext` (the nixpkgs-multiverse "fast mode" trick): pure,
+  nixpkgs-free, and cache-free at eval; substituted from cache.nixos.org /
+  cache.numtide.com at build time. The root flake passes `pkgs`, so `pins/pkgs.nix`
+  can rebuild them from source on a cache miss.
+- **`toolchains`** — rust, go, node, zig, bun, pnpm, python. Fetched prebuilt
+  from upstream (`packages/<name>-bin/`); the toolchain a constructor uses *is*
+  `core.packages.<name>-bin` (single source of truth).
 
-## Source builds — mkCargo (Rust) / mkGo (Go)
+## mkPackage knobs
 
-Not every package ships a prebuilt binary. `mk/cargo.nix` and `mk/go.nix` build
-from source, nixpkgs-free, on the fetched upstream toolchains.
+`mk/package.nix` covers every shape the repo's prebuilt-binary packages take:
 
-**mkCargo** — rust source builds: naked rust toolchain, `zig cc` as the C
-linker, crates vendored by `vendor/cargo.nix`, each produced executable
-post-link-patched to the pinned glibc by formatelf. Handles:
+- **Source**: `hashesFile` + `urlTemplate` (reuse the shared `hashes.json`) with
+  a `platforms` map; or a literal `src` + `version`.
+- **`unpack`**: `none` / `tar` / `zip` / `auto`; `binary` (nested path),
+  `installDir` (copy a whole tree), `entrypoint`.
+- **`kind`**: `patchelf` (rewrite ELF interpreter/rpath via
+  [formatelf](https://github.com/Mic92/formatelf)) or `loader` (leave a
+  bun-compiled / SEA binary byte-intact and invoke the pinned loader through the
+  wrapper — patchelf corrupts their appended payload). Darwin needs neither.
+- **Runtime**: `libs`, `runtimeBins`, `runtimePkgs`, `setEnv`, `extraArgs`,
+  `aliases` (argv0-dispatched wrappers), `ignoreMissing`.
 
-- pure crates.io, and **bundled C** (crates that compile their own C via the
-  `cc` crate — tree-sitter grammars, `libsqlite3-sys`/`rusqlite` bundled,
-  `libgit2-sys`, `ring`, quickjs, brotli, zstd/bzip2/lzma-sys …) using zig cc +
-  zig's llvm `ar`/`ranlib`;
-- **subdir workspaces** (`sourceRoot`, `cargoBuildFlags = ["-p" "crate"]`);
-- an **authoritative vendored `Cargo.lock`** (copied over the source's, `--locked`
-  dropped) — fixes tarballs whose in-tree lock is stale;
-- **openssl** (`openssl = true`): the pinned openssl (`OPENSSL_NO_VENDOR` +
-  lib/include dirs + pkg-config), so `openssl-sys`/`native-tls` link our openssl
-  instead of a system lib or an `openssl-src` build that needs perl.
-- Out of scope: `git`-dependency crates (need a git vendorer), and rust crates
-  that embed a separately-built JS frontend at compile time.
+## From-source constructors
 
-**mkGo** — go source builds: naked go toolchain, `CGO_ENABLED=0`, so the output
-is a **fully static binary** — no glibc, no patchelf, no wrapper; it just runs,
-and the FHS check is trivial. Modules are vendored by `vendor/go.nix` as one
-`vendorHash` FOD (go.sum `h1:` tree-hashes aren't fetchurl-compatible, so — like
-nixpkgs' `buildGoModule` — `go mod vendor` runs with network and the caller
-commits the hash). **The vendorHash equals nixpkgs' `buildGoModule` vendorHash
-byte-for-byte**, so an existing package's `hashes.json` vendorHash is reused
-as-is when porting.
+Each fetches the upstream toolchain and vendors deps, nixpkgs-free:
 
-## Eval cost
+- **mkCargo** (rust) — `zig cc` as the C linker; crates vendored per-crate by
+  sha256 from `Cargo.lock` (no vendorHash); each exe post-link-patched to the
+  pinned glibc. Handles bundled-C (`cc` crate), workspaces (`sourceRoot`/`-p`),
+  `openssl`, `gitDeps` (repo-root git deps), `extraEnv`, `patches`.
+- **mkGo** — `CGO_ENABLED=0` → a fully static binary (trivial FHS). One
+  `vendorHash` FOD, **byte-identical to nixpkgs' `buildGoModule`**, so a ported
+  package reuses its existing hash. `cgo = true` compiles cgo C via zig cc.
+- **mkNpm / mkBun / mkPnpm** — vendor `node_modules` as one FOD (our
+  `npmDepsHash` / `bunDepsHash` / `pnpmDepsHash`), run the build, wrap the entry
+  on the node/bun toolchain. Bundled `.node` addons are patchelf'd to glibc.
+- **mkPython** — `pip install --target` FOD (our `pythonDepsHash`); wraps
+  `[project.scripts]` on the relocatable-CPython toolchain. Manylinux wheels OK.
 
-Fully nixpkgs-free eval is cheap: resolving a package drvPath standalone
-(storePath pins, zero nixpkgs) is **~59 ms** vs **~1.2 s** through the repo flake
-(which imports nixpkgs) — ~20×. Note the honest caveat: *inside* the current
-repo flake there is no eval win yet, because the flake still imports nixpkgs for
-the pins and the un-ported packages, and pure eval forbids `builtins.storePath`
-(so the flake uses the nixpkgs-sourced pins). The eval win is realized as the
-tree becomes fully corepkgs.
+Out of scope (real blockers): system C libs not in the pin set, workspace-member
+git deps, heavy native bundles (torch/sharp), electron/tauri.
 
 ## Bootstrap
 
-The seed is currently trusted static upstream builds (busybox, nushell). The
-next steps toward a real trust chain are our own source-built bootstrap tarballs
-on a GitHub release, and eventually a GNU Mes bootstrap. The seed layer
-(`seed.nix` + `systems.nix`) is kept small and swappable for exactly this.
+The seed is currently trusted static upstream builds (busybox, nushell) and the
+pins are stock cache.nixos.org paths. The next steps toward a real trust chain
+are our own source-built bootstrap tarballs on a GitHub release, and eventually a
+GNU Mes bootstrap. Both `pins` and `toolchains` are swappable providers for
+exactly this — a from-source bootstrap is a provider swap, no constructor
+changes.

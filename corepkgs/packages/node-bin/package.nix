@@ -8,7 +8,7 @@
 }:
 let
   fetchurl = import ../../fetch/fetchurl.nix;
-  mkNaked = import ../../mk/naked-sh.nix;
+  mkDrvSh = import ../../mk/drv-sh.nix;
   sys = (import ../../seed/systems.nix).${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
 
@@ -20,7 +20,7 @@ let
     hash = data.hashes.${system};
   };
 in
-mkNaked {
+mkDrvSh {
   inherit system;
   name = "nodejs-${version}";
   env = {

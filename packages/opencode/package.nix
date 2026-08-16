@@ -1,5 +1,5 @@
 # opencode - built on corepkgs, the repo's nixpkgs-free packaging system.
-# `mkBinary` (from the flake scope) fetches the prebuilt release tarball and
+# `mkPackage` (from the flake scope) fetches the prebuilt release tarball and
 # wraps it; version + per-platform hashes come from the shared ./hashes.json
 # (the same file nix-update bumps), so nothing drifts.
 #
@@ -9,12 +9,12 @@
 # libSystem and just runs. The linux assets are tar.gz and the darwin asset is a
 # .zip, so unpack = "auto" infers the archive kind per platform from the URL.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   corePins,
   flake,
 }:
-mkBinary {
+mkPackage {
   pname = "opencode";
   hashesFile = ./hashes.json;
   urlTemplate = "https://github.com/anomalyco/opencode/releases/download/v{version}/{platform}";

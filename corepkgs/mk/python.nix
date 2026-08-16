@@ -1,4 +1,4 @@
-# mkPython: build a Python application from source, nixpkgs-free, with the naked
+# mkPython: build a Python application from source, nixpkgs-free, with the
 # relocatable-CPython toolchain. Deps are vendored by vendor/python.nix (a
 # site-packages FOD produced by `pip install --target`, our own hash - not
 # nixpkgs' - since we vendor the installed tree, not a wheel cache). Installs the
@@ -23,7 +23,7 @@
   toolchains,
 }:
 let
-  mkNaked = import ./naked-sh.nix;
+  mkDrvSh = import ./drv-sh.nix;
   inherit (toolchains) python;
   vendor = import ../vendor/python.nix {
     inherit
@@ -70,7 +70,7 @@ let
     map (n: renderWrapper n (builtins.getAttr n entrypoints)) (builtins.attrNames entrypoints)
   );
 
-  drv = mkNaked {
+  drv = mkDrvSh {
     inherit system;
     name = "${pname}-${version}";
     env = { inherit vendor python; };

@@ -9,7 +9,7 @@
 }:
 let
   fetchurl = import ../../fetch/fetchurl.nix;
-  mkNaked = import ../../mk/naked-sh.nix;
+  mkDrvSh = import ../../mk/drv-sh.nix;
   seed = import ../../seed { inherit system; };
   sys = (import ../../seed/systems.nix).${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
@@ -35,7 +35,7 @@ let
   ];
   ldpath = builtins.concatStringsSep ":" (map (p: "${p}/lib") manylinux);
 in
-mkNaked {
+mkDrvSh {
   inherit system;
   name = "python-${version}";
   env = {

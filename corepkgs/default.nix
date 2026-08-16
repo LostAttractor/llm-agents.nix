@@ -1,7 +1,7 @@
 # corepkgs — the nixpkgs-free packaging system, as an importable API.
 #
 #   core = import ./corepkgs { inherit system; }          # nixpkgs-free
-#   core.lib.mkBinary { ... }      # the builder API
+#   core.lib.mkPackage { ... }      # the builder API
 #   core.packages                  # corepkgs' own buildable outputs (-bin toolchains + hello)
 #
 # The two seed layers are threaded through the scope as swappable providers:
@@ -27,11 +27,11 @@
   toolchains ? import ./toolchains { inherit system pins; },
 }:
 let
-  mkNaked = import ./mk/naked.nix;
+  mkDrv = import ./mk/drv.nix;
   # smoke-test package: a nixpkgs-free derivation with no toolchain at all.
-  hello = mkNaked {
+  hello = mkDrv {
     inherit system;
-    name = "naked-hello";
+    name = "hello";
     script = ''
       mkdir $"($out)/bin"
       "#!/bin/sh\necho hello from a nixpkgs-free derivation\n" | save --raw $"($out)/bin/hello"
@@ -40,14 +40,13 @@ let
   };
 
   # All fetcher machinery lives together in ./fetch and is nixpkgs-free: every
-  # fetch goes through the naked builtin:fetchurl fetcher, and platformSource
+  # fetch goes through the builtin:fetchurl fetcher, and platformSource
   # takes the `system` string directly (no stdenv). So these are always
   # available, even on the standalone (pkgs = null) path.
   interpolate = import ./fetch/interpolate.nix;
   coreFetchurl = import ./fetch/fetchurl.nix;
-  nakedFetchurl = import ./fetch/naked-fetchurl.nix;
   fetchurlTemplate = import ./fetch/fetchurl-template.nix {
-    fetchurl = nakedFetchurl;
+    fetchurl = coreFetchurl;
     inherit interpolate;
   };
   platformSource = import ./fetch/platform-source.nix {
@@ -84,22 +83,21 @@ in
     ;
 
   # The builder API: constructors + owned primitives, with system/pins pre-bound
-  # so a consumer's package.nix stays terse (just `mkBinary { ... }`).
+  # so a consumer's package.nix stays terse (just `mkPackage { ... }`).
   lib = {
-    mkBinary = args: import ./mk/binary.nix (args // { inherit system pins; });
+    mkPackage = args: import ./mk/package.nix (args // { inherit system pins; });
     mkCargo = args: import ./mk/cargo.nix (args // { inherit system pins toolchains; });
     mkGo = args: import ./mk/go.nix (args // { inherit system pins toolchains; });
     mkNpm = args: import ./mk/npm.nix (args // { inherit system pins toolchains; });
     mkBun = args: import ./mk/bun.nix (args // { inherit system pins toolchains; });
     mkPnpm = args: import ./mk/pnpm.nix (args // { inherit system pins toolchains; });
     mkPython = args: import ./mk/python.nix (args // { inherit system pins toolchains; });
-    mkNaked = args: import ./mk/naked.nix (args // { inherit system; });
-    mkNakedSh = args: import ./mk/naked-sh.nix (args // { inherit system; });
+    mkDrv = args: import ./mk/drv.nix (args // { inherit system; });
+    mkDrvSh = args: import ./mk/drv-sh.nix (args // { inherit system; });
     checkFhs = args: import ./mk/check-fhs.nix (args // { inherit system pins; });
     inherit
       coreFetchurl
       interpolate
-      nakedFetchurl
       fetchurlTemplate
       platformSource
       ;

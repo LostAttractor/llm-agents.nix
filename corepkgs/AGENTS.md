@@ -14,8 +14,8 @@ its layout; the consumer owns supplying nixpkgs deps to the functions it exposes
 
 The surface:
 
-- `core.lib` — the builder API + primitives: `mkBinary`, `mkCargo`, `mkGo`,
-  `mkNpm`, `mkBun`, `mkPnpm`, `mkPython`, `mkNaked`, `mkNakedSh`, `checkFhs`, `coreFetchurl`,
+- `core.lib` — the builder API + primitives: `mkPackage`, `mkCargo`, `mkGo`,
+  `mkNpm`, `mkBun`, `mkPnpm`, `mkPython`, `mkDrv`, `mkDrvSh`, `checkFhs`, `coreFetchurl`,
   `interpolate`, `fetchurlTemplate`, `platformSource`, and the meta helpers
   `mkUpdater` / `mkUpdateScript` / `flakeLib` (un-called functions — the consumer
   passes its own `lib`/tools/`inputs`).
@@ -52,7 +52,7 @@ GNU Mes bootstrap is a provider swap, no constructor changes.
 
 ## Constructors and the FOD hash pattern
 
-- `mkBinary` — prebuilt binaries (patchelf/loader/wrap).
+- `mkPackage` — prebuilt binaries (patchelf/loader/wrap).
 - `mkCargo` — rust from source. Per-crate crates.io FODs from `Cargo.lock`
   (**no** vendorHash; the lock's sha256s drive + verify fetches). Knobs:
   `openssl`, `buildInputs`, `cargoBuildFlags`, `extraEnv`, `gitDeps` (github-
@@ -64,7 +64,7 @@ GNU Mes bootstrap is a provider swap, no constructor changes.
   (patchelf bundled `.node`), `omitOptional`.
 - `mkBun` — bun from source. `node_modules` FOD (OUR `bunDepsHash`); installs
   app + node_modules and wraps `bun run <entry>`. NOT `bun build --compile` (the
-  naked bun runs via the glibc loader, so process.execPath is the loader and
+  bun runs via the glibc loader, so process.execPath is the loader and
   --compile fails BunSectionNotFound; bun can't be patchelf'd either). Optional
   `buildScript` for a pre-run asset/dist build.
 - `mkPnpm` — pnpm from source. Flat hoisted `node_modules` FOD (OUR

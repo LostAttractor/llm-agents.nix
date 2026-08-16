@@ -1,5 +1,5 @@
 # coderabbit-cli (AI code-review CLI) - built on corepkgs, the repo's
-# nixpkgs-free packaging system. `mkBinary` fetches the prebuilt release zip and
+# nixpkgs-free packaging system. `mkPackage` fetches the prebuilt release zip and
 # wraps it; version + per-platform hashes come from the shared ./hashes.json (the
 # same file nix-update bumps), so nothing drifts.
 #
@@ -8,7 +8,7 @@
 # kind = "loader" leaves it byte-intact and runs it through the pinned glibc
 # loader on Linux; darwin links libSystem and runs directly.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
 }:
@@ -21,7 +21,7 @@ let
   };
   urlTemplate = "https://cli.coderabbit.ai/releases/{version}/coderabbit-{platform}.zip";
 in
-mkBinary {
+mkPackage {
   pname = "coderabbit-cli";
   mainProgram = "coderabbit";
   hashesFile = ./hashes.json;

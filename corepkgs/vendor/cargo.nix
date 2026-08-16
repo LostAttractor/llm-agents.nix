@@ -1,9 +1,9 @@
-# Vendor a Cargo.lock's crates.io dependencies as naked FODs and assemble a
+# Vendor a Cargo.lock's crates.io dependencies as fixed-output derivations and assemble a
 # cargo vendor directory - the nixpkgs-free equivalent of fetchCargoVendor.
 # Each .crate is fetched by builtin:fetchurl using the sha256 straight from
 # Cargo.lock; the vendor dir gets a .cargo-checksum.json per crate.
 let
-  mkNaked = import ../mk/naked-sh.nix;
+  mkDrvSh = import ../mk/drv-sh.nix;
 
   fetchCrate =
     {
@@ -50,7 +50,7 @@ let
   manifest = builtins.concatStringsSep "\n" (map line crates);
   gitManifest = builtins.concatStringsSep "\n" (map (g: "${g.crate} ${g.archive}") gitDeps);
 in
-mkNaked {
+mkDrvSh {
   inherit system;
   name = "cargo-vendor";
   env = { inherit manifest gitManifest; };

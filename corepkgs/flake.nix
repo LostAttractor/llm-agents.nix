@@ -1,6 +1,6 @@
 # corepkgs as a standalone flake — so `nix build ./corepkgs#packages.<system>.hello`
 # (or formatelf, bun, ...) works on its own. The root llm-agents.nix flake does
-# NOT consume this; it imports ./default.nix directly (core.lib.mkBinary), which
+# NOT consume this; it imports ./default.nix directly (core.lib.mkPackage), which
 # keeps eval fast and avoids a locked path input. This flake is purely for using
 # corepkgs by itself.
 #

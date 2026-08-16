@@ -1,5 +1,5 @@
 # memvid-cli (`memvid`, AI memory CLI) - built on corepkgs, the repo's
-# nixpkgs-free packaging system. `mkBinary` fetches the prebuilt release artifact
+# nixpkgs-free packaging system. `mkPackage` fetches the prebuilt release artifact
 # and wraps it. There is no ./hashes.json here (no nix-update source of truth), so
 # the version + tarball hash live inline via coreFetchurl.
 #
@@ -9,12 +9,12 @@
 # The binary needs openssl + zlib; the bundled AWT/X11/sound libs are optional
 # (headless CLI) so leave their SONAMEs missing, like autoPatchelfIgnoreMissingDeps.
 {
-  mkBinary,
+  mkPackage,
   coreFetchurl,
   flake,
   corePins,
 }:
-mkBinary {
+mkPackage {
   pname = "memvid-cli";
   version = "2.0.160";
   mainProgram = "memvid";
@@ -48,7 +48,7 @@ mkBinary {
 
   meta = {
     description = "AI memory CLI - crash-safe, single-file storage with semantic search";
-    # Inline-pinned x86_64 binary only (mkBinary cannot yet read this
+    # Inline-pinned x86_64 binary only (mkPackage cannot yet read this
     # package's nested per-platform hashes.json); gate accordingly.
     platforms = [ "x86_64-linux" ];
     homepage = "https://memvid.com";

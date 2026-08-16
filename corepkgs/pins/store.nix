@@ -1,4 +1,4 @@
-# Pin provider for standalone `nix build -f naked`: the tools referenced via
+# Pin provider for standalone `nix build -f corepkgs`: the tools referenced via
 # builtins.storePath, so eval touches zero nixpkgs (the ~20x eval win). IMPURE
 # (storePath) - not usable from a flake; the flake uses pins/pkgs.nix instead.
 #

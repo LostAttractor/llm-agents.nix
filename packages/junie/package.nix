@@ -8,7 +8,7 @@
 # allow the JRE's optional AWT/sound/X11 libs to stay unresolved (the CLI never
 # loads them) - like nixpkgs autoPatchelfIgnoreMissingDeps.
 {
-  mkBinary,
+  mkPackage,
   corePins,
   flake,
 }:
@@ -21,7 +21,7 @@ let
   };
   urlTemplate = "https://github.com/JetBrains/junie/releases/download/{version}/junie-release-{version}-{platform}.zip";
 in
-mkBinary {
+mkPackage {
   pname = "junie";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

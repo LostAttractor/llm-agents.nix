@@ -1,5 +1,5 @@
 # cubic (AI code review CLI from cubic.dev) - built on corepkgs, the repo's
-# nixpkgs-free packaging system. `mkBinary` (from the flake scope) fetches the
+# nixpkgs-free packaging system. `mkPackage` (from the flake scope) fetches the
 # prebuilt release zip and wraps it; version + per-platform hashes come from the
 # shared ./hashes.json (the same file nix-update bumps), so nothing drifts.
 #
@@ -7,7 +7,7 @@
 # appended JS payload segfaults on any ELF rewrite, so kind = "loader" leaves it
 # byte-intact and invokes the pinned glibc loader through the wrapper.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
 }:
@@ -20,7 +20,7 @@ let
   };
   urlTemplate = "https://mcafvrhahbqdwfrtncql.supabase.co/storage/v1/object/public/releases/v{version}/cubic-{platform}.zip";
 in
-mkBinary {
+mkPackage {
   pname = "cubic";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

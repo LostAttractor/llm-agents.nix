@@ -1,15 +1,15 @@
 # checkFhs: assert a package output does NOT depend on the FHS - every library
 # an ELF needs must resolve inside /nix/store, and no ELF is left on a host
-# loader we don't control. The naked equivalent of autoPatchelfHook's guard.
+# loader we don't control. The nixpkgs-free equivalent of autoPatchelfHook's guard.
 #
-# Mechanism-aware (reads package.fhs from mkBinary): patchelf packages resolve
+# Mechanism-aware (reads package.fhs from mkPackage): patchelf packages resolve
 # NEEDED via the ELF rpath; loader packages via the wrapper's --library-path
 # (their own FHS interpreter is bypassed by the pinned loader); ignoreMissing
 # SONAMEs (a bundled JRE's optional AWT/X11 libs) are allowed to stay unresolved.
 #
-# Build script is nushell (the mk-naked builder), reading __structuredAttrs.
+# Build script is nushell (the mkDrv builder), reading __structuredAttrs.
 let
-  mkNaked = import ./naked.nix;
+  mkDrv = import ./drv.nix;
 in
 {
   package,
@@ -17,7 +17,7 @@ in
   system,
   pins,
 }:
-mkNaked {
+mkDrv {
   inherit system;
   name = "${name}-fhs-check";
   env = {

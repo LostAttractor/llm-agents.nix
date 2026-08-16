@@ -1,4 +1,4 @@
-# pnpm-bin: the pnpm npm package (a self-contained JS bundle) run on the naked
+# pnpm-bin: the pnpm npm package (a self-contained JS bundle) run on the
 # node toolchain - no separate binary to patchelf. version + hash (arch-
 # independent) from ./hashes.json. `pnpm` execs `node dist/pnpm.cjs`, inheriting
 # node's pinned-glibc runtime.
@@ -8,7 +8,7 @@
 }:
 let
   fetchurl = import ../../fetch/fetchurl.nix;
-  mkNaked = import ../../mk/naked-sh.nix;
+  mkDrvSh = import ../../mk/drv-sh.nix;
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
   inherit (data) version;
   tgz = fetchurl {
@@ -17,7 +17,7 @@ let
     name = "pnpm-${version}.tgz";
   };
 in
-mkNaked {
+mkDrvSh {
   inherit system;
   name = "pnpm-${version}";
   env = { inherit tgz node; };

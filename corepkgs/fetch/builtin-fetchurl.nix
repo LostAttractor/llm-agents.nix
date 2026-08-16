@@ -5,7 +5,7 @@
 # Args are closed on purpose (url, hash, executable) - the builtin serves
 # nothing else (no unpack, auth, or curl opts), so anything extra fails loudly
 # instead of being silently dropped. bun2nix passes only { url, hash } (the
-# executable default is a no-op there); the naked build layer also fetches
+# executable default is a no-op there); the corepkgs build layer also fetches
 # runnable binaries with `executable = true` (recursive/NAR hash + the +x bit).
 {
   url,

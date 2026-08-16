@@ -13,7 +13,7 @@
 # needs GTK/webkit/wayland libs the CLI never loads; allow them to stay
 # unresolved (like nixpkgs autoPatchelfIgnoreMissingDeps).
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   corePins,
   flake,
@@ -27,7 +27,7 @@ let
   };
   urlTemplate = "https://registry.npmjs.org/@github/copilot-{platform}/-/copilot-{platform}-{version}.tgz";
 in
-mkBinary {
+mkPackage {
   pname = "copilot-cli";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

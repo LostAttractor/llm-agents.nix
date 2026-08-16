@@ -1,5 +1,5 @@
 # mimo-code (Xiaomi's MiMoCode, an OpenCode-based coding agent) - built on
-# corepkgs, the repo's nixpkgs-free packaging system. `mkBinary` fetches the
+# corepkgs, the repo's nixpkgs-free packaging system. `mkPackage` fetches the
 # prebuilt release tarball and wraps it; version + per-platform hashes come from
 # the shared ./hashes.json.
 #
@@ -10,7 +10,7 @@
 # The darwin asset is a .zip while linux ships .tar.gz, so unpack = "auto" infers
 # the archive kind per platform from the resolved URL extension.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   corePins,
   flake,
@@ -24,7 +24,7 @@ let
   };
   urlTemplate = "https://github.com/XiaomiMiMo/MiMo-Code/releases/download/v{version}/{platform}";
 in
-mkBinary {
+mkPackage {
   pname = "mimo-code";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

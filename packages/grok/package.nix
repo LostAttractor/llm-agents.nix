@@ -1,5 +1,5 @@
 # grok (xAI's agentic coding CLI) - built on corepkgs, the repo's nixpkgs-free
-# packaging system. `mkBinary` (from the flake scope) fetches the prebuilt
+# packaging system. `mkPackage` (from the flake scope) fetches the prebuilt
 # release artifact and wraps it; version + per-platform hashes come from the
 # shared ./hashes.json (the same file nix-update bumps), so nothing drifts.
 #
@@ -8,7 +8,7 @@
 # and invokes the pinned glibc loader through the wrapper; on darwin it links
 # the system libSystem and just runs.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   flake,
 }:
@@ -21,7 +21,7 @@ let
   };
   urlTemplate = "https://storage.googleapis.com/grok-build-public-artifacts/cli/grok-{version}-{platform}";
 in
-mkBinary {
+mkPackage {
   pname = "grok";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

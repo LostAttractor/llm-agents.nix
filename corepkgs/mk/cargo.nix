@@ -1,4 +1,4 @@
-# mkCargo: build a Rust package from source, nixpkgs-free, with the naked rust
+# mkCargo: build a Rust package from source, nixpkgs-free, with the rust
 # toolchain + `zig cc` as the linker + crates vendored by vendor/cargo.nix.
 #
 # zig cc can't be handed --dynamic-linker (it re-sub-compiles glibc/compiler_rt
@@ -28,7 +28,7 @@
   openssl ? false, # convenience: wire the pinned openssl (OPENSSL_NO_VENDOR + LIB/INCLUDE dirs) for openssl-sys / native-tls
   extraEnv ? { }, # extra build-time env vars (become derivation env, exported to cargo/build.rs): RUSTC_BOOTSTRAP, a pinned data file path a build.rs reads, a version override, ...
   mainProgram ? builtins.head binaries,
-  # Package metadata carried onto the naked derivation (like mkBinary), so the
+  # Package metadata carried onto the bare derivation (like mkPackage), so the
   # flake's meta-completeness / README / updater machinery treat it normally.
   meta ? { },
   category ? null,
@@ -38,7 +38,7 @@
   toolchains,
 }:
 let
-  mkNaked = import ./naked-sh.nix;
+  mkDrvSh = import ./drv-sh.nix;
   cargoVendor = import ../vendor/cargo.nix;
   sys = (import ../seed/systems.nix).${system};
   inherit (toolchains) rust zig;
@@ -100,9 +100,9 @@ let
   # the zcc post-link sets rpath to the pinned glibc + gccLib (+ extra C libs)
   libpath =
     "${pins.glibc}/lib:${pins.gccLib}/lib" + (if extraLibPath == "" then "" else ":${extraLibPath}");
-  drv = mkNaked {
+  drv = mkDrvSh {
     inherit system;
-    name = if version == null then "${pname}-naked" else "${pname}-${version}";
+    name = if version == null then "${pname}" else "${pname}-${version}";
     env = {
       inherit
         src
@@ -244,7 +244,7 @@ let
 in
 drv
 // {
-  # rust source builds are linux-only for now (the naked rust + zig toolchains
+  # rust source builds are linux-only for now (the rust + zig toolchains
   # are Linux); callers can widen meta.platforms once aarch64 is verified.
   meta = {
     platforms = [ "x86_64-linux" ];
@@ -255,7 +255,7 @@ drv
     (if category == null then { } else { inherit category; })
     // (if updater == null then { } else { inherit updater; });
   # the produced binaries are patchelf'd to the pinned glibc/gccLib, so the FHS
-  # check treats them like a kind = "patchelf" mkBinary output.
+  # check treats them like a kind = "patchelf" mkPackage output.
   fhs = {
     kind = "patchelf";
     inherit libpath mainProgram;

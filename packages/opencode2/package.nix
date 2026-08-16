@@ -1,5 +1,5 @@
 # opencode2 - built on corepkgs, the repo's nixpkgs-free packaging system.
-# `mkBinary` (from the flake scope) fetches the prebuilt npm tarball (next
+# `mkPackage` (from the flake scope) fetches the prebuilt npm tarball (next
 # channel) and wraps it; version + per-platform hashes come from the shared
 # ./hashes.json (the same file nix-update bumps), so nothing drifts.
 #
@@ -7,7 +7,7 @@
 # on Linux its appended JS payload segfaults on any ELF rewrite, so kind =
 # "loader" leaves it byte-intact and invokes the pinned glibc loader.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   corePins,
   flake,
@@ -21,7 +21,7 @@ let
   };
   urlTemplate = "https://registry.npmjs.org/@opencode-ai/cli-{platform}/-/cli-{platform}-{version}.tgz";
 in
-mkBinary {
+mkPackage {
   pname = "opencode2";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

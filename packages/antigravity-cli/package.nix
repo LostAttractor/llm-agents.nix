@@ -1,5 +1,5 @@
 # antigravity-cli (Google Antigravity's agentic dev CLI) - built on corepkgs,
-# the repo's nixpkgs-free packaging system. `mkBinary` fetches the prebuilt
+# the repo's nixpkgs-free packaging system. `mkPackage` fetches the prebuilt
 # release tarball and wraps it; version + per-platform hashes come from the
 # shared ./hashes.json (the same file the updater bumps).
 #
@@ -11,7 +11,7 @@
 # version bump the build id must be refreshed here too (upstream has no stable
 # per-version download URL; the custom update.py tracks the full urls).
 {
-  mkBinary,
+  mkPackage,
   corePins,
   flake,
 }:
@@ -24,7 +24,7 @@ let
   };
   urlTemplate = "https://storage.googleapis.com/antigravity-public/antigravity-cli/{version}-6057583128215552/{platform}";
 in
-mkBinary {
+mkPackage {
   pname = "antigravity-cli";
   hashesFile = ./hashes.json;
   inherit platforms urlTemplate;

@@ -7,16 +7,16 @@
 # it byte-intact and invokes the pinned glibc loader through the wrapper.
 #
 # NOTE: like qoder-cli, ./hashes.json nests each platform's url+hash under
-# `platforms`, a shape mkBinary's shared-hashes reader cannot consume, so the
+# `platforms`, a shape mkPackage's shared-hashes reader cannot consume, so the
 # source is pinned inline (single-platform, mirroring the current hashes.json).
 # The declarative updater below still tracks all upstream platforms.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   coreFetchurl,
   flake,
 }:
-mkBinary {
+mkPackage {
   pname = "qoder-cli-cn";
   version = "1.1.22";
   mainProgram = "qoderclicn";
@@ -58,7 +58,7 @@ mkBinary {
 
   meta = {
     description = "Qoder CLI (mainland China edition) - terminal-based AI coding assistant for China-region accounts";
-    # Inline-pinned x86_64 binary only (mkBinary cannot yet read this
+    # Inline-pinned x86_64 binary only (mkPackage cannot yet read this
     # package's nested per-platform hashes.json); gate accordingly.
     platforms = [ "x86_64-linux" ];
     homepage = "https://qoder.cn";

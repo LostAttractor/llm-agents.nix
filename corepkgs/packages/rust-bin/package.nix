@@ -10,7 +10,7 @@
 }:
 let
   fetchurl = import ../../fetch/fetchurl.nix;
-  mkNaked = import ../../mk/naked-sh.nix;
+  mkDrvSh = import ../../mk/drv-sh.nix;
   sys = (import ../../seed/systems.nix).${system};
   data = builtins.fromJSON (builtins.readFile ./hashes.json);
   h = data.hashes.${system};
@@ -29,7 +29,7 @@ let
     hash = h.muslStd;
   };
 in
-mkNaked {
+mkDrvSh {
   inherit system;
   name = "rust-${version}";
   env = {

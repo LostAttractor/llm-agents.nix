@@ -2,7 +2,7 @@
 #   busybox - truly-static; provides archive extraction (tar/unzip/xz) that
 #             nushell has no built-in for.
 #   nu      - nushell (truly-static musl), the real build-script runtime. It is
-#             extracted from its tarball by the tiny sh bootstrap (mk/naked-sh),
+#             extracted from its tarball by the tiny sh bootstrap (mk/drv-sh),
 #             since nushell ships as a .tar.gz and nothing else can extract it
 #             before nu exists.
 #
@@ -13,7 +13,7 @@
 }:
 let
   fetchurl = import ../fetch/fetchurl.nix;
-  mkNakedSh = import ../mk/naked-sh.nix;
+  mkDrvSh = import ../mk/drv-sh.nix;
   sys = (import ./systems.nix).${system};
   isDarwin = builtins.match ".*-darwin" system != null;
 
@@ -27,7 +27,7 @@ let
         executable = true;
       };
   nuTar = fetchurl { inherit (sys.nu) url hash; };
-  nushell = mkNakedSh {
+  nushell = mkDrvSh {
     inherit system;
     name = "nushell";
     env = { inherit nuTar; };

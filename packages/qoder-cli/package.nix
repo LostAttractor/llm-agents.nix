@@ -1,21 +1,21 @@
 # qoder-cli (Qoder's `qodercli` AI coding assistant) - built on corepkgs, the
-# repo's nixpkgs-free packaging system. `mkBinary` fetches the prebuilt release
+# repo's nixpkgs-free packaging system. `mkPackage` fetches the prebuilt release
 # tarball and wraps it.
 #
 # qodercli is a bun --compile single-file binary, so kind = "loader" leaves it
 # byte-intact and invokes the pinned glibc loader through the wrapper.
 #
 # NOTE: qoder's ./hashes.json nests each platform's url+hash under `platforms`,
-# a shape mkBinary's shared-hashes reader cannot consume, so the source is
+# a shape mkPackage's shared-hashes reader cannot consume, so the source is
 # pinned inline (single-platform, mirroring the current hashes.json). The
 # declarative updater below still tracks all upstream platforms.
 {
-  mkBinary,
+  mkPackage,
   mkUpdater,
   coreFetchurl,
   flake,
 }:
-mkBinary {
+mkPackage {
   pname = "qoder-cli";
   version = "1.1.22";
   mainProgram = "qodercli";
@@ -57,7 +57,7 @@ mkBinary {
 
   meta = {
     description = "Qoder AI CLI tool - Terminal-based AI assistant for code development";
-    # Inline-pinned x86_64 binary only (mkBinary cannot yet read this
+    # Inline-pinned x86_64 binary only (mkPackage cannot yet read this
     # package's nested per-platform hashes.json); gate accordingly.
     platforms = [ "x86_64-linux" ];
     homepage = "https://qoder.com";
