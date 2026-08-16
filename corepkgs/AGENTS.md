@@ -33,11 +33,13 @@ corepkgs' only external dependency is two threaded "seed" attrsets, each a
 default arg you can override without touching a constructor:
 
 - **`pins`** — prebuilt C libs/tools (glibc, gccLib, openssl, zlib, formatelf,
-  ...). Default: `pins/closure.nix`, which `builtins.fetchClosure`es the exact
-  store paths from cache.nixos.org (formatelf from cache.numtide.com) — pure and
-  nixpkgs-free. When the root passes `pkgs`, `pins/pkgs.nix` reuses it (so CI can
-  rebuild pins from source on a cache miss). Regenerate the paths in
-  `pins/closure.nix` **and** `pins/store.nix` on a nixpkgs/formatelf bump.
+  ...). Default: `pins/closure.nix`, which references the exact store paths via
+  `builtins.appendContext` (the nixpkgs-multiverse "fast mode" trick) — pure,
+  nixpkgs-free, and cache-free at eval (no narinfo fetch; paths are substituted
+  from cache.nixos.org / cache.numtide.com at build time). When the root passes
+  `pkgs`, `pins/pkgs.nix` reuses it (so CI can rebuild pins from source on a cache
+  miss). Regenerate the paths in `pins/closure.nix` **and** `pins/store.nix` on a
+  nixpkgs/formatelf bump.
 - **`toolchains`** — rust, go, node, zig, bun, pnpm, python (+ seed). Default:
   `toolchains/default.nix` (the provider), which imports the prebuilt toolchain
   packages from `packages/<name>-bin/` (bun-bin, rust-bin, …). Each `-bin`
