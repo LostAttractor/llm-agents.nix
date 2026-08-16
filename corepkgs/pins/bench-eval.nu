@@ -18,10 +18,7 @@
 
 const SYSTEM = "x86_64-linux"
 # nixpkgs-free backends in ascending eval cost, then pkgs as a reference ceiling.
-# `rehydrated-storepath` is the rehydrated graph WITHOUT inlined sources (srcs via
-# builtins.storePath); `rehydrated` inlines all 293 inputSrcs via builtins.path,
-# so the pair isolates what inlining costs at eval (NAR-hashing the files).
-const BACKENDS = ["store" "closure" "rehydrated-storepath" "rehydrated" "pkgs"]
+const BACKENDS = ["store" "closure" "rehydrated" "pkgs"]
 
 # Repo root: this script lives in corepkgs/pins/.
 def repo-root []: nothing -> string {
@@ -43,14 +40,6 @@ def nixpkgs-flakeref [root: string]: nothing -> string {
 def backend-expr [backend: string, root: string, np: string, system: string, pin: string]: nothing -> string {
   let provider = if $backend == "pkgs" {
     "import " + $root + "/corepkgs/pins/pkgs.nix (import (builtins.getFlake \"" + $np + "\") { system = \"" + $system + "\"; })"
-  } else if $backend == "rehydrated-storepath" {
-    # Rehydrate straight from rehydrate.nix with no `srcs` map: inputSrcs resolve
-    # via builtins.storePath (cache-dependent) instead of inlined builtins.path.
-    ("(let d = " + $root + "/corepkgs/pins/rehydrated; " +
-      "dump = builtins.fromJSON (builtins.readFile (d + \"/closure.json\")); " +
-      "manifest = builtins.fromJSON (builtins.readFile (d + \"/manifest.json\")); " +
-      "rehydrate = import " + $root + "/corepkgs/pins/rehydrate.nix { inherit dump; }; " +
-      "in builtins.mapAttrs (_: m: (rehydrate m.drv).${m.output}.outPath) manifest)")
   } else {
     "import " + $root + "/corepkgs/pins/" + $backend + ".nix \"" + $system + "\""
   }

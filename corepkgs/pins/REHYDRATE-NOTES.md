@@ -56,18 +56,19 @@ The closure's leaves are two kinds:
 
 - **FOD tarballs (114 nodes):** upstream source (glibc/gcc/…), fetched **by
   hash**. Already durable — refetchable from anywhere.
-- **inputSrcs (104 files, ~824 KB):** the `"${./patch}"` / `builtins.path`
-  interpolations — glibc patches, CVE fixes, setup hooks (`add-flags.sh`,
-  `audit-tmpdir.sh`, `default-builder.sh`), `.m4` macros. These are nixpkgs
-  source-tree files, NOT fetchable by URL.
+- **inputSrcs (293 files for the full pin set, 104 of them glibc's):** the
+  `"${./patch}"` / `builtins.path` interpolations — patches, CVE fixes, setup
+  hooks (`add-flags.sh`, `audit-tmpdir.sh`, `default-builder.sh`), `.m4` macros.
+  These are nixpkgs source-tree files, NOT fetchable by URL.
 
-`rehydrate.nix` currently references the 104 via `builtins.storePath` — which
-still requires them present/substitutable, i.e. the same cache-GC exposure moved
-onto small files. To be truly GC-proof, **inline the 104 files into the repo**
-(commit ~824 KB, re-add via `builtins.path` → identical store path by content).
-Then the standalone flake is self-contained: rehydrated `.drv` graph + committed
-patch/hook files + hash-fetched upstream tarballs. Nothing depends on cache
-retention.
+**Done:** all inputSrcs are inlined into `rehydrated/srcs/` and re-added by
+content via `builtins.path` (or `builtins.toFile` for text FODs) → identical
+store path. `rehydrate.nix` has **no `builtins.storePath` fallback**: a src that
+is not inlined throws, so the graph is GC-proof by construction. The standalone
+flake is now self-contained: rehydrated `.drv` graph + committed patch/hook
+files + hash-fetched upstream tarballs. Nothing depends on cache retention.
+Measured cost of inlining vs the old store-ref path: **none** (within eval
+noise; see `bench-eval.nu`).
 
 ## Status: done and wired (`rehydrated.nix`)
 

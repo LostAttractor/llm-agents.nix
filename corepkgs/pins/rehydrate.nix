@@ -9,8 +9,9 @@
 # `dump` = builtins.fromJSON of the `nix derivation show -r <drv>` output:
 #   { derivations = { "<drvpath>" = <node>; ... }; }
 # `srcs` = { "<store-name>" = <re-added path>; } for inlined inputSrcs (repo
-# files re-added via builtins.path). Any src not in the map falls back to
-# builtins.storePath (cache-dependent) - inline them all to be GC-proof.
+# files re-added via builtins.path). Every inputSrc in the closure must be
+# present; a missing one throws (no cache-dependent storePath fallback), so the
+# graph is GC-proof by construction.
 # Returns a function drvPath -> the rehydrated derivation value.
 {
   dump,
@@ -81,11 +82,14 @@ let
         )
       );
 
-      # 2. inputSrcs (store-names): prefer an inlined repo file (builtins.path,
-      #    GC-proof); else fall back to storePath (cache-dependent).
+      # 2. inputSrcs (store-names): every one must be inlined into `srcs` (a repo
+      #    file re-added via builtins.path, GC-proof). A missing one is a hard
+      #    error - we never silently fall back to a cache-dependent store path.
       inputSrcSubst = map (s: {
         from = "${storeDir}/${s}";
-        to = if srcs ? ${s} then "${srcs.${s}}" else "${builtins.storePath "${storeDir}/${s}"}";
+        to = "${srcs.${s}
+          or (throw "rehydrate: inputSrc '${s}' is not inlined; regenerate srcs/ (pins/rehydrated/generate.sh)")
+        }";
       }) deps.srcs;
 
       subst = inputDrvSubst ++ inputSrcSubst ++ selfSubst node;
