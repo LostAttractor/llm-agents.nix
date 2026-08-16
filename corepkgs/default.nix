@@ -86,6 +86,7 @@ in
     mkGo = args: import ./mk/go.nix (args // { inherit system pins toolchains; });
     mkNpm = args: import ./mk/npm.nix (args // { inherit system pins toolchains; });
     mkBun = args: import ./mk/bun.nix (args // { inherit system pins toolchains; });
+    mkPnpm = args: import ./mk/pnpm.nix (args // { inherit system pins toolchains; });
     mkPython = args: import ./mk/python.nix (args // { inherit system pins toolchains; });
     mkNaked = args: import ./mk/naked.nix (args // { inherit system; });
     mkNakedSh = args: import ./mk/naked-sh.nix (args // { inherit system; });

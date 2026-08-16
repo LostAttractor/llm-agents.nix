@@ -116,6 +116,7 @@
                 mkGo
                 mkNpm
                 mkBun
+                mkPnpm
                 mkPython
                 mkNaked
                 checkFhs
