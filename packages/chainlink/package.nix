@@ -10,12 +10,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "chainlink";
-  version = "1.6.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/dollspace-gay/chainlink/archive/refs/tags/chainlink-1.6.0.tar.gz";
-    hash = "sha256-4DccXgZ6MwQP1iBFcyDtVcdKz0Vbxc0Y4MGta+0688M=";
+    url = "https://github.com/dollspace-gay/chainlink/archive/refs/tags/chainlink-${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   sourceRoot = "chainlink";
@@ -25,7 +28,7 @@ mkCargo {
   meta = {
     description = "Simple, lean issue tracker CLI designed for AI-assisted development";
     homepage = "https://github.com/dollspace-gay/chainlink";
-    changelog = "https://github.com/dollspace-gay/chainlink/releases/tag/chainlink-1.6.0";
+    changelog = "https://github.com/dollspace-gay/chainlink/releases/tag/chainlink-${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.Chickensoupwithrice ];

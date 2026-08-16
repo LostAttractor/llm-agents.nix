@@ -8,14 +8,17 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPython {
   pname = "semble";
-  version = "0.5.5";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/MinishLab/semble/archive/refs/tags/v0.5.5.tar.gz";
-    hash = "sha256-brV4al1pOwzywy7Lx5WYJtkuV2zrbsc7Ko7DPGoRlbA=";
+    url = "https://github.com/MinishLab/semble/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  pythonDepsHash = "sha256-5yDI14Mf/XrrhS79Xz6B3U85SUqLmf1A5OQbSRZlYS4=";
+  pythonDepsHash = data.pythonDepsHash;
 
   # Upstream's `semble` entry auto-dispatches to the CLI or the MCP server based
   # on argv; `semble-mcp` is the same entry, exposed as a stable name for wiring
@@ -31,7 +34,7 @@ mkPython {
   #  2. Fold the [mcp] extra into the base dependencies so `semble-mcp` works
   #     (mkPython installs `.`, not `.[mcp]`).
   postPatch = ''
-    export SETUPTOOLS_SCM_PRETEND_VERSION=0.5.5
+    export SETUPTOOLS_SCM_PRETEND_VERSION=${data.version}
     sed -i 's|"semble-grammars>=0.1.2",|"semble-grammars>=0.1.2", "mcp>=1.0,<2.0",|' pyproject.toml
   '';
 
@@ -39,7 +42,7 @@ mkPython {
   meta = {
     description = "Fast and accurate local code search for AI agents — CLI and MCP server";
     homepage = "https://github.com/MinishLab/semble";
-    changelog = "https://github.com/MinishLab/semble/releases/tag/v0.5.5";
+    changelog = "https://github.com/MinishLab/semble/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.murlakatam ];

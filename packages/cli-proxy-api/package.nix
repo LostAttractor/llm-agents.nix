@@ -6,20 +6,23 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "cli-proxy-api";
-  version = "7.2.132";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/router-for-me/CLIProxyAPI/archive/refs/tags/v7.2.132.tar.gz";
-    hash = "sha256-MR9jlA3IfZ+5ychuxuN5Ujai1fPbfsLQ/icxHOggHkw=";
+    url = "https://github.com/router-for-me/CLIProxyAPI/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-CrDp7MOr+AwJUhTovklXx3F1yaktQlvD7VYhYSY6VvY=";
+  vendorHash = data.vendorHash;
   subPackages = [ "cmd/server" ];
   binaries = [ "cli-proxy-api" ];
   ldflags = [
     "-s"
     "-w"
-    "-X main.Version=7.2.132"
+    "-X main.Version=${data.version}"
     "-X main.Commit=nixpkgs"
     "-X main.BuildDate=1970-01-01T00:00:00Z"
   ];

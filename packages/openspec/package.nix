@@ -6,21 +6,24 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkNpm {
   pname = "openspec";
-  version = "1.9.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://registry.npmjs.org/@fission-ai/openspec/-/openspec-1.9.0.tgz";
-    hash = "sha256-wxt5LRQ3piuU+/97M4ibSmQR0Ib6LB/lUKoU93xRWyw=";
+    url = "https://registry.npmjs.org/@fission-ai/openspec/-/openspec-${data.version}.tgz";
+    inherit (data) hash;
   };
   packageLock = ./package-lock.json;
-  npmDepsHash = "sha256-cSNxDuQttA5CGr7mM8ZBDPj8TQvf4Gnjp2wIUG2E79w=";
+  npmDepsHash = data.npmDepsHash;
   buildScript = "";
   category = "Workflow & Project Management";
   meta = {
     description = "Spec-driven development for AI coding assistants";
     homepage = "https://github.com/Fission-AI/OpenSpec";
-    changelog = "https://github.com/Fission-AI/OpenSpec/releases/tag/v1.9.0";
+    changelog = "https://github.com/Fission-AI/OpenSpec/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.binaryBytecode ];
     maintainers = [ ];

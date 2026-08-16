@@ -6,20 +6,23 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "gascity";
-  version = "1.4.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/gastownhall/gascity/archive/refs/tags/v1.4.0.tar.gz";
-    hash = "sha256-48Dp6W4eymN6iUhH4FJby1xG7c1ozpbAJtS0U+RgR1Y=";
+    url = "https://github.com/gastownhall/gascity/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-zJTfOU5IvRZTQUFQrqqjN+/bCWflCZBMjWNbHJZC6PQ=";
+  vendorHash = data.vendorHash;
   subPackages = [ "cmd/gc" ];
   binaries = [ "gc" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=main.version=1.4.0"
+    "-X=main.version=${data.version}"
     "-X=main.commit=nixpkgs"
     "-X=main.date=1970-01-01T00:00:00Z"
   ];
@@ -28,7 +31,7 @@ mkGo {
   meta = {
     description = "Orchestration-builder SDK for multi-agent coding workflows";
     homepage = "https://github.com/gastownhall/gascity";
-    changelog = "https://github.com/gastownhall/gascity/releases/tag/v1.4.0";
+    changelog = "https://github.com/gastownhall/gascity/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.zaninime ];

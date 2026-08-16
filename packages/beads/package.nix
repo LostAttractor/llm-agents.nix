@@ -9,14 +9,17 @@
   corePins,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "beads";
-  version = "1.2.1";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/gastownhall/beads/archive/refs/tags/v1.2.1.tar.gz";
-    hash = "sha256-s4VS0aMQ2T9LeyPxW/HQzv1T5WXX9DzMkPiVYRGQXPc=";
+    url = "https://github.com/gastownhall/beads/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-mflgEu9g1k0UeyMA30WT4ON/8bpsNyIbIjAVTbjXpCs=";
+  vendorHash = data.vendorHash;
   cgo = true;
   buildInputs = [
     corePins.icu
@@ -28,7 +31,7 @@ mkGo {
   meta = {
     description = "A distributed issue tracker designed for AI-supervised coding workflows";
     homepage = "https://github.com/gastownhall/beads";
-    changelog = "https://github.com/gastownhall/beads/releases/tag/v1.2.1";
+    changelog = "https://github.com/gastownhall/beads/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.zimbatm ];

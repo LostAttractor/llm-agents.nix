@@ -6,12 +6,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "rtk";
-  version = "0.45.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/rtk-ai/rtk/archive/refs/tags/v0.45.0.tar.gz";
-    hash = "sha256-BFn2PLefYQdRl0uiBzLic9Rd27TNDAeVdotiuGiJGtk=";
+    url = "https://github.com/rtk-ai/rtk/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   binaries = [ "rtk" ];
@@ -20,7 +23,7 @@ mkCargo {
   meta = {
     description = "CLI proxy that reduces LLM token consumption by 60-90% on common dev commands";
     homepage = "https://github.com/rtk-ai/rtk";
-    changelog = "https://github.com/rtk-ai/rtk/releases/tag/v0.45.0";
+    changelog = "https://github.com/rtk-ai/rtk/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.vizid ];

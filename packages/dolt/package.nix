@@ -8,14 +8,17 @@
   corePins,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "dolt";
-  version = "2.3.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/dolthub/dolt/archive/refs/tags/v2.3.0.tar.gz";
-    hash = "sha256-h6ttuaCH5qfoDT96eeKj30ioTlZjmbMlDrerCg8FKyc=";
+    url = "https://github.com/dolthub/dolt/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-/DEfQ1s+03/IEz1emrCslQsIF04pR6V3I+rGK/AeyKE=";
+  vendorHash = data.vendorHash;
   cgo = true;
   buildInputs = [
     corePins.icu
@@ -29,7 +32,7 @@ mkGo {
   meta = {
     description = "Relational database with version control and CLI a-la Git";
     homepage = "https://github.com/dolthub/dolt";
-    changelog = "https://github.com/dolthub/dolt/releases/tag/v2.3.0";
+    changelog = "https://github.com/dolthub/dolt/releases/tag/v${data.version}";
     license = flake.lib.licenses.asl20;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
   };

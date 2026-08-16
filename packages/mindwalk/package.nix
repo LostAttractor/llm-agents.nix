@@ -6,14 +6,17 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "mindwalk";
-  version = "0.5.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/cosmtrek/mindwalk/archive/refs/tags/v0.5.0.tar.gz";
-    hash = "sha256-hNL6FQan4OD3lOgeT82AUFpIhGzCRy6e3oKUJYHZKoI=";
+    url = "https://github.com/cosmtrek/mindwalk/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-qVoj03LNLbdoCUAOydK7oEHsuZ1BZ6Z2jwYB3gPOfrw=";
+  vendorHash = data.vendorHash;
   subPackages = [ "cmd/mindwalk" ];
   binaries = [ "mindwalk" ];
   ldflags = [
@@ -25,7 +28,7 @@ mkGo {
   meta = {
     description = "Visualization tool that replays coding-agent sessions on a 3D map of your codebase";
     homepage = "https://github.com/cosmtrek/mindwalk";
-    changelog = "https://github.com/cosmtrek/mindwalk/releases/tag/v0.5.0";
+    changelog = "https://github.com/cosmtrek/mindwalk/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.zimbatm ];

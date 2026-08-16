@@ -10,12 +10,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "nono";
-  version = "0.73.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/always-further/nono/archive/refs/tags/v0.73.0.tar.gz";
-    hash = "sha256-ehTKp7MUngEx6CqGsDBZfcIIcsPbr9yGhqFg3aY6brM=";
+    url = "https://github.com/always-further/nono/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   cargoBuildFlags = [
@@ -28,7 +31,7 @@ mkCargo {
   meta = {
     description = "Kernel-enforced agent sandbox. Capability-based isolation with secure key management, atomic rollback, cryptographic immutable audit chain of provenance. Run your agents in a zero-trust environment.";
     homepage = "https://nono.sh/";
-    changelog = "https://github.com/always-further/nono/releases/tag/v0.73.0";
+    changelog = "https://github.com/always-further/nono/releases/tag/v${data.version}";
     license = flake.lib.licenses.asl20;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.pogobanane ];

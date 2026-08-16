@@ -6,21 +6,24 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPnpm {
   pname = "gnhf";
-  version = "0.1.44";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/kunchenguid/gnhf/archive/refs/tags/gnhf-v0.1.44.tar.gz";
-    hash = "sha256-0e+B5aBK5Sc6DJIlhC9ifBKmQYLzvhiOL4yaG89fOzU=";
+    url = "https://github.com/kunchenguid/gnhf/archive/refs/tags/gnhf-v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  pnpmDepsHash = "sha256-SAMuDEW8CpKqkX+aOG1uheGBzUkvOnYm5+vMMBp0y6M=";
+  pnpmDepsHash = data.pnpmDepsHash;
   entry = "dist/cli.mjs";
 
   category = "Workflow & Project Management";
   meta = {
     description = "Ralph/autoresearch-style orchestrator that keeps coding agents running while you sleep";
     homepage = "https://github.com/kunchenguid/gnhf";
-    changelog = "https://github.com/kunchenguid/gnhf/releases/tag/gnhf-v0.1.44";
+    changelog = "https://github.com/kunchenguid/gnhf/releases/tag/gnhf-v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = with flake.lib.maintainers; [ pikdum ];

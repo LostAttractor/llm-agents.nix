@@ -6,26 +6,29 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "td";
-  version = "0.57.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/marcus/td/archive/refs/tags/v0.57.0.tar.gz";
-    hash = "sha256-rTRQyK8DkERlVgk66UqXs4JAB8CY+FUtHQBGd1rXDSY=";
+    url = "https://github.com/marcus/td/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-/IWBYL+WfLz7vDdUs//0KY8rb9mOv4S1jBXCZbYxJRo=";
+  vendorHash = data.vendorHash;
   binaries = [ "td" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=main.Version=0.57.0"
+    "-X=main.Version=${data.version}"
   ];
 
   category = "Workflow & Project Management";
   meta = {
     description = "A minimalist CLI for tracking tasks across AI coding sessions.";
     homepage = "https://github.com/marcus/td";
-    changelog = "https://github.com/marcus/td/releases/tag/v0.57.0";
+    changelog = "https://github.com/marcus/td/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.afterthought ];

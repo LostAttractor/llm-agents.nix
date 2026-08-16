@@ -7,12 +7,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "beads-rust";
-  version = "0.3.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/Dicklesworthstone/beads_rust/archive/refs/tags/v0.3.0.tar.gz";
-    hash = "sha256-SGovt/EiAiQRVc+c95crnG8Gtzz+KO28aLezltGzV3M=";
+    url = "https://github.com/Dicklesworthstone/beads_rust/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   binaries = [ "br" ];
@@ -25,7 +28,7 @@ mkCargo {
   meta = {
     description = "Fast Rust port of beads - a local-first issue tracker for git repositories";
     homepage = "https://github.com/Dicklesworthstone/beads_rust";
-    changelog = "https://github.com/Dicklesworthstone/beads_rust/releases/tag/v0.3.0";
+    changelog = "https://github.com/Dicklesworthstone/beads_rust/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.afterthought ];

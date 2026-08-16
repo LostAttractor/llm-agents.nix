@@ -7,27 +7,30 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "entire";
-  version = "0.10.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/entireio/cli/archive/refs/tags/v0.10.0.tar.gz";
-    hash = "sha256-GlV8JDkueBna4WhNyUMhH/WsZpoC0zquZdc3OKFm4Es=";
+    url = "https://github.com/entireio/cli/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-7/SWL5axi1jJur0mGEO9dMnGO8NXT1RlUnSzz/IvE0g=";
+  vendorHash = data.vendorHash;
   subPackages = [ "cmd/entire" ];
   binaries = [ "entire" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=github.com/entireio/cli/cmd/entire/cli/versioninfo.Version=0.10.0"
+    "-X=github.com/entireio/cli/cmd/entire/cli/versioninfo.Version=${data.version}"
   ];
 
   category = "Usage Analytics";
   meta = {
     description = "CLI tool that captures AI agent sessions and links them to code changes";
     homepage = "https://github.com/entireio/cli";
-    changelog = "https://github.com/entireio/cli/releases/tag/v0.10.0";
+    changelog = "https://github.com/entireio/cli/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.yutakobayashidev ];

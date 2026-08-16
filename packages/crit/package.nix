@@ -7,27 +7,30 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "crit";
-  version = "0.18.4";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/tomasz-tomczyk/crit/archive/refs/tags/v0.18.4.tar.gz";
-    hash = "sha256-fknjX4ZGtpO+KfeZjTdwwD5M35d0ajbKge1xirCtZa8=";
+    url = "https://github.com/tomasz-tomczyk/crit/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-xgNFYuYw6if40UmxoAGNve9FWy6Gt5MCEIz+7CIqjRo=";
+  vendorHash = data.vendorHash;
   subPackages = [ "cmd/crit" ];
   binaries = [ "crit" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=main.version=0.18.4"
+    "-X=main.version=${data.version}"
   ];
 
   category = "Code Review";
   meta = {
     description = "Local-first review tool for coding-agent plans, diffs, and web pages";
     homepage = "https://github.com/tomasz-tomczyk/crit";
-    changelog = "https://github.com/tomasz-tomczyk/crit/releases/tag/v0.18.4";
+    changelog = "https://github.com/tomasz-tomczyk/crit/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.ahacop ];

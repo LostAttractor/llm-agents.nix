@@ -6,12 +6,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "zat";
-  version = "0.5.4";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/bglgwyng/zat/archive/refs/tags/v0.5.4.tar.gz";
-    hash = "sha256-wIkckBtXMhIjzACv/CC4vC/MCObAHCDul3wsxDfCDJs=";
+    url = "https://github.com/bglgwyng/zat/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   binaries = [ "zat" ];
@@ -20,7 +23,7 @@ mkCargo {
   meta = {
     description = "Code outline viewer for LLM coding agents — shows exported symbols with line numbers";
     homepage = "https://github.com/bglgwyng/zat";
-    changelog = "https://github.com/bglgwyng/zat/releases/tag/v0.5.4";
+    changelog = "https://github.com/bglgwyng/zat/releases/tag/v${data.version}";
     license = flake.lib.licenses.gpl3Only;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.mic92 ];

@@ -7,12 +7,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "openfang";
-  version = "0.6.9";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/RightNow-AI/openfang/archive/refs/tags/v0.6.9.tar.gz";
-    hash = "sha256-U2202hqDZPVqd5gWWhxYAaZ7cgpGBkOm2N8LTtImr1o=";
+    url = "https://github.com/RightNow-AI/openfang/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   binaries = [ "openfang" ];
@@ -26,7 +29,7 @@ mkCargo {
   meta = {
     description = "Open-source Agent OS built in Rust — CLI for the OpenFang platform";
     homepage = "https://github.com/RightNow-AI/openfang";
-    changelog = "https://github.com/RightNow-AI/openfang/releases/tag/v0.6.9";
+    changelog = "https://github.com/RightNow-AI/openfang/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.viniciuspalma ];

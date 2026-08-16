@@ -6,21 +6,24 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkBun {
   pname = "ax";
-  version = "0.1.25";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/yusukebe/ax/archive/refs/tags/v0.1.25.tar.gz";
-    hash = "sha256-txjmFzSNIyt8cqQNVdfVTBc0+6o5LQmpKjXaJA9PX28=";
+    url = "https://github.com/yusukebe/ax/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  bunDepsHash = "sha256-j5HCMOHtjZpo0ngCWxERm9IFMT7r6NmEsr5KX2jEIeg=";
+  bunDepsHash = data.bunDepsHash;
   entry = "src/index.ts";
 
   category = "Utilities";
   meta = {
     description = "The AI-era curl: fetch, discover, extract. One command";
     homepage = "https://github.com/yusukebe/ax";
-    changelog = "https://github.com/yusukebe/ax/releases/tag/v0.1.25";
+    changelog = "https://github.com/yusukebe/ax/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.ryoppippi ];

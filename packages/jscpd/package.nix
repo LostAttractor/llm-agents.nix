@@ -6,12 +6,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "jscpd";
-  version = "5.0.15";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/kucherenko/jscpd/archive/refs/tags/v5.0.15.tar.gz";
-    hash = "sha256-F5Z1CjMEEpBClLUDajFnfmcLWWEXxZhvEJGluInsNIs=";
+    url = "https://github.com/kucherenko/jscpd/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   sourceRoot = "rust";
@@ -25,7 +28,7 @@ mkCargo {
   meta = {
     description = "Copy/paste detector for programming source code";
     homepage = "https://jscpd.dev";
-    changelog = "https://github.com/kucherenko/jscpd/releases/tag/v5.0.15";
+    changelog = "https://github.com/kucherenko/jscpd/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.mic92 ];

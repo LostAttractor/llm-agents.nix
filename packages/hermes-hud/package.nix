@@ -6,21 +6,24 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPython {
   pname = "hermes-hud";
-  version = "0.5.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/joeynyc/hermes-hud/archive/refs/tags/v0.5.0.tar.gz";
-    hash = "sha256-dC6PR/nlPJOKIs3JtUTJ1rHNGTlTRsx/EoyJsvFRBFw=";
+    url = "https://github.com/joeynyc/hermes-hud/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  pythonDepsHash = "sha256-e84Hk4Sf7dstI0+XpsbaEQk24bdyujxGG0DCv7fFbFM=";
+  pythonDepsHash = data.pythonDepsHash;
   entrypoints.hermes-hud = "hermes_hud.hud:main";
 
   category = "AI Assistants";
   meta = {
     description = "TUI consciousness monitor for Hermes Agent";
     homepage = "https://github.com/joeynyc/hermes-hud";
-    changelog = "https://github.com/joeynyc/hermes-hud/releases/tag/v0.5.0";
+    changelog = "https://github.com/joeynyc/hermes-hud/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.smdex ];

@@ -8,12 +8,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "cc-switch-cli";
-  version = "5.10.1";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/SaladDay/cc-switch-cli/archive/refs/tags/v5.10.1.tar.gz";
-    hash = "sha256-jgMgK7RSVaUvdBMr1zEPfbRL25g/y3c3ZC1Ar1h3drI=";
+    url = "https://github.com/SaladDay/cc-switch-cli/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   sourceRoot = "src-tauri";
@@ -26,7 +29,7 @@ mkCargo {
   meta = {
     description = "CLI version of CC Switch - All-in-One Assistant for Claude Code, Codex & Gemini CLI";
     homepage = "https://github.com/SaladDay/cc-switch-cli";
-    changelog = "https://github.com/SaladDay/cc-switch-cli/releases/tag/v5.10.1";
+    changelog = "https://github.com/SaladDay/cc-switch-cli/releases/tag/v${data.version}";
     downloadPage = "https://github.com/SaladDay/cc-switch-cli/releases";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];

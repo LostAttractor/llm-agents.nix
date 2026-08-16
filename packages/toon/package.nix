@@ -6,12 +6,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "toon-format";
-  version = "0.5.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://static.crates.io/crates/toon-format/toon-format-0.5.0.crate";
-    hash = "sha256-j4lXDBpo1zlB9yjMoypDRbL/yjZmetkhrzNsYDCaPn4=";
+    url = "https://static.crates.io/crates/toon-format/toon-format-${data.version}.crate";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   binaries = [ "toon" ];
@@ -24,7 +27,7 @@ mkCargo {
   meta = {
     description = "Rust implementation of TOON - Token-Oriented Object Notation for LLM prompts";
     homepage = "https://github.com/toon-format/toon-rust";
-    changelog = "https://github.com/toon-format/toon-rust/releases/tag/v0.5.0";
+    changelog = "https://github.com/toon-format/toon-rust/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.antono ];

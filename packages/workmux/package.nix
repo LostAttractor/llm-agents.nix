@@ -7,12 +7,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "workmux";
-  version = "0.1.238";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/raine/workmux/archive/refs/tags/v0.1.238.tar.gz";
-    hash = "sha256-NIIz2qgc1VLPsEFr13ZBNOAcIomwF17InZG+9YRfEY0=";
+    url = "https://github.com/raine/workmux/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   binaries = [ "workmux" ];
@@ -28,7 +31,7 @@ mkCargo {
   meta = {
     description = "Git worktrees + tmux windows for zero-friction parallel dev";
     homepage = "https://github.com/raine/workmux";
-    changelog = "https://github.com/raine/workmux/blob/v0.1.238/CHANGELOG.md";
+    changelog = "https://github.com/raine/workmux/blob/v${data.version}/CHANGELOG.md";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ ];

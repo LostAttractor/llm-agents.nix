@@ -6,23 +6,26 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPython {
   pname = "mcptoon";
-  version = "0.4.1";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/activeing123/mcptoon/archive/refs/tags/v0.4.1.tar.gz";
-    hash = "sha256-wVj2Nn57opNxYojS/MO72m8FDIhFCmDFuBNZjsIDkGc=";
+    url = "https://github.com/activeing123/mcptoon/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  pythonDepsHash = "sha256-6NnsvvlZ4pFyAwB9pcaokkg7cfdojyQuZCUfy0XEv/g=";
+  pythonDepsHash = data.pythonDepsHash;
   entrypoints.mcptoon = "mcptoon.cli:main";
   # upstream tags without bumping __version__; the CLI banner prints it.
-  postPatch = ''sed -i -E 's/^__version__ = ".*"/__version__ = "0.4.1"/' src/mcptoon/__init__.py'';
+  postPatch = ''sed -i -E 's/^__version__ = ".*"/__version__ = "${data.version}"/' src/mcptoon/__init__.py'';
 
   category = "Utilities";
   meta = {
     description = "Token-efficient MCP CLI client that converts tool discovery and results to compact TOON output";
     homepage = "https://github.com/activeing123/mcptoon";
-    changelog = "https://github.com/activeing123/mcptoon/releases/tag/v0.4.1";
+    changelog = "https://github.com/activeing123/mcptoon/releases/tag/v${data.version}";
     license = flake.lib.licenses.asl20;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.zimbatm ];

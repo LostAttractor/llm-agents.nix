@@ -7,12 +7,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "terminal-use";
-  version = "1.2.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/flipbit03/terminal-use/archive/refs/tags/v1.2.0.tar.gz";
-    hash = "sha256-B2XJtaJzPxt91vtndcRX2TBLB9AFfrzSTsJf3Z38cNk=";
+    url = "https://github.com/flipbit03/terminal-use/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   binaries = [ "tu" ];
@@ -28,7 +31,7 @@ mkCargo {
       agent.
     '';
     homepage = "https://github.com/flipbit03/terminal-use";
-    changelog = "https://github.com/flipbit03/terminal-use/releases/tag/v1.2.0";
+    changelog = "https://github.com/flipbit03/terminal-use/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     mainProgram = "tu";

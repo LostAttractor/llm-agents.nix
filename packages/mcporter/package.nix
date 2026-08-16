@@ -6,14 +6,17 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPnpm {
   pname = "mcporter";
-  version = "0.13.7";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/openclaw/mcporter/archive/refs/tags/v0.13.7.tar.gz";
-    hash = "sha256-EajnDVMaIQt0BYPooZLAsJz5zaXJFIGNBot9BEhAUY8=";
+    url = "https://github.com/openclaw/mcporter/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  pnpmDepsHash = "sha256-wzkkbtvpTt1rUB8W0Mm36cbRzMT5pNVlosGajuEG5ss=";
+  pnpmDepsHash = data.pnpmDepsHash;
   entry = "dist/cli.js";
   # upstream's lockfile predates the pnpm.overrides vite entry; align the
   # specifier so pnpm accepts the frozen lockfile.

@@ -7,14 +7,17 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPython {
   pname = "bernstein";
-  version = "3.15.1";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/sipyourdrink-ltd/bernstein/archive/refs/tags/v3.15.1.tar.gz";
-    hash = "sha256-jwnfeGTwGYvK6LXrVWCmFNDqpdQmzHaLMSMKOfZmh14=";
+    url = "https://github.com/sipyourdrink-ltd/bernstein/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  pythonDepsHash = "sha256-or3A8luJXLlw+5fdPX8wdzql1VP966GMDkh7726pTak=";
+  pythonDepsHash = data.pythonDepsHash;
   entrypoints = {
     bernstein = "bernstein.cli.main:cli";
     bernstein-worker = "bernstein.core.worker:main";
@@ -26,7 +29,7 @@ mkPython {
   # core/__init__.py still references at runtime; removing the exclude keeps the
   # full package tree in the installed site.
   postPatch = ''
-    sed -i -E 's/^version = ".*"/version = "3.15.1"/' pyproject.toml
+    sed -i -E 's/^version = ".*"/version = "${data.version}"/' pyproject.toml
     sed -i '/^exclude = \[/,/^\]/d' pyproject.toml
   '';
 
@@ -34,7 +37,7 @@ mkPython {
   meta = {
     description = "Multi-agent orchestrator for CLI coding agents — spawn, coordinate, and manage parallel AI agents";
     homepage = "https://github.com/sipyourdrink-ltd/bernstein";
-    changelog = "https://github.com/sipyourdrink-ltd/bernstein/releases/tag/v3.15.1";
+    changelog = "https://github.com/sipyourdrink-ltd/bernstein/releases/tag/v${data.version}";
     license = flake.lib.licenses.asl20;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.chernistry ];

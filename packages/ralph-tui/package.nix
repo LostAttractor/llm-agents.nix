@@ -8,14 +8,17 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkBun {
   pname = "ralph-tui";
-  version = "0.12.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/subsy/ralph-tui/archive/refs/tags/v0.12.0.tar.gz";
-    hash = "sha256-KsyIEvZaal/e3hxG9zZxQ1r7rd3IO84Ka1LtCgoRvZo=";
+    url = "https://github.com/subsy/ralph-tui/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  bunDepsHash = "sha256-eRfGuZKCAkmDVpreHi7vmBPFHBlKCoPTeYwVX5eC3x4=";
+  bunDepsHash = data.bunDepsHash;
   buildScript = "run build";
   entry = "dist/cli.js";
 
@@ -23,7 +26,7 @@ mkBun {
   meta = {
     description = "AI Agent Loop Orchestrator TUI";
     homepage = "https://github.com/subsy/ralph-tui";
-    changelog = "https://github.com/subsy/ralph-tui/releases/tag/v0.12.0";
+    changelog = "https://github.com/subsy/ralph-tui/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.afterthought ];

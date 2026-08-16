@@ -8,6 +8,7 @@
   flake,
 }:
 let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
   # litellm rev pinned by the tag's flake.lock (nodes.litellm.locked.rev).
   litellm-pricing = coreFetchurl {
     url = "https://raw.githubusercontent.com/BerriAI/litellm/34561482ed092d78c296cab7999486022af5a938/model_prices_and_context_window.json";
@@ -16,10 +17,10 @@ let
 in
 mkCargo {
   pname = "ccusage";
-  version = "20.0.19";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/ccusage/ccusage/archive/refs/tags/v20.0.19.tar.gz";
-    hash = "sha256-WB0+HQYbIbhew8pw7vt3e3mwmvUmzhrIO1GiFwQuvls=";
+    url = "https://github.com/ccusage/ccusage/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   sourceRoot = "rust";
   cargoLock = ./Cargo.lock;
@@ -32,14 +33,14 @@ mkCargo {
   ];
   extraEnv = {
     CCUSAGE_PRICING_JSON_PATH = "${litellm-pricing}";
-    CCUSAGE_VERSION = "20.0.19";
+    CCUSAGE_VERSION = data.version;
   };
 
   category = "Usage Analytics";
   meta = {
     description = "Analyze coding agent CLI token usage and costs from local data";
     homepage = "https://ccusage.com/";
-    changelog = "https://github.com/ccusage/ccusage/releases/tag/v20.0.19";
+    changelog = "https://github.com/ccusage/ccusage/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.ryoppippi ];

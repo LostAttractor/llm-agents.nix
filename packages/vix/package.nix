@@ -6,12 +6,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "vix";
-  version = "0.5.7";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/get-vix/vix/archive/refs/tags/v0.5.7.tar.gz";
-    hash = "sha256-/yE7Xt7DLpylDU3ZuZizjCySxxMq4g1z1TfhaYB61GQ=";
+    url = "https://github.com/get-vix/vix/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
   cgo = true;
   subPackages = [
@@ -25,13 +28,13 @@ mkGo {
   ldflags = [
     "-s"
     "-w"
-    "-X main.Version=0.5.7"
+    "-X main.Version=${data.version}"
   ];
   category = "AI Coding Agents";
   meta = {
     description = "Sleek, Fast and Token Efficient AI Coding Agent";
     homepage = "https://github.com/get-vix/vix";
-    changelog = "https://github.com/get-vix/vix/releases/tag/v0.5.7";
+    changelog = "https://github.com/get-vix/vix/releases/tag/v${data.version}";
     license = flake.lib.licenses.agpl3Only;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.daspk04 ];

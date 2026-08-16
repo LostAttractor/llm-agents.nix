@@ -11,15 +11,18 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkNpm {
   pname = "sandbox-runtime";
-  version = "0.0.73";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://registry.npmjs.org/@anthropic-ai/sandbox-runtime/-/sandbox-runtime-0.0.73.tgz";
-    hash = "sha256-FVVaHpGfbxFLprbk2TKJ3w139yrpKhI2d41EIbF6Zs4=";
+    url = "https://registry.npmjs.org/@anthropic-ai/sandbox-runtime/-/sandbox-runtime-${data.version}.tgz";
+    inherit (data) hash;
   };
   packageLock = ./package-lock.json;
-  npmDepsHash = "sha256-OYdUIyOV6TIaewr6QMX52ke1ifGjzE3I64gUXa1NGB4=";
+  npmDepsHash = data.npmDepsHash;
   buildScript = "";
   nativeAddons = true;
   mainProgram = "srt";

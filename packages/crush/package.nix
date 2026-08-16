@@ -6,26 +6,29 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "crush";
-  version = "0.89.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/charmbracelet/crush/archive/refs/tags/v0.89.0.tar.gz";
-    hash = "sha256-sKLpq9SNcNJtvPwaqLgQ3hBJkem/qAJSlowvpPxkY6U=";
+    url = "https://github.com/charmbracelet/crush/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-zY45d6TIUNmL8qriE8LQkxdOSHTEKDasbzNHeHyEbiI=";
+  vendorHash = data.vendorHash;
   binaries = [ "crush" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=github.com/charmbracelet/crush/internal/version.Version=0.89.0"
+    "-X=github.com/charmbracelet/crush/internal/version.Version=${data.version}"
   ];
 
   category = "AI Coding Agents";
   meta = {
     description = "Glamourous AI coding agent for your favourite terminal";
     homepage = "https://github.com/charmbracelet/crush";
-    changelog = "https://github.com/charmbracelet/crush/releases/tag/v0.89.0";
+    changelog = "https://github.com/charmbracelet/crush/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.zimbatm ];

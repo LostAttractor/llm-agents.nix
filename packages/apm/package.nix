@@ -7,21 +7,24 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkPython {
   pname = "apm";
-  version = "0.28.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/microsoft/apm/archive/refs/tags/v0.28.0.tar.gz";
-    hash = "sha256-cuAfSdY8uF8Iy1SxdfQau2OhnbdLw45GYjY/DHL/Eqo=";
+    url = "https://github.com/microsoft/apm/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  pythonDepsHash = "sha256-o1YLVL5iY3s4gpicuFCcZVfV3cv7hpW2euHtZV28d4M=";
+  pythonDepsHash = data.pythonDepsHash;
   entrypoints.apm = "apm_cli.cli:main";
 
   category = "Utilities";
   meta = {
     description = "Agent Package Manager — dependency manager for AI agents";
     homepage = "https://github.com/microsoft/apm";
-    changelog = "https://github.com/microsoft/apm/releases/tag/v0.28.0";
+    changelog = "https://github.com/microsoft/apm/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
   };

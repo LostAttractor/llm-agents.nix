@@ -7,22 +7,25 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkNpm {
   pname = "skills";
-  version = "1.5.22";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://registry.npmjs.org/skills/-/skills-1.5.22.tgz";
-    hash = "sha256-EM7jkTnevmwBiPRycZSt5ZI0snfMyiMg4+1rYg7n8Us=";
+    url = "https://registry.npmjs.org/skills/-/skills-${data.version}.tgz";
+    inherit (data) hash;
   };
   packageLock = ./package-lock.json;
-  npmDepsHash = "sha256-OFkWnpgtXqWNVnoE/FrwcF8MB1AJpk5DuJbNJHEqNus=";
+  npmDepsHash = data.npmDepsHash;
   buildScript = "";
   nativeAddons = true;
   category = "Skills & Plugins";
   meta = {
     description = "The open agent skills tool for installing and managing skills across AI coding agents";
     homepage = "https://github.com/vercel-labs/skills";
-    changelog = "https://github.com/vercel-labs/skills/releases/tag/v1.5.22";
+    changelog = "https://github.com/vercel-labs/skills/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = with flake.lib.maintainers; [ kusold ];

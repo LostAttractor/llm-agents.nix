@@ -6,12 +6,15 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkCargo {
   pname = "claw-code";
-  version = "0-unstable-2026-08-06";
+  inherit (data) version;
   src = coreFetchurl {
     url = "https://github.com/ultraworkers/claw-code/archive/b71afddae100ced324457337925a694686b8fef2.tar.gz";
-    hash = "sha256-TtGGhfvW35wromWjHyJV6kHc1kzq7ZjbYOeNxolr9kE=";
+    inherit (data) hash;
   };
   cargoLock = ./Cargo.lock;
   sourceRoot = "rust";

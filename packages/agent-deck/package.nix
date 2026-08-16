@@ -6,27 +6,30 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "agent-deck";
-  version = "1.11.0";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/asheshgoplani/agent-deck/archive/refs/tags/v1.11.0.tar.gz";
-    hash = "sha256-+VzpVBzTdJ+6N268s/G9E+tVVw9g9v8NXEOpWnQJEqs=";
+    url = "https://github.com/asheshgoplani/agent-deck/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-rLhOjYfLAPPRTfLFPMlxrjSSqmHFmPoXPFZbaevEgtw=";
+  vendorHash = data.vendorHash;
   subPackages = [ "cmd/agent-deck" ];
   binaries = [ "agent-deck" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=main.Version=1.11.0"
+    "-X=main.Version=${data.version}"
   ];
 
   category = "Workflow & Project Management";
   meta = {
     description = "Your AI agent command center";
     homepage = "https://github.com/asheshgoplani/agent-deck";
-    changelog = "https://github.com/asheshgoplani/agent-deck/releases/tag/v1.11.0";
+    changelog = "https://github.com/asheshgoplani/agent-deck/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.garbas ];

@@ -6,22 +6,25 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "fence";
-  version = "0.1.66";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/fencesandbox/fence/archive/refs/tags/v0.1.66.tar.gz";
-    hash = "sha256-ps5FglS6jXS4T0D16ZvS+I/S5xyKfKCWLjJgwLbW/K8=";
+    url = "https://github.com/fencesandbox/fence/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-WjhfAw8wgxvTbTkYwURm9vN2oSvQWiMP2RhwZDCQ0DU=";
+  vendorHash = data.vendorHash;
   subPackages = [ "cmd/fence" ];
   binaries = [ "fence" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=main.version=0.1.66"
+    "-X=main.version=${data.version}"
     "-X=main.buildTime=1970-01-01T00:00:00Z"
-    "-X=main.gitCommit=v0.1.66"
+    "-X=main.gitCommit=v${data.version}"
   ];
 
   category = "Sandboxing & Isolation";

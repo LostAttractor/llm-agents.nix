@@ -6,27 +6,30 @@
   coreFetchurl,
   flake,
 }:
+let
+  data = builtins.fromJSON (builtins.readFile ./hashes.json);
+in
 mkGo {
   pname = "reasonix";
-  version = "1.25.2";
+  inherit (data) version;
   src = coreFetchurl {
-    url = "https://github.com/esengine/DeepSeek-Reasonix/archive/refs/tags/v1.25.2.tar.gz";
-    hash = "sha256-x/3lh3b2zINYPuQf/4Qyb2Luj29tLp31LepUgYBsnyc=";
+    url = "https://github.com/esengine/DeepSeek-Reasonix/archive/refs/tags/v${data.version}.tar.gz";
+    inherit (data) hash;
   };
-  vendorHash = "sha256-uKrReMcR7L+8E4t/jY32/YW11bXROgtwl9kl4KxgQdM=";
+  vendorHash = data.vendorHash;
   subPackages = [ "cmd/reasonix" ];
   binaries = [ "reasonix" ];
   ldflags = [
     "-s"
     "-w"
-    "-X=main.version=v1.25.2"
+    "-X=main.version=v${data.version}"
   ];
 
   category = "AI Coding Agents";
   meta = {
     description = "DeepSeek-native AI coding agent for your terminal";
     homepage = "https://github.com/esengine/DeepSeek-Reasonix";
-    changelog = "https://github.com/esengine/DeepSeek-Reasonix/releases/tag/v1.25.2";
+    changelog = "https://github.com/esengine/DeepSeek-Reasonix/releases/tag/v${data.version}";
     license = flake.lib.licenses.mit;
     sourceProvenance = [ flake.lib.sourceTypes.fromSource ];
     maintainers = [ flake.lib.maintainers.arch-fan ];
