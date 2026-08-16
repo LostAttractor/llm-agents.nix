@@ -75,12 +75,12 @@ in
   # so a consumer's package.nix stays terse (just `mkPackage { ... }`).
   lib = {
     mkPackage = args: import ./mk/package.nix (args // { inherit system pins; });
-    mkCargo = args: import ./mk/cargo.nix (args // { inherit system pins toolchains; });
-    mkGo = args: import ./mk/go.nix (args // { inherit system pins toolchains; });
-    mkNpm = args: import ./mk/npm.nix (args // { inherit system pins toolchains; });
-    mkBun = args: import ./mk/bun.nix (args // { inherit system pins toolchains; });
-    mkPnpm = args: import ./mk/pnpm.nix (args // { inherit system pins toolchains; });
-    mkPython = args: import ./mk/python.nix (args // { inherit system pins toolchains; });
+    mkCargo = args: import ./mk/cargo (args // { inherit system pins toolchains; });
+    mkGo = args: import ./mk/go (args // { inherit system pins toolchains; });
+    mkNpm = args: import ./mk/npm (args // { inherit system pins toolchains; });
+    mkBun = args: import ./mk/bun (args // { inherit system pins toolchains; });
+    mkPnpm = args: import ./mk/pnpm (args // { inherit system pins toolchains; });
+    mkPython = args: import ./mk/python (args // { inherit system pins toolchains; });
     mkDrvNu = args: import ./mk/drv-nu.nix (args // { inherit system; });
     mkDrvSh = args: import ./mk/drv-sh.nix (args // { inherit system; });
     checkFhs = args: import ./mk/check-fhs.nix (args // { inherit system pins; });

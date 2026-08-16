@@ -5,12 +5,13 @@
 # built-in tar/unzip/xz).
 {
   name,
-  script,
+  script, # inline nushell string, OR a path to a .nu file (readFile'd)
   env ? { },
   system,
 }:
 let
   seed = import ../seed { inherit system; };
+  scriptText = if builtins.isPath script then builtins.readFile script else script;
   isDarwin = builtins.match ".*-darwin" system != null;
   # Darwin has no static busybox; use the sandbox's system tools (/usr/bin, /bin)
   # like nixpkgs' darwin stdenv. nushell has mkdir/cp/ln/mv built-in; only
@@ -45,7 +46,7 @@ derivation (
       "--no-config-file"
       "--commands"
       (builtins.replaceStrings [ "@busybox@" ] [ (if isDarwin then "" else "${seed.busybox}") ] (
-        prelude + "\n" + script
+        prelude + "\n" + scriptText
       ))
     ];
   }

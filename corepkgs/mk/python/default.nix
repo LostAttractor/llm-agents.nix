@@ -1,5 +1,5 @@
 # mkPython: build a Python application from source, nixpkgs-free. Deps vendored
-# by vendor/python.nix (a site-packages FOD from `pip install --target`, our own
+# by vendor/python (a site-packages FOD from `pip install --target`, our own
 # hash). Installs the site tree under $out/lib/pysite and wraps each console entry
 # point as a launcher running the toolchain python with that tree on PYTHONPATH.
 # Pure-python + manylinux-wheel deps only; sdist-compiled C deps out of scope.
@@ -20,9 +20,9 @@
   toolchains,
 }:
 let
-  mkDrvSh = import ./drv-sh.nix;
+  mkDrvSh = import ../drv-sh.nix;
   inherit (toolchains) python;
-  vendor = import ../vendor/python.nix {
+  vendor = import ../../vendor/python {
     inherit
       src
       pythonDepsHash
@@ -70,14 +70,11 @@ let
   drv = mkDrvSh {
     inherit system;
     name = "${pname}-${version}";
-    env = { inherit vendor python; };
-    script = ''
-      mkdir -p "$out/bin" "$out/lib"
-      # the vendored site tree (app + deps) becomes $out/lib/pysite
-      cp -r "$vendor" "$out/lib/pysite"
-      chmod -R u+w "$out/lib/pysite"
-      ${wrapperScript}
-    '';
+    env = {
+      inherit vendor python;
+      inherit wrapperScript; # per-entrypoint launchers, eval'd in the builder
+    };
+    script = ./builder.sh;
   };
 in
 drv

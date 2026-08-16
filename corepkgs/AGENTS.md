@@ -51,6 +51,28 @@ default arg you can override without touching a constructor:
 Swapping either provider is the **bootstrap seam** — e.g. a from-source /
 GNU Mes bootstrap is a provider swap, no constructor changes.
 
+## Builder scripts live in `builder.sh`
+
+Each from-source constructor and vendorer is a **directory**:
+`mk/<name>/{default.nix, builder.sh}` and `vendor/<name>/{default.nix, builder.sh}`. `default.nix` computes the derivation and passes the build script
+as a path — `script = ./builder.sh` — so the script is a real, syntax-
+highlighted file that treefmt **shellcheck**s and **shfmt**s. `mkDrvSh` /
+`mkDrvNu` accept `script` as an inline string OR a path (readFile'd). Values
+reach the script only through `env` (no Nix `${}` interpolation in a raw `.sh`);
+Nix-computed shell fragments (a git-source config block, rendered bin wrappers)
+are passed as env vars and `eval`'d. The `.sh` files carry `set -eu` from the
+mkDrvSh prelude (not visible standalone), so they open with
+`# shellcheck disable=SC2154,SC2164` (env vars; cd-guarded-by-set-e).
+
+The two **nushell** builders (`mk/package.nix` mkPackage, `mk/check-fhs.nix`)
+stay inline single files: nushell resolves variables at parse time, so a
+standalone `.nu` referencing the prelude's `$attrs`/`$out` fails `nu-check`, and
+nushell has no formatter anyway (only parse-check). No extraction benefit.
+
+`mkDrvSh` builds a **FOD** when given `outputHash` (+ `outputHashMode`,
+default recursive) — the deps vendorers use this, so they route through mkDrvSh
+instead of hand-rolling `derivation {}` with a duplicated busybox prelude.
+
 ## Constructors and the FOD hash pattern
 
 - `mkPackage` — prebuilt binaries (patchelf/loader/wrap).
@@ -115,7 +137,9 @@ bundles (keytar/sharp/torch-CUDA), sdist-C-compile (python), exotic build tools
 The top-level holds only the entry points (`default.nix`, `flake.nix`) + docs;
 everything else is a directory:
 
-`mk/` constructors · `vendor/` dep vendorers · `toolchains/default.nix` (the
+`mk/` constructors (drv-nu.nix, drv-sh.nix, package.nix, check-fhs.nix +
+`<name>/{default.nix,builder.sh}` per source constructor) · `vendor/` dep
+vendorers (`<name>/{default.nix,builder.sh}`) · `toolchains/default.nix` (the
 provider) · `fetch/` (owned fetch primitives) · `lib/` (meta helpers) ·
 `packages/` (machinery helpers + the `-bin` toolchain packages) · `pins/`
 (pkgs/store/closure providers) · `seed/` (`default.nix` = the busybox+nushell

@@ -5,12 +5,18 @@
 # check-fhs.) Boots busybox applets onto PATH via `exec -a busybox`.
 {
   name,
-  script,
+  script, # inline sh string, OR a path to a .sh file (readFile'd) so the builder
+  # lives in its own syntax-highlighted, shellcheck'd, shfmt'd file
   env ? { },
   system,
+  # FOD knob: set outputHash to make this a fixed-output derivation (the deps
+  # vendorers need network + a committed hash). null = a normal build.
+  outputHash ? null,
+  outputHashMode ? "recursive",
 }:
 let
   fetchurl = import ../fetch/fetchurl.nix;
+  scriptText = if builtins.isPath script then builtins.readFile script else script;
   isDarwin = builtins.match ".*-darwin" system != null;
   # Linux bundles a static busybox; Darwin has none, so use the sandbox's system
   # tools (/usr/bin/tar, /bin/chmod) like nixpkgs' darwin stdenv.
@@ -46,8 +52,17 @@ derivation (
     args = [
       "-c"
       (builtins.replaceStrings [ "@busybox@" ] [ (if isDarwin then "" else "${busybox}") ] (
-        prelude + "\n" + script
+        prelude + "\n" + scriptText
       ))
     ];
   }
+  // (
+    if outputHash == null then
+      { }
+    else
+      {
+        outputHashAlgo = "sha256";
+        inherit outputHash outputHashMode;
+      }
+  )
 )

@@ -51,12 +51,17 @@ mk/             constructors + derivation primitives
   drv-nu.nix    mkDrvNu: nushell builder (__structuredAttrs -> JSON attrs); for
                 data-processing builds (check-fhs, hello)
   drv-sh.nix    mkDrvSh: /bin/sh + busybox builder; the workhorse for the
-                vendorers + source constructors (shell-glue builds)
-  package.nix   mkPackage — prebuilt-binary → package (platformSource + patchelf/
-                loader-wrap + makeWrapper)
-  cargo.nix go.nix npm.nix bun.nix pnpm.nix python.nix   from-source constructors
-  check-fhs.nix assert an output is store-only (no ELF left on a host loader)
-vendor/         dependency vendorers (cargo/go/npm/bun/pnpm/python)
+                vendorers + source constructors (shell-glue builds). `script`
+                takes an inline string OR a path; `outputHash` makes it a FOD.
+  package.nix   mkPackage — prebuilt-binary → package (nushell script inline)
+  check-fhs.nix assert an output is store-only (nushell script inline)
+  <name>/       from-source constructor per dir: {default.nix, builder.sh}
+                (cargo, go, npm, bun, pnpm, python). The builder script lives in
+                builder.sh so it is syntax-highlighted, shellcheck'd + shfmt'd;
+                default.nix passes it as `script = ./builder.sh` with values
+                threaded through `env`.
+vendor/         dependency vendorers, same {default.nix, builder.sh} per dir
+                (cargo, go, npm, bun, pnpm, python); each a FOD via mkDrvSh
 toolchains/     default.nix — the provider; maps logical keys (rust, go, …) to the
                 -bin toolchain packages, threaded through the constructor scope
 fetch/          fetch primitives (fetchurl · builtin-fetchurl · interpolate ·

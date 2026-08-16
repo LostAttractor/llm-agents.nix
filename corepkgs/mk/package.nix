@@ -130,7 +130,7 @@ let
       inherit extraArgs aliases; # wrapper flags + argv0-aliased wrappers
       runtimePath = builtins.concatStringsSep ":" (map (p: "${p}/bin") runtimePkgs);
     };
-    # Nushell builder (see drv.nix): `$attrs` = JSON attrs record, `$out` = output
+    # Nushell builder (see drv-nu.nix): `$attrs` = JSON attrs record, `$out` = output
     # path, busybox applets are external `^cmd`s on PATH.
     script = ''
       mkdir $"($out)/bin" $"($out)/libexec"
