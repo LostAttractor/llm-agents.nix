@@ -21,6 +21,7 @@ def update_platform_binaries(
     fetch_latest: Callable[[], str],
     url_template: str,
     platforms: dict[str, str],
+    allow_downgrade: bool = False,
 ) -> None:
     """Update a package that repackages prebuilt per-platform binaries.
 
@@ -35,7 +36,8 @@ def update_platform_binaries(
 
     print(f"Current: {current}, Latest: {latest}")
 
-    if not should_update(current, latest):
+    changed = current != latest if allow_downgrade else should_update(current, latest)
+    if not changed:
         print("Already up to date")
         return
 
