@@ -68,6 +68,7 @@ stdenv.mkDerivation {
         package = "@opencode-ai/cli";
         tag = "beta";
       };
+      versionPolicy = "follow_pointer";
     }
   );
 
