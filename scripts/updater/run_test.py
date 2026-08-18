@@ -119,6 +119,7 @@ class TestRun(unittest.TestCase):
                 },
                 "urlTemplate": "https://x/{version}/{platform}",
                 "platforms": {"x86_64-linux": "linux-x64.tar.gz"},
+                "versionPolicy": "follow_pointer",
             },
             flows=flows,  # type: ignore[arg-type]
         )
@@ -126,6 +127,7 @@ class TestRun(unittest.TestCase):
         assert rec.kwargs is not None
         self.assertEqual(rec.kwargs["url_template"], "https://x/{version}/{platform}")
         self.assertEqual(rec.kwargs["platforms"], {"x86_64-linux": "linux-x64.tar.gz"})
+        self.assertTrue(rec.kwargs["allow_downgrade"])
         self.assertTrue(callable(rec.kwargs["fetch_latest"]))
 
     def test_platform_version_sources(self) -> None:
