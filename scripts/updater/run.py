@@ -131,6 +131,7 @@ def run(pkg_dir: Path, config: dict[str, Any], *, flows: FlowMap | None = None) 
             fetch_latest=_version_getter(config["versionSource"]),
             url_template=config["urlTemplate"],
             platforms=config["platforms"],
+            allow_downgrade=config.get("versionPolicy") == "follow_pointer",
         )
     elif kind == "manifest":
         platform_map = {
